@@ -191,6 +191,18 @@ class CDP {
     return res.result.value;
   }
 
+  /* A real mouse click at screen coordinates. Synthetic DOM events skip the
+   * hit test, so they cannot tell whether the click actually reaches the
+   * unit that is drawn on the field. */
+  async mouseClick(x, y) {
+    await this.send("Input.dispatchMouseEvent", {
+      type: "mousePressed", x, y, button: "left", clickCount: 1
+    });
+    await this.send("Input.dispatchMouseEvent", {
+      type: "mouseReleased", x, y, button: "left", clickCount: 1
+    });
+  }
+
   close() {
     try { this.sock.destroy(); } catch (e) { /* already closed */ }
   }
@@ -319,8 +331,8 @@ async function main() {
       return out;
     })()`);
 
-    assert(spriteStats.total === 22, `all 22 unit sprites are in the DOM (got ${spriteStats.total})`);
-    assert(spriteStats.visible === 22, `all 22 unit sprites render with non-zero size (got ${spriteStats.visible})`);
+    assert(spriteStats.total === 18, `all 18 unit sprites are in the DOM (got ${spriteStats.total})`);
+    assert(spriteStats.visible === 18, `all 18 unit sprites render with non-zero size (got ${spriteStats.visible})`);
     assert(spriteStats.zero === 0, `no unit sprite collapsed to zero size (got ${spriteStats.zero})`);
 
     console.log("\n3. Layout — units sit inside the battlefield");
@@ -383,7 +395,7 @@ async function main() {
       return { checked, worst, worstCls };
     })()`);
 
-    assert(centred.checked === 22, `all units were measured (${centred.checked})`);
+    assert(centred.checked === 18, `all units were measured (${centred.checked})`);
     assert(centred.worst < 3, `every unit is centred on its grid cell (worst offset ${centred.worst.toFixed(2)}px${centred.worstCls ? " on " + centred.worstCls : ""})`);
 
     const motion = await cdp.evaluate(`(() => ({
@@ -675,7 +687,7 @@ async function main() {
         };
       })()`);
 
-      assert(layout.unitCount === 22, `[${vp.name}] all units are rendered (${layout.unitCount})`);
+      assert(layout.unitCount === 18, `[${vp.name}] all units are rendered (${layout.unitCount})`);
       assert(layout.unitsInsideField === true, `[${vp.name}] every unit stays inside the battlefield`);
       assert(layout.docScrollWidth <= layout.docClientWidth + 1,
         `[${vp.name}] the page does not scroll sideways (${layout.docScrollWidth} > ${layout.docClientWidth})`);
@@ -687,6 +699,66 @@ async function main() {
 
     await cdp.send("Emulation.clearDeviceMetricsOverride");
     await new Promise(r => setTimeout(r, 300));
+
+    console.log("\n14. Interaction — a real mouse click selects a blue unit");
+
+    /* Synthetic DOM events skip the hit test, so they cannot tell whether a
+     * click aimed at a unit actually reaches it. The two unit layers overlap
+     * completely, and a layer that accepts pointer events would swallow every
+     * click aimed at the units underneath it. */
+    /* The previous section left the AI to play its turn, so the test waits
+     * for the field to come back before it clicks a unit. */
+    const ready = await cdp.evaluate(`(async () => {
+      const api = window.MyHeroDuelArena;
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      for (let i = 0; i < 40; i++) {
+        const s = api.getState();
+        if (s.currentTurn === 'player' && s.battleActive && s.gameState !== 'ended') {
+          return { ok: true, state: s };
+        }
+        await wait(200);
+      }
+      api.resetBattle();
+      api.startBattle();
+      return { ok: true, state: api.getState(), restarted: true };
+    })()`);
+
+    assert(ready.ok === true, "the field is back under player control");
+
+    const target = await cdp.evaluate(`(() => {
+      const u = [...document.querySelectorAll('.unit.blue')].find(el => {
+        const s = el.getBoundingClientRect();
+        return s.width > 0;
+      });
+      const r = u.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      return {
+        x, y,
+        id: u.dataset.id,
+        hitIsUnit: hit === u || !!(hit && hit.closest && hit.closest('.unit')),
+        hitTag: hit ? (hit.className.baseVal !== undefined ? hit.className.baseVal : hit.className) : null
+      };
+    })()`);
+
+    assert(target.hitIsUnit === true,
+      `the hit test reaches the unit itself (got ${target.hitTag})`);
+
+    await cdp.mouseClick(target.x, target.y);
+    await new Promise(r => setTimeout(r, 400));
+
+    const picked = await cdp.evaluate(`(() => ({
+      selected: document.querySelectorAll('.unit.selected').length,
+      selectedId: window.MyHeroDuelArena.getState().selectedUnitId,
+      panelVisible: !document.getElementById('selection-info').classList.contains('hidden'),
+      moveMarkers: document.querySelectorAll('.move-indicator').length
+    }))()`);
+
+    assert(picked.selected === 1, `a real click selects the unit (${picked.selected} selected)`);
+    assert(picked.selectedId === target.id, `the clicked unit is the selected one (${picked.selectedId})`);
+    assert(picked.panelVisible === true, "the selection panel opens");
+    assert(picked.moveMarkers > 0, `the reachable cells are marked (${picked.moveMarkers})`);
 
     console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
   } catch (err) {

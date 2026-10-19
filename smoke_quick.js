@@ -1,4 +1,4 @@
-/* DOM SMOKE TEST — myHeroDuelArena v1.2.0
+/* DOM SMOKE TEST — myHeroDuelArena v1.2.1
  * Run: node smoke_quick.js
  *
  * Verifies the real game.js against a minimal DOM stub: every element id
@@ -101,13 +101,13 @@ if (loaded.error === null) {
   const red = doc.getElementById("red-units");
   const terrain = doc.getElementById("terrain-layer");
 
-  assert(blue.children.length === 11, `11 blue unit elements rendered (got ${blue.children.length})`);
-  assert(red.children.length === 11, `11 red unit elements rendered (got ${red.children.length})`);
+  assert(blue.children.length === 9, `9 blue unit elements rendered (got ${blue.children.length})`);
+  assert(red.children.length === 9, `9 red unit elements rendered (got ${red.children.length})`);
 
   const blueIds = new Set(blue.children.map(c => c.dataset.id));
   const redIds = new Set(red.children.map(c => c.dataset.id));
-  assert(blueIds.size === 11, "blue unit element ids are unique");
-  assert(redIds.size === 11, "red unit element ids are unique");
+  assert(blueIds.size === 9, "blue unit element ids are unique");
+  assert(redIds.size === 9, "red unit element ids are unique");
 
   const overlap = [...blueIds].filter(id => redIds.has(id));
   assert(overlap.length === 0, "no unit element id appears in both armies");
@@ -266,10 +266,10 @@ if (loaded.error === null) {
 
   const afterIds = new Set(blue.children.map(c => c.dataset.id));
   assert(afterIds.size === beforeIds.size, "rematch keeps the same unit count (no duplicates)");
-  assert(blue.children.length === 11, "rematch renders exactly 11 blue units again");
+  assert(blue.children.length === 9, "rematch renders exactly 9 blue units again");
   assert(doc.getElementById("terrain-layer").children.length === 40, "rematch redraws the terrain layer");
   assert(doc.getElementById("combat-log").children.length >= 0, "combat log is reachable after reset");
-  assert(api.getUnits().size === 22, "rematch rebuilds exactly 22 units");
+  assert(api.getUnits().size === 18, "rematch rebuilds exactly 18 units");
 }
 
 /* --- TEST 10: CSS class coverage --- */
@@ -324,20 +324,39 @@ assert(markerBlocks.length > 0, "marker rules are present");
 assert(!/pointer-events:\s*none/.test(markerBlocks), "markers keep pointer-events enabled so they stay clickable");
 
 /* Units are centred with translate(-50%,-50%), which only lines up when the
- * box is anchored from the top. A `bottom` anchor would offset every unit. */
-const unitRule = css.match(/\.unit\s*\{[^}]*\}/);
-assert(unitRule && /transition:[^;]*top/.test(unitRule[0]), "unit transition animates `top`");
-assert(!unitRule || !/transition:[^;]*bottom/.test(unitRule[0]), "unit transition no longer animates `bottom`");
+ * box is anchored from the top. A `bottom` anchor would offset every unit.
+ * The selector must match the plain `.unit` rule and not a descendant
+ * selector such as `.units-layer > .unit`. */
+const unitRules = css.match(/(?:^|\}|\*\/)\s*\.unit\s*\{[^}]*\}/g) || [];
+const unitRule = unitRules.find(r => /transition:/.test(r));
+assert(!!unitRule, "the base unit rule is present");
+assert(unitRule && /transition:[^;]*top/.test(unitRule), "unit transition animates `top`");
+assert(!unitRule || !/transition:[^;]*bottom/.test(unitRule), "unit transition no longer animates `bottom`");
 
 /* The unit box must hug its content so the health bar stays on the sprite. */
-assert(unitRule && !/height:\s*25%/.test(unitRule[0]), "unit box no longer forces a 25% cell height");
+assert(unitRule && !/height:\s*25%/.test(unitRule), "unit box no longer forces a 25% cell height");
 
 /* The keyframe that animates `transform` replaces the unit's
  * translate(-50%, -50%) centring, which shifts every unit to the top-left
- * corner of its cell. Each transform keyframe must repeat the centring. */
+ * corner of its cell. Each keyframe used by a unit must repeat the
+ * centring; keyframes used by other controls are free to animate
+ * `transform`. */
+const unitAnimationNames = new Set();
+for (const rule of css.match(/[^{}]*\.unit[^{}]*\{[^}]*\}/g) || []) {
+  const animations = rule.match(/animation(?:-name)?\s*:\s*([^;}]+)/g) || [];
+  for (const decl of animations) {
+    for (const name of decl.replace(/^animation(?:-name)?\s*:\s*/, "").split(",")) {
+      const clean = name.trim().split(/\s+/)[0];
+      if (clean && clean !== "none") unitAnimationNames.add(clean);
+    }
+  }
+}
+assert(unitAnimationNames.size > 0, "the unit rules name their animations");
+
 const transformKeyframes = css.match(/@keyframes\s+(\S+)\s*\{(?:[^{}]|\{[^{}]*\})*\}/g) || [];
 for (const block of transformKeyframes) {
   const name = block.match(/@keyframes\s+(\S+)/)[1];
+  if (!unitAnimationNames.has(name)) continue;
   const frames = block.match(/\{[^{}]*transform\s*:[^;}]*[;}]/g) || [];
   for (const frame of frames) {
     if (!/transform\s*:/.test(frame)) continue;
@@ -363,6 +382,18 @@ const terrainRules = css.match(/\.terrain-layer\s*\{[^}]*\}/);
 assert(terrainRules && /pointer-events:\s*none/.test(terrainRules[0]), "the terrain layer ignores pointer events");
 const terrainCellRules = css.match(/\.terrain-cell\s*\{[^}]*\}/);
 assert(terrainCellRules && /pointer-events:\s*none/.test(terrainCellRules[0]), "terrain cells ignore pointer events");
+
+/* The two unit layers overlap completely, and the red layer is painted on
+ * top of the blue one. A layer that accepts pointer events would swallow
+ * every click aimed at the units underneath it, which is exactly the bug
+ * that made the blue legion impossible to select. The containers must
+ * ignore pointer events and only the units themselves accept them. */
+const unitsLayerRules = css.match(/\.units-layer\s*\{[^}]*\}/);
+assert(unitsLayerRules && /pointer-events:\s*none/.test(unitsLayerRules[0]),
+  "the unit layers ignore pointer events");
+const unitPointerRule = css.match(/\.units-layer\s*>\s*\.unit\s*\{[^}]*\}/);
+assert(unitPointerRule && /pointer-events:\s*auto/.test(unitPointerRule[0]),
+  "the units inside the layers accept pointer events");
 
 /* The AI turn pulse is applied to a battlefield ancestor of the unit layers. */
 assert(htmlIds.includes("battlefield"), "index.html exposes a battlefield container");

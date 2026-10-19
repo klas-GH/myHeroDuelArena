@@ -367,14 +367,27 @@ body {
   color: #ffd0bd;
 }
 
-/* 4.1 UNIT LAYERS — full field width, one cell per grid column */
+/* 4.1 UNIT LAYERS — full field width, one cell per grid column
+ *
+ * The two layers are transparent containers that overlap completely, and the
+ * red layer comes later in the document, so it paints on top of the blue one.
+ * A container that accepts pointer events would therefore swallow every click
+ * aimed at a unit in the layer underneath it. The containers ignore pointer
+ * events and only the units themselves accept them, exactly like the marker
+ * layers below.
+ */
 .units-layer {
   position: absolute;
   top: 46%;
   bottom: 8px;
   left: 0;
   width: 100%;
+  pointer-events: none;
   z-index: 3;
+}
+
+.units-layer > .unit {
+  pointer-events: auto;
 }
 
 /* 4.2 MARKER LAYERS */
@@ -1018,8 +1031,21 @@ body {
 }
 
 #start-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* The start control pulses when the player touches the field too early. The
+ * pulse uses the independent `translate` property so it never replaces a
+ * `transform` that positions the button. */
+#start-button.attention {
+  animation: start-attention 0.4s ease-in-out 3;
+  box-shadow: 0 0 0 3px rgba(233, 198, 108, 0.55);
+}
+
+@keyframes start-attention {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -2px; }
 }
 
 /* 8.4 SELECTION INFO */

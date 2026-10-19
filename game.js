@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.2.0 — CHAMPIONS, BATTLEFIELD TERRAIN & TACTICAL AI
+   myHeroDuelArena v1.2.1 — OCTAGONAL FIELD, TIGHTER FORMATIONS & FIXED SELECTION
    ==========================================================================
 
    SECTION GUIDE
@@ -32,6 +32,9 @@
        targeting, line-of-sight, damage and ability code.
      * Terrain is data, not decoration. Every cell has one terrain type and
        that type alone decides movement cost, cover, aim and sight.
+     * One distance rule. Movement, reach, weapon range and ability radii all
+       measure the octagonal way: the longest axis decides, so a diagonal
+       step costs the same as a straight one.
      * Permanent progression (champion level) is separate from battle state.
      * Every state change goes through one validation function.
    ========================================================================== */
@@ -41,7 +44,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.2.0";
+const APP_VERSION = "v1.2.1";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -60,13 +63,17 @@ const STATE_PLAYER_SELECTING = "player_selecting";
 const STATE_ENEMY_TURN = "enemy_turn";
 const STATE_ENDED = "ended";
 
-/* 1.3 UNIT TYPE STATS */
+/* 1.3 UNIT TYPE STATS
+ * Ranges are measured the octagonal way (see section 14), so a range of 3
+ * covers a 7x7 block around the unit. The ranged numbers are set so the
+ * area they sweep stays close to what it was on the old orthogonal grid.
+ */
 const UNIT_STATS = {
-  archer:   { hp: 40, atk: 14, def: 4,  move: 2, range: 4,  special: null },
-  footman:  { hp: 60, atk: 12, def: 6,  move: 1, range: 1,  special: null },
-  ballista: { hp: 45, atk: 18, def: 3,  move: 1, range: 5,  special: null },
-  chevalier:{ hp: 55, atk: 16, def: 5,  move: 3, range: 1,  special: null },
-  champion: { hp: 90, atk: 20, def: 8,  move: 2, range: 1,  special: "rally" }
+  archer:   { hp: 40, atk: 14, def: 4,  move: 2, range: 3, special: null },
+  footman:  { hp: 60, atk: 12, def: 6,  move: 1, range: 1, special: null },
+  ballista: { hp: 45, atk: 18, def: 3,  move: 1, range: 4, special: null },
+  chevalier:{ hp: 55, atk: 16, def: 5,  move: 3, range: 1, special: null },
+  champion: { hp: 90, atk: 20, def: 8,  move: 2, range: 1, special: "rally" }
 };
 
 /* 1.4 CHAMPION ABILITY SET — every champion owns the same three abilities. */
@@ -136,9 +143,9 @@ const ABILITIES = {
   rally: {
     id: "rally",
     name: "Rally Allies",
-    description: "Living allies within 2 tiles gain +3 ATK and +2 DEF for one round.",
+    description: "Adjacent allies gain +3 ATK and +2 DEF for one round. Costs only the ability.",
     type: "support",
-    radius: 2,
+    radius: 1,
     atkBonus: 3,
     defBonus: 2,
     duration: 1,
@@ -163,9 +170,9 @@ const ABILITIES = {
   guarding_aura: {
     id: "guarding_aura",
     name: "Guarding Aura",
-    description: "Living allies within 2 tiles gain +3 DEF for two rounds. Uses the whole turn.",
+    description: "The champion and adjacent allies gain +3 DEF for two rounds. Uses the whole turn.",
     type: "defensive",
-    radius: 2,
+    radius: 1,
     defBonus: 3,
     duration: 2,
     includeSelf: true,
@@ -372,20 +379,27 @@ function createUnit(id, team, type) {
 }
 
 /* 8.1 INITIAL FORMATION
- * Each army occupies 4 columns. Blue holds columns 0-3, red columns 6-9,
- * leaving columns 4-5 as neutral ground between the two lines.
+ * Each army occupies 3 columns. Blue holds columns 0-2, red columns 7-9,
+ * leaving columns 3-6 as neutral ground between the two lines.
+ *
+ * The formation is built in three ranks:
+ *   col 2  the front rank: two foot soldiers and two chevaliers
+ *   col 1  the mid rank: two ballista and two archers
+ *   col 0  the rear guard: the champion
+ *
+ * Nine fighters per side, two of every kind except the champion. Every slot
+ * sits on passable ground on both sides, and the mirrored deployment means
+ * that both armies face the same kind of fighter in the same lane.
  */
 const BLUE_FORMATION = [
-  { type: "footman", col: 3, row: 0 },
-  { type: "footman", col: 3, row: 1 },
-  { type: "footman", col: 3, row: 2 },
-  { type: "footman", col: 3, row: 3 },
-  { type: "archer", col: 2, row: 0 },
-  { type: "archer", col: 2, row: 1 },
-  { type: "archer", col: 2, row: 2 },
-  { type: "archer", col: 2, row: 3 },
+  { type: "footman", col: 2, row: 0 },
+  { type: "footman", col: 2, row: 1 },
+  { type: "chevalier", col: 2, row: 2 },
+  { type: "chevalier", col: 2, row: 3 },
   { type: "ballista", col: 1, row: 0 },
-  { type: "chevalier", col: 1, row: 3 },
+  { type: "archer", col: 1, row: 1 },
+  { type: "archer", col: 1, row: 2 },
+  { type: "ballista", col: 1, row: 3 },
   { type: "champion", col: 0, row: 1 }
 ];
 
@@ -663,6 +677,13 @@ function refreshAllHealthBars() {
 
 /* 12. SELECTION */
 
+/* Draws the eye to the control that starts the battle. */
+function highlightStartButton() {
+  if (!$startButton) return;
+  $startButton.classList.add("attention");
+  later(() => $startButton.classList.remove("attention"), 1200);
+}
+
 function clearSelection() {
   selectedUnitId = null;
   pendingAbilityId = null;
@@ -725,12 +746,18 @@ function selectUnit(id) {
 }
 
 /* 13. MOVEMENT
- * Orthogonal steps only. A unit may not enter an occupied cell, may not
- * cross an impassable cell and may never spend more movement points than
- * its allowance. The same routine draws the reachable set and validates an
- * action, so the preview can never lie.
+ * Octagonal steps. A unit moves to any of the eight neighbouring cells, and
+ * a diagonal step costs the same as a straight one. A diagonal step may not
+ * slip between two blocked cells, so a wall of fighters and a rock
+ * formation both hold their ground. A unit may not enter an occupied cell
+ * and may never spend more movement points than its allowance. The same
+ * routine draws the reachable set and validates an action, so the preview
+ * can never lie.
  */
-const MOVE_DIRECTIONS = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+const MOVE_DIRECTIONS = [
+  [0, 1], [0, -1], [1, 0], [-1, 0],
+  [1, 1], [1, -1], [-1, 1], [-1, -1]
+];
 
 function isOccupied(col, row, excludeId) {
   for (const [id, u] of units) {
@@ -739,6 +766,17 @@ function isOccupied(col, row, excludeId) {
     if (u.col === col && u.row === row) return true;
   }
   return false;
+}
+
+/* A diagonal step is refused when both cells it would slip between are
+ * blocked, whether by a rock formation or by another fighter. A line of
+ * units therefore holds its ground, and a gap in a wall is a real gap. */
+function canStepDiagonally(fromCol, fromRow, dc, dr, unitId) {
+  const sideA = getTerrainAt(fromCol + dc, fromRow);
+  const sideB = getTerrainAt(fromCol, fromRow + dr);
+  const blockedA = !sideA.passable || isOccupied(fromCol + dc, fromRow, unitId);
+  const blockedB = !sideB.passable || isOccupied(fromCol, fromRow + dr, unitId);
+  return !(blockedA && blockedB);
 }
 
 function getReachableCells(unit) {
@@ -764,6 +802,7 @@ function getReachableCells(unit) {
       if (isOccupied(nc, nr, unit.id)) continue;
       const terrain = getTerrainAt(nc, nr);
       if (!terrain.passable) continue;
+      if (dc !== 0 && dr !== 0 && !canStepDiagonally(current.col, current.row, dc, dr, unit.id)) continue;
 
       const cost = current.cost + terrain.cost;
       if (cost > budget) continue;
@@ -812,10 +851,16 @@ function moveUnit(unit, col, row) {
   return true;
 }
 
-/* 14. TARGETING & LINE OF SIGHT */
-
-function manhattanDistance(a, b) {
-  return Math.abs(a.col - b.col) + Math.abs(a.row - b.row);
+/* 14. TARGETING & LINE OF SIGHT
+ *
+ * Distance is measured the octagonal way: the longest axis decides. A cell
+ * one column and one row away is therefore one step away, which is exactly
+ * the step a unit makes when it moves diagonally. Movement, reach, weapon
+ * range and ability radii all use this one rule, so a shot always reaches
+ * as far as a march.
+ */
+function fieldDistance(a, b) {
+  return Math.max(Math.abs(a.col - b.col), Math.abs(a.row - b.row));
 }
 
 /* Bresenham line between two cells. The grid is small enough that a simple
@@ -855,7 +900,7 @@ function getValidTargets(unit, from) {
   for (const [, u] of units) {
     if (!u.alive || u.defeated) continue;
     if (u.team === unit.team) continue;
-    if (manhattanDistance(pos, u) > unit.range) continue;
+    if (fieldDistance(pos, u) > unit.range) continue;
     if (!hasLineOfSight(pos, u, unit.range)) continue;
     targets.push(u);
   }
@@ -868,7 +913,7 @@ function canAttack(attacker, target) {
   if (!target.alive || target.defeated) return false;
   if (attacker.team === target.team) return false;
   if (attacker.hasAttacked) return false;
-  if (manhattanDistance(attacker, target) > attacker.range) return false;
+  if (fieldDistance(attacker, target) > attacker.range) return false;
   if (!hasLineOfSight(attacker, target, attacker.range)) return false;
   return true;
 }
@@ -967,7 +1012,7 @@ function canUseAbility(unit, ability, targetId) {
     if (!target) return false;
     if (!target.alive || target.defeated) return false;
     if (target.team === unit.team) return false;
-    if (manhattanDistance(unit, target) > ability.range) return false;
+    if (fieldDistance(unit, target) > ability.range) return false;
     if (!hasLineOfSight(unit, target, ability.range)) return false;
   }
   return true;
@@ -991,7 +1036,7 @@ function canAiUseAbility(unit, ability, targetId) {
     if (!target) return false;
     if (!target.alive || target.defeated) return false;
     if (target.team === unit.team) return false;
-    if (manhattanDistance(unit, target) > ability.range) return false;
+    if (fieldDistance(unit, target) > ability.range) return false;
     if (!hasLineOfSight(unit, target, ability.range)) return false;
   }
   return true;
@@ -1014,7 +1059,7 @@ function applyAbilityEffect(unit, ability, target) {
     if (!ally.alive || ally.defeated) continue;
     if (ally.team !== unit.team) continue;
     if (ally.id === unit.id && !ability.includeSelf) continue;
-    if (manhattanDistance(unit, ally) > ability.radius) continue;
+    if (fieldDistance(unit, ally) > ability.radius) continue;
     /* The same aura never stacks on the same unit. */
     if (hasEffect(ally, ability.id)) continue;
 
@@ -1263,6 +1308,7 @@ function startBattle() {
 
   battleActive = true;
   currentTurn = "player";
+  gameState = STATE_PLAYER_SELECTING;
   roundNumber = 1;
   selectedUnitId = null;
   pendingAbilityId = null;
@@ -1339,7 +1385,7 @@ function estimateIncomingDamage(col, row, team, defenderDef) {
   let total = 0;
   for (const [, enemy] of units) {
     if (!enemy.alive || enemy.defeated || enemy.team === team) continue;
-    const dist = manhattanDistance({ col, row }, enemy);
+    const dist = fieldDistance({ col, row }, enemy);
     if (dist > enemy.range) continue;
     const weight = enemy.range > 1 ? 1 : 0.7;
     const attack = enemy.atk + getUnitAtkBonus(enemy);
@@ -1412,7 +1458,7 @@ function countAbilityBeneficiaries(unit, ability) {
     if (!ally.alive || ally.defeated) continue;
     if (ally.team !== unit.team) continue;
     if (ally.id === unit.id && !ability.includeSelf) continue;
-    if (manhattanDistance(unit, ally) > ability.radius) continue;
+    if (fieldDistance(unit, ally) > ability.radius) continue;
     if (hasEffect(ally, ability.id)) continue;
     count++;
   }
@@ -1425,7 +1471,7 @@ function countThreatenedBeneficiaries(unit, ability) {
     if (!ally.alive || ally.defeated) continue;
     if (ally.team !== unit.team) continue;
     if (ally.id === unit.id && !ability.includeSelf) continue;
-    if (manhattanDistance(unit, ally) > ability.radius) continue;
+    if (fieldDistance(unit, ally) > ability.radius) continue;
     if (hasEffect(ally, ability.id)) continue;
     if (estimateIncomingDamage(ally.col, ally.row, unit.team, ally.def) > 0) count++;
   }
@@ -1479,7 +1525,7 @@ function getLegalActions(unit) {
 
       if (ability.type === "offensive") {
         for (const target of getValidTargets(unit)) {
-          if (manhattanDistance(unit, target) > ability.range) continue;
+          if (fieldDistance(unit, target) > ability.range) continue;
           actions.push({ kind: "ability", unit, ability, target });
         }
       } else {
@@ -2019,7 +2065,7 @@ function onAbilityButtonClick(abilityId) {
 function showAbilityTargets(unit, ability) {
   const targets = getValidTargets(unit);
   for (const target of targets) {
-    if (manhattanDistance(unit, target) > ability.range) continue;
+    if (fieldDistance(unit, target) > ability.range) continue;
     const marker = document.createElement("div");
     marker.className = "attack-indicator ability-target target-red";
     marker.style.left = `${colPercent(target.col)}%`;
@@ -2120,7 +2166,14 @@ function showAttackIndicators(unit) {
 function onUnitClick(id) {
   const unit = units.get(id);
   if (!unit || !unit.alive || unit.defeated) return;
-  if (!battleActive || currentTurn !== "player" || actionLock) return;
+  if (!battleActive) {
+    /* The armies are on the field before the battle starts, so a click in
+     * that state has to say what to do next instead of doing nothing. */
+    logEvent("The battle has not begun — press ENTER THE ARENA.", "system");
+    highlightStartButton();
+    return;
+  }
+  if (currentTurn !== "player" || actionLock) return;
 
   if (unit.team === TEAM_BLUE) {
     selectUnit(id);
@@ -2154,7 +2207,7 @@ function onUnitClick(id) {
   if (canAttack(attacker, unit)) {
     onAttackClick(selectedUnitId, id);
   } else {
-    const dist = manhattanDistance(attacker, unit);
+    const dist = fieldDistance(attacker, unit);
     if (dist > attacker.range) {
       logEvent(`${unit.displayName} is out of range (${dist} > ${attacker.range}).`, "system");
     } else {
@@ -2188,7 +2241,7 @@ function onAttackClick(attackerId, targetId) {
   if (!attacker || !target) return;
 
   if (!canAttack(attacker, target)) {
-    if (manhattanDistance(attacker, target) > attacker.range) {
+    if (fieldDistance(attacker, target) > attacker.range) {
       logEvent("Cannot attack — target out of range.", "system");
     } else {
       logEvent("The shot is blocked by the terrain.", "system");
@@ -2335,7 +2388,7 @@ if (typeof window !== "undefined") {
     traceCells,
     isInBounds,
     isOccupied,
-    manhattanDistance,
+    fieldDistance,
 
     /* rules */
     getReachableCells,
