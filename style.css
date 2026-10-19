@@ -1,0 +1,820 @@
+/* 1. RESET & BASE */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  background: #17251c;
+  color: #fff5d7;
+  font-family: Georgia, serif;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100svh;
+  user-select: none;
+}
+
+#arena {
+  width: 100%;
+  min-height: 100svh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #18251c;
+}
+
+/* 2. LAYOUT & ARENA */
+
+.topbar {
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: linear-gradient(#293c30, #17251c);
+  border-bottom: 2px solid #806b3e;
+}
+
+.game-title {
+  font-size: 17px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #e9c66c;
+}
+
+.version {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+}
+
+/* 3. LANDSCAPE & BACKGROUND */
+
+.landscape {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-height: 560px;
+  overflow: hidden;
+  background: linear-gradient(
+    to bottom,
+    #5c9ed1 0%,
+    #a8d4df 30%,
+    #cfe0b3 52%,
+    #6c984c 68%,
+    #355a2c 100%
+  );
+}
+
+/* 3.1 SKY & ATMOSPHERE */
+
+.sky {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 34%;
+  background: linear-gradient(
+    to bottom,
+    #7ec0ee 0%,
+    #5c9ed1 40%,
+    #a8d4df 100%
+  );
+  z-index: 0;
+}
+
+.sun {
+  position: absolute;
+  top: 8%;
+  right: 14%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff0b1;
+  box-shadow: 0 0 30px rgba(255, 240, 177, 0.6);
+  z-index: 1;
+}
+
+.cloud {
+  position: absolute;
+  width: 70px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  z-index: 1;
+}
+
+.cloud::before,
+.cloud::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.cloud::before {
+  width: 26px;
+  height: 24px;
+  left: 12px;
+  top: -12px;
+}
+
+.cloud::after {
+  width: 32px;
+  height: 28px;
+  right: 10px;
+  top: -16px;
+}
+
+.cloud-one {
+  top: 10%;
+  left: 8%;
+}
+
+.cloud-two {
+  top: 22%;
+  right: 14%;
+  transform: scale(0.75);
+}
+
+/* 3.2 CASTLE & STRONGHOLD (background layer, behind armies) */
+
+.mountains {
+  position: absolute;
+  z-index: 0;
+  top: 26%;
+  left: -12%;
+  width: 124%;
+  height: 22%;
+  background: #779b8a;
+  clip-path: polygon(
+    0 82%, 14% 32%, 26% 68%, 40% 10%,
+    55% 76%, 70% 24%, 82% 70%, 94% 36%,
+    100% 66%, 100% 100%, 0 100%
+  );
+}
+
+.castle {
+  position: absolute;
+  z-index: 1;
+  top: 20%;
+  left: 50%;
+  width: min(300px, 76%);
+  height: 140px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 6px 3px rgba(35, 53, 34, 0.55));
+}
+
+.castle-wall {
+  position: absolute;
+  left: 14%;
+  bottom: 0;
+  width: 72%;
+  height: 70px;
+  border: 3px solid #6e6b60;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 20px,
+      #5f6058 21px 23px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #b3ad96 0 28px,
+      #817e70 29px 31px
+    );
+}
+
+.battlements {
+  position: absolute;
+  left: -3px;
+  top: -17px;
+  width: calc(100% + 6px);
+  height: 16px;
+  background: repeating-linear-gradient(
+    90deg,
+    #aaa590 0 16px,
+    transparent 16px 24px
+  );
+}
+
+.tower {
+  position: absolute;
+  bottom: 20px;
+  width: 24%;
+  height: 100px;
+  border: 3px solid #6b6b61;
+  background: repeating-linear-gradient(
+    0deg,
+    #999789 0 17px,
+    #686a61 18px 20px
+  );
+}
+
+.tower-left {
+  left: 5%;
+}
+
+.tower-right {
+  right: 5%;
+}
+
+.roof {
+  position: absolute;
+  left: -10%;
+  top: -26px;
+  width: 120%;
+  height: 26px;
+  background: #6e4c3a;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.window {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  width: 9px;
+  height: 18px;
+  transform: translateX(-50%);
+  border-radius: 8px 8px 0 0;
+  background: #333c3a;
+}
+
+.gate {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 30px;
+  height: 46px;
+  transform: translateX(-50%);
+  border: 3px solid #554333;
+  border-radius: 14px 14px 0 0;
+  background: repeating-linear-gradient(
+    90deg,
+    #604831 0 6px,
+    #94704b 7px 9px
+  );
+}
+
+.wall-window {
+  position: absolute;
+  top: 20px;
+  width: 8px;
+  height: 16px;
+  background: #39403b;
+}
+
+.window-left {
+  left: 20%;
+}
+
+.window-right {
+  right: 20%;
+}
+
+/* 3.3 BATTLEFIELD GROUND */
+
+.ground-hill {
+  position: absolute;
+  z-index: 0;
+  top: 46%;
+  left: -18%;
+  width: 136%;
+  height: 24%;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(#719c4d, #527b37);
+}
+
+.grass {
+  position: absolute;
+  z-index: 1;
+  top: 58%;
+  bottom: 0;
+  width: 100%;
+  background:
+    repeating-linear-gradient(
+      105deg,
+      transparent 0 20px,
+      rgba(181, 200, 90, 0.18) 21px 23px
+    ),
+    linear-gradient(#527d38, #263f27);
+}
+
+.battle-label {
+  position: absolute;
+  z-index: 2;
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  text-align: center;
+  color: #fff0c4;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 3px #263f27;
+}
+
+.center-line {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 54%;
+  bottom: 0;
+  width: 1px;
+  background: rgba(232, 213, 161, 0.18);
+}
+
+/* 4. ARMIES & FORMATIONS */
+
+.army {
+  position: absolute;
+  top: 46%;
+  bottom: 8px;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 3;
+}
+
+.army-blue {
+  left: 0;
+}
+
+.army-red {
+  right: 0;
+}
+
+.army-name {
+  padding: 5px 3px;
+  width: 92%;
+  text-align: center;
+  font-size: clamp(8px, 2.5vw, 11px);
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 3px #17251c;
+}
+
+.army-blue .army-name {
+  color: #c5e3ff;
+}
+
+.army-red .army-name {
+  color: #ffd0bd;
+}
+
+.units {
+  width: 100%;
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  padding-bottom: 10px;
+}
+
+/* 4.1 BLUE ARMY (LEFT) — faces right */
+
+.army-blue .unit {
+  transform: scaleX(1);
+}
+
+/* 4.2 RED ARMY (RIGHT) — faces left */
+
+.army-red .unit {
+  transform: scaleX(-1);
+}
+
+/* 5. UNIT SILHOUETTES */
+
+.unit {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 42px;
+  height: 42px;
+  text-align: center;
+  text-shadow: 0 2px 3px #17251c;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.unit-silhouette {
+  width: 34px;
+  height: 34px;
+  overflow: visible;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+}
+
+.unit-silhouette use,
+.unit-silhouette symbol * {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.unit-label {
+  font-family: Arial, sans-serif;
+  font-size: clamp(6px, 1.6vw, 8px);
+  font-weight: bold;
+  color: #fff3d4;
+  margin-top: 3px;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.unit-health {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.health-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 2px;
+  transition: width 0.25s ease, background-color 0.2s ease;
+}
+
+.selection-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46px;
+  height: 46px;
+  border: 2px solid #e9c66c;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.92);
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(233, 198, 108, 0.55);
+  z-index: 2;
+}
+
+/* 6. TEAM IDENTITY & COLORS */
+
+.army-blue .unit-silhouette {
+  color: #c5e3ff;
+}
+
+.army-red .unit-silhouette {
+  color: #ffc4ad;
+}
+
+.army-blue .health-fill {
+  background: #60a5fa;
+}
+
+.army-red .health-fill {
+  background: #f87171;
+}
+
+.unit.champion .unit-silhouette {
+  width: 42px;
+  height: 42px;
+}
+
+.unit.champion .unit-label {
+  font-size: clamp(7px, 2vw, 9px);
+  color: #e9c66c;
+}
+
+.unit.champion .health-fill {
+  height: 5px;
+}
+
+/* 7. COMBAT UI (BOTTOM PANEL) */
+
+.bottom-panel {
+  z-index: 5;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px;
+  background: linear-gradient(#293c30, #111c16);
+  border-top: 2px solid #806b3e;
+}
+
+#status {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-align: center;
+  color: #e9c66c;
+  min-height: 14px;
+}
+
+#start-button {
+  border: 2px solid #f1d58a;
+  border-radius: 6px;
+  background: linear-gradient(#b9944b, #75552a);
+  color: #fff4d0;
+  padding: 12px 28px;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+#start-button:active {
+  transform: scale(0.97);
+}
+
+#start-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.selection-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid rgba(233, 198, 108, 0.35);
+  border-radius: 8px;
+  background: rgba(18, 34, 26, 0.55);
+}
+
+.selection-info.hidden {
+  display: none;
+}
+
+.sel-label {
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: #aab7a3;
+  text-transform: uppercase;
+}
+
+.sel-name {
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  color: #fff4d0;
+}
+
+.health-bar-wrap {
+  width: 110px;
+}
+
+.health-bar-wrap .health-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+#battle-result {
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-align: center;
+  color: #e9c66c;
+  min-height: 18px;
+}
+
+#battle-result.hidden {
+  display: none;
+}
+
+#battle-result.victory {
+  color: #86efac;
+}
+
+#battle-result.defeat {
+  color: #f87171;
+}
+
+.footer-note {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #aab7a3;
+}
+
+/* 8. ANIMATIONS */
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.unit {
+  animation: arrive 0.55s ease-out both;
+}
+
+@keyframes idle-breathe {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.015);
+  }
+}
+
+.unit.champion {
+  animation: idle-breathe 3.5s ease-in-out infinite;
+}
+
+@keyframes select-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
+.unit.selected .selection-ring {
+  opacity: 1;
+  animation: select-pulse 2s ease-in-out infinite;
+}
+
+@keyframes attack-lunge {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(18px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.army-blue .unit.attacking .unit-silhouette {
+  animation: attack-lunge 0.5s ease-in-out both;
+}
+
+.army-red .unit.attacking .unit-silhouette {
+  animation: attack-lunge-red 0.5s ease-in-out both;
+}
+
+@keyframes attack-lunge-red {
+  0% {
+    transform: scaleX(-1) translateX(0);
+  }
+  50% {
+    transform: scaleX(-1) translateX(-18px);
+  }
+  100% {
+    transform: scaleX(-1) translateX(0);
+  }
+}
+
+@keyframes damage-flash {
+  0%, 100% {
+    opacity: 1;
+    filter: none;
+  }
+  25%, 75% {
+    opacity: 0.45;
+    filter: invert(0.3) hue-rotate(90deg);
+  }
+}
+
+.unit.damaged .unit-silhouette {
+  animation: damage-flash 0.5s ease-in-out both;
+}
+
+@keyframes defeat-fade {
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.75);
+  }
+}
+
+.unit.defeated {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.unit.defeated .unit-silhouette {
+  animation: defeat-fade 0.55s ease-in both forwards;
+}
+
+/* 9. REDUCED MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+  .unit,
+  .unit.selected .selection-ring,
+  .unit.champion,
+  .unit.attacking .unit-silhouette,
+  .unit.damaged .unit-silhouette,
+  .unit.defeated .unit-silhouette {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .unit.selected .selection-ring {
+    opacity: 1;
+  }
+
+  .unit.defeated {
+    opacity: 0.4;
+  }
+
+  .health-fill {
+    transition: none;
+  }
+}
+
+/* 10. RESPONSIVE LAYOUT */
+
+@media (max-height: 680px) {
+  .landscape {
+    min-height: 430px;
+  }
+
+  .castle {
+    transform: translateX(-50%) scale(0.85);
+    transform-origin: top center;
+    top: 16%;
+  }
+
+  .bottom-panel {
+    min-height: 120px;
+    padding: 10px 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .unit {
+    width: 36px;
+    height: 36px;
+  }
+
+  .unit-silhouette {
+    width: 28px;
+    height: 28px;
+  }
+
+  .unit.champion .unit-silhouette {
+    width: 34px;
+    height: 34px;
+  }
+
+  .army-name {
+    font-size: 8px;
+  }
+
+  .battle-label {
+    font-size: 8px;
+  }
+
+  #start-button {
+    padding: 10px 22px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 340px) {
+  .units {
+    gap: 4px;
+  }
+
+  .unit {
+    width: 32px;
+    height: 32px;
+  }
+
+  .unit-silhouette {
+    width: 24px;
+    height: 24px;
+  }
+
+  .selection-ring {
+    width: 38px;
+    height: 38px;
+  }
+}

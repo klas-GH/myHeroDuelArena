@@ -1,0 +1,130 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17251c">
+  <title>myHeroDuelArena v1.0.1</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+  <main id="arena">
+
+    <header class="topbar">
+      <div class="game-title">MY HERO DUEL ARENA</div>
+      <div class="version">v1.0.1 · BATTLEFIELD</div>
+    </header>
+
+    <section class="landscape" aria-label="Outdoor castle battlefield">
+
+      <div class="sky"></div>
+      <div class="sun"></div>
+      <div class="cloud cloud-one"></div>
+      <div class="cloud cloud-two"></div>
+
+      <div class="mountains"></div>
+
+      <div class="castle">
+        <div class="tower tower-left">
+          <div class="roof"></div>
+          <div class="window"></div>
+        </div>
+        <div class="tower tower-right">
+          <div class="roof"></div>
+          <div class="window"></div>
+        </div>
+        <div class="castle-wall">
+          <div class="battlements"></div>
+          <div class="gate"></div>
+          <div class="wall-window window-left"></div>
+          <div class="wall-window window-right"></div>
+        </div>
+      </div>
+
+      <div class="ground-hill"></div>
+      <div class="grass"></div>
+
+      <div class="battle-label">THE CHAMPIONS' FIELD</div>
+
+      <section class="army army-blue">
+        <div class="army-name">AZURE LEGION</div>
+        <div class="units" id="blue-units"></div>
+      </section>
+
+      <section class="army army-red">
+        <div class="army-name">CRIMSON LEGION</div>
+        <div class="units" id="red-units"></div>
+      </section>
+
+      <div class="center-line"></div>
+    </section>
+
+    <footer class="bottom-panel">
+      <div id="status">THE ARMIES AWAIT YOUR COMMAND</div>
+      <button id="start-button">ENTER THE ARENA</button>
+      <div id="selection-info" class="selection-info hidden">
+        <div class="sel-label">SELECTED</div>
+        <div id="selected-name" class="sel-name">--</div>
+        <div class="health-bar-wrap">
+          <div class="health-bar"><div id="selected-health" class="health-fill"></div></div>
+        </div>
+      </div>
+      <div id="battle-result" class="battle-result hidden"></div>
+      <div class="footer-note">A DUEL FOR HONOR AND GLORY</div>
+    </footer>
+
+  </main>
+
+  <!-- 5. UNIT SILHOUETTE TEMPLATES (embedded SVG, no external assets) -->
+  <svg id="unit-silhouettes" style="display: none">
+    <symbol id="sil-archer" viewBox="0 0 100 100">
+      <circle cx="50" cy="18" r="7"/>
+      <rect x="46" y="26" width="8" height="26"/>
+      <path d="M 36 36 Q 28 20 28 52" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 54 32 L 66 46 L 54 60" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 46 52 L 42 70 L 54 52 L 58 70" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="sil-footman" viewBox="0 0 100 100">
+      <rect x="44" y="14" width="12" height="10"/>
+      <rect x="45" y="26" width="10" height="24"/>
+      <ellipse cx="50" cy="50" rx="16" ry="20"/>
+      <path d="M 56 30 L 74 20 L 76 26 L 58 36 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 34 50 L 44 50 M 66 50 L 76 50" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="sil-ballista" viewBox="0 0 100 100">
+      <rect x="28" y="52" width="44" height="10"/>
+      <circle cx="40" cy="66" r="8"/>
+      <circle cx="60" cy="66" r="8"/>
+      <rect x="44" y="32" width="12" height="22"/>
+      <path d="M 50 32 L 50 16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 50 24 L 62 20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="sil-chevalier" viewBox="0 0 100 100">
+      <rect x="30" y="54" width="40" height="14"/>
+      <path d="M 68 50 Q 82 46 80 58 Q 70 60 68 54" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="48" y="26" width="8" height="20"/>
+      <circle cx="52" cy="22" r="7"/>
+      <path d="M 52 18 L 52 12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 56 26 L 70 16 L 72 22 L 58 32 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="sil-champion" viewBox="0 0 100 100">
+      <circle cx="50" cy="16" r="8"/>
+      <path d="M 44 14 L 44 8 L 50 4 L 56 8 L 56 14 Z"/>
+      <rect x="42" y="24" width="16" height="30"/>
+      <rect x="45" y="40" width="10" height="14"/>
+      <circle cx="50" cy="38" r="5" fill="#e9c66c"/>
+      <path d="M 56 34 L 78 22 L 82 30 L 60 42 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 40 56 L 40 74 L 50 80 L 60 74 L 60 56 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <script src="game.js"></script>
+</body>
+</html>
