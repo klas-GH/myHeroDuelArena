@@ -5,7 +5,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#17251c">
-  <title>myHeroDuelArena v1.2.1</title>
+  <title>myHeroDuelArena v1.3.0</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
@@ -15,8 +15,26 @@
 
     <header class="topbar">
       <div class="game-title">MY HERO DUEL ARENA</div>
-      <div class="version">v1.2.1 — TACTICAL</div>
+      <div class="version">v1.3.0 — TACTICAL</div>
     </header>
+
+    <section id="setup-panel" class="setup-panel" aria-label="Battlefield and difficulty selection">
+      <div class="setup-head">
+        <span class="setup-title">CHOOSE YOUR BATTLEFIELD</span>
+        <button id="setup-toggle" class="setup-toggle" type="button">HIDE</button>
+      </div>
+
+      <div class="setup-block">
+        <span class="setup-label">DIFFICULTY</span>
+        <div id="difficulty-row" class="difficulty-row"></div>
+        <span id="difficulty-hint" class="setup-hint"></span>
+      </div>
+
+      <div class="setup-block">
+        <span class="setup-label">BATTLEFIELD</span>
+        <div id="map-row" class="map-row"></div>
+      </div>
+    </section>
 
     <section class="landscape" id="battlefield" aria-label="Outdoor castle battlefield">
 
@@ -116,6 +134,43 @@
 
       <button id="end-turn-button" class="end-turn-button hidden">END TURN</button>
       <div id="battle-result" class="battle-result hidden"></div>
+
+      <div id="battle-report" class="battle-report hidden">
+        <div class="report-head">
+          <span id="report-outcome" class="report-outcome">VICTORY</span>
+          <span id="report-map" class="report-map">The Old Frontier</span>
+          <span id="report-difficulty" class="report-difficulty">Normal</span>
+        </div>
+        <div class="report-grid">
+          <div class="report-cell">
+            <span class="report-label">ROUNDS</span>
+            <span id="report-rounds" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">DAMAGE DEALT</span>
+            <span id="report-damage" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">DAMAGE TAKEN</span>
+            <span id="report-taken" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">ENEMIES FELLED</span>
+            <span id="report-kills" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">UNITS LOST</span>
+            <span id="report-losses" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">XP EARNED</span>
+            <span id="report-xp" class="report-value">0</span>
+          </div>
+        </div>
+        <div id="report-breakdown" class="report-breakdown"></div>
+        <div id="report-level" class="report-level"></div>
+      </div>
+
       <div class="footer-note">A DUEL FOR HONOR AND GLORY</div>
     </footer>
 

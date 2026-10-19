@@ -694,6 +694,12 @@ async function main() {
         const units = [...document.querySelectorAll('.unit')];
         const layer = document.getElementById('blue-units');
         const lr = layer.getBoundingClientRect();
+        const panel = document.getElementById('setup-panel');
+        const pr = panel.getBoundingClientRect();
+        const cards = [...document.querySelectorAll('.map-card')].map(c => {
+          const r = c.getBoundingClientRect();
+          return { right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+        });
         const controls = ['start-button', 'end-turn-button', 'progression-strip', 'champion-panel']
           .map(id => document.getElementById(id))
           .filter(Boolean)
@@ -717,7 +723,10 @@ async function main() {
           smallestUnit: Math.min(...units.map(u => {
             const s = u.querySelector('.unit-silhouette').getBoundingClientRect();
             return Math.min(s.width, s.height);
-          }))
+          })),
+          panelHeight: pr.height,
+          panelRight: pr.right,
+          cards
         };
       })()`);
 
@@ -729,6 +738,17 @@ async function main() {
         `[${vp.name}] the visible controls fit the viewport (${JSON.stringify(layout.controls)})`);
       assert(layout.smallestUnit >= 20,
         `[${vp.name}] unit sprites stay legible (smallest ${layout.smallestUnit.toFixed(1)}px)`);
+
+      /* The selector has to stay out of the way: it must not eat the screen
+       * and it must not push the battlefield off the page sideways. */
+      assert(layout.panelHeight > 0 && layout.panelHeight <= 260,
+        `[${vp.name}] the pre-battle selector stays compact (${layout.panelHeight.toFixed(0)}px tall)`);
+      assert(layout.panelRight <= layout.docClientWidth + 1,
+        `[${vp.name}] the selector fits the viewport`);
+      assert(layout.cards.length === 4 && layout.cards.every(c => c.width > 0 && c.height > 0),
+        `[${vp.name}] all four battlefield cards are drawn`);
+      assert(layout.cards.every(c => c.right <= layout.docClientWidth + 1),
+        `[${vp.name}] every battlefield card fits the viewport`);
     }
 
     await cdp.send("Emulation.clearDeviceMetricsOverride");
@@ -793,6 +813,151 @@ async function main() {
     assert(picked.selectedId === target.id, `the clicked unit is the selected one (${picked.selectedId})`);
     assert(picked.panelVisible === true, "the selection panel opens");
     assert(picked.moveMarkers > 0, `the reachable cells are marked (${picked.moveMarkers})`);
+
+    console.log("\n15. The pre-battle selector — real clicks on the cards");
+
+    /* The selector is the first thing a player touches, so it has to work
+     * with a real pointer: the hit test has to reach the card, the click has
+     * to change the battlefield that is drawn on the field.
+     *
+     * The selector is locked while a battle runs, so the fight is put back to
+     * the setup screen first. */
+    await cdp.evaluate(`(() => { window.MyHeroDuelArena.resetBattle(); })()`);
+    await new Promise(r => setTimeout(r, 250));
+
+    const selector = await cdp.evaluate(`(() => {
+      const panel = document.getElementById('setup-panel');
+      const pr = panel.getBoundingClientRect();
+      const cards = [...document.querySelectorAll('.map-card')];
+      const buttons = [...document.querySelectorAll('.difficulty-button')];
+      const previews = [...document.querySelectorAll('.map-preview')];
+      const card = cards.find(c => c.dataset.map !== window.MyHeroDuelArena.getActiveMapId()) || cards[0];
+      const cr = card.getBoundingClientRect();
+      const hit = document.elementFromPoint(cr.left + cr.width / 2, cr.top + cr.height / 2);
+      return {
+        panelVisible: pr.width > 0 && pr.height > 0,
+        cardCount: cards.length,
+        buttonCount: buttons.length,
+        previewCells: previews.map(p => p.children.length),
+        selectedCards: cards.filter(c => c.classList.contains('selected')).length,
+        selectedButtons: buttons.filter(b => b.classList.contains('selected')).length,
+        cardX: cr.left + cr.width / 2,
+        cardY: cr.top + cr.height / 2,
+        hitIsCard: !!(hit && hit.closest && hit.closest('.map-card')),
+        terrainBefore: [...document.querySelectorAll('.terrain-cell')].map(c => c.className).join('|')
+      };
+    })()`);
+
+    assert(selector.panelVisible === true, "the pre-battle selector is on screen");
+    assert(selector.cardCount === 4, `four battlefield cards are drawn (${selector.cardCount})`);
+    assert(selector.buttonCount === 3, `three difficulty buttons are drawn (${selector.buttonCount})`);
+    assert(selector.previewCells.length === 4 && selector.previewCells.every(n => n === 40),
+      `every card previews all 40 cells (${JSON.stringify(selector.previewCells)})`);
+    assert(selector.selectedCards === 1, "one battlefield is marked as chosen");
+    assert(selector.selectedButtons === 1, "one difficulty is marked as chosen");
+    assert(selector.hitIsCard === true, "the hit test reaches the battlefield card");
+
+    await cdp.mouseClick(selector.cardX, selector.cardY);
+    await new Promise(r => setTimeout(r, 350));
+
+    const afterMap = await cdp.evaluate(`(() => ({
+      active: window.MyHeroDuelArena.getActiveMapId(),
+      terrain: [...document.querySelectorAll('.terrain-cell')].map(c => c.className).join('|'),
+      cells: document.querySelectorAll('.terrain-cell').length
+    }))()`);
+
+    assert(afterMap.active !== null, "a real click on a card selects a battlefield");
+    assert(afterMap.terrain !== selector.terrainBefore,
+      "the battlefield is redrawn with the ground of the chosen card");
+    assert(afterMap.cells === 40, "the battlefield still renders 40 cells");
+
+    const difficultyClick = await cdp.evaluate(`(() => {
+      const button = [...document.querySelectorAll('.difficulty-button')]
+        .find(b => b.dataset.difficulty !== window.MyHeroDuelArena.getDifficultyId());
+      const r = button.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return {
+        id: button.dataset.difficulty,
+        x: r.left + r.width / 2,
+        y: r.top + r.height / 2,
+        hitIsButton: !!(hit && hit.closest && hit.closest('.difficulty-button'))
+      };
+    })()`);
+
+    assert(difficultyClick.hitIsButton === true, "the hit test reaches the difficulty button");
+    await cdp.mouseClick(difficultyClick.x, difficultyClick.y);
+    await new Promise(r => setTimeout(r, 300));
+
+    const afterDifficulty = await cdp.evaluate(`(() => ({
+      active: window.MyHeroDuelArena.getDifficultyId(),
+      selected: [...document.querySelectorAll('.difficulty-button')]
+        .filter(b => b.classList.contains('selected')).map(b => b.dataset.difficulty)
+    }))()`);
+
+    assert(afterDifficulty.active === difficultyClick.id,
+      `a real click on a difficulty button selects it (${afterDifficulty.active})`);
+    assert(afterDifficulty.selected.length === 1 && afterDifficulty.selected[0] === difficultyClick.id,
+      "only the chosen difficulty stays marked");
+
+    /* A running battle locks the selector, so the ground can never change
+     * under the fighters. */
+    const locked = await cdp.evaluate(`(() => {
+      const api = window.MyHeroDuelArena;
+      api.startBattle();
+      const cards = [...document.querySelectorAll('.map-card')];
+      const buttons = [...document.querySelectorAll('.difficulty-button')];
+      const before = api.getActiveMapId();
+      cards.find(c => c.dataset.map !== before).click();
+      return {
+        locked: document.getElementById('setup-panel').classList.contains('locked'),
+        cardsDisabled: cards.every(c => c.disabled === true),
+        buttonsDisabled: buttons.every(b => b.disabled === true),
+        unchanged: api.getActiveMapId() === before
+      };
+    })()`);
+
+    assert(locked.locked === true, "the selector is locked during a battle");
+    assert(locked.cardsDisabled === true, "the battlefield cards are locked during a battle");
+    assert(locked.buttonsDisabled === true, "the difficulty buttons are locked during a battle");
+    assert(locked.unchanged === true, "the ground cannot change while the battle runs");
+
+    console.log("\n16. The post-battle report");
+
+    const report = await cdp.evaluate(`(() => {
+      const api = window.MyHeroDuelArena;
+      api.resetBattle();
+      api.startBattle();
+      for (const u of api.getTeamUnits('red')) { u.alive = false; u.defeated = true; }
+      api.checkBattleEnd();
+
+      const panel = document.getElementById('battle-report');
+      const r = panel.getBoundingClientRect();
+      const cell = id => {
+        const el = document.getElementById(id);
+        const cr = el.getBoundingClientRect();
+        return { text: el.textContent, width: cr.width, height: cr.height };
+      };
+      return {
+        hidden: panel.classList.contains('hidden'),
+        width: r.width,
+        height: r.height,
+        outcome: cell('report-outcome'),
+        damage: cell('report-damage'),
+        kills: cell('report-kills'),
+        xp: cell('report-xp'),
+        breakdown: cell('report-breakdown'),
+        level: cell('report-level')
+      };
+    })()`);
+
+    assert(report.hidden === false, "the report is visible after the battle");
+    assert(report.width > 0 && report.height > 0, "the report is actually drawn");
+    assert(report.outcome.text === "VICTORY", `the report names the outcome (${report.outcome.text})`);
+    assert(/^\d+$/.test(report.damage.text), `the report shows the damage (${report.damage.text})`);
+    assert(/^\d+$/.test(report.kills.text), `the report shows the kills (${report.kills.text})`);
+    assert(/^\d+$/.test(report.xp.text), `the report shows the experience (${report.xp.text})`);
+    assert(/XP/.test(report.breakdown.text), "the report breaks the experience down");
+    assert(report.level.text.length > 0, "the report says where the champion stands");
 
     console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
   } catch (err) {

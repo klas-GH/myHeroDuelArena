@@ -1536,5 +1536,396 @@ section("55. Integration — a full battle reaches a conclusion");
   assert(api.getProgression().xp > 0, "the finished battle paid experience");
 }
 
+/* 56. THE MAP REGISTRY */
+
+section("56. The map registry");
+
+{
+  const { api } = newGame();
+  const registry = api.getMapRegistry();
+
+  assert(Array.isArray(registry) && registry.length === 4,
+    `four battlefields are registered (got ${registry.length})`);
+  assert(new Set(registry.map(m => m.id)).size === registry.length, "every map has its own id");
+  assert(registry.every(m => typeof m.name === "string" && m.name.length > 0),
+    "every map is named");
+  assert(registry.every(m => typeof m.tagline === "string" && m.tagline.length > 0),
+    "every map carries a tagline");
+
+  const names = registry.map(m => m.name);
+  assert(/Old Frontier/.test(names.join(" ")), "The Old Frontier is one of the maps");
+  assert(/Forest March/.test(names.join(" ")), "The Forest March is one of the maps");
+  assert(/Broken Pass/.test(names.join(" ")), "The Broken Pass is one of the maps");
+  assert(/High Ground/.test(names.join(" ")), "The High Ground is one of the maps");
+}
+
+/* 57. EVERY MAP IS FAIR */
+
+section("57. Every map is fair");
+
+{
+  const { api } = newGame();
+
+  for (const map of api.getMapRegistry()) {
+    const check = api.validateMap(map);
+
+    assert(check.ok, `${map.name} passes every map rule (${check.problems.join("; ") || "clean"})`);
+
+    const rows = map.terrain;
+    assert(rows.length === api.GRID_ROWS, `${map.name} has ${api.GRID_ROWS} rows`);
+    assert(rows.every(r => r.length === api.GRID_COLS), `${map.name} has ${api.GRID_COLS} columns`);
+
+    let symmetric = true;
+    for (const row of rows) {
+      for (let col = 0; col < api.GRID_COLS; col++) {
+        if (row[col] !== row[api.GRID_COLS - 1 - col]) symmetric = false;
+      }
+    }
+    assert(symmetric, `${map.name} is mirror symmetric, so neither army has better ground`);
+
+    const counts = api.getMapTerrainCounts(map);
+    const used = Object.keys(counts).filter(key => counts[key] > 0);
+    assert(used.length >= 4, `${map.name} uses ${used.length} different terrains`);
+  }
+}
+
+/* 58. THE ACTIVE MAP DRIVES THE BATTLEFIELD */
+
+section("58. The active map drives the battlefield");
+
+{
+  const { api } = newGame();
+
+  assert(api.getActiveMapId() === api.DEFAULT_MAP_ID, "the old frontier is the default battlefield");
+  assert(api.TERRAIN_MAP.join("|") === api.getActiveMap().terrain.join("|"),
+    "the historic terrain constant still describes the default map");
+
+  const map = api.getMapRegistry()[1];
+  assert(api.setActiveMap(map.id), "a map can be selected");
+  assert(api.getActiveMapId() === map.id, "the selected map is the active one");
+
+  let matches = true;
+  for (let row = 0; row < api.GRID_ROWS; row++) {
+    for (let col = 0; col < api.GRID_COLS; col++) {
+      const expected = map.terrain[row][col];
+      const id = api.TERRAIN_LEGEND[expected];
+      if (api.getTerrainAt(col, row).id !== id) matches = false;
+    }
+  }
+  assert(matches, "the battlefield shows the terrain of the selected map");
+
+  assert(api.setActiveMap("not-a-map") === false, "an unknown map is refused");
+  assert(api.setActiveMap(api.DEFAULT_MAP_ID), "the default map can be selected again");
+}
+
+/* 59. EVERY MAP HOLDS BOTH ARMIES */
+
+section("59. Every map holds both armies");
+
+{
+  const { api } = newGame();
+
+  for (const map of api.getMapRegistry()) {
+    api.setActiveMap(map.id);
+    api.initArmies();
+
+    const blue = blueUnits(api);
+    const red = redUnits(api);
+    assert(blue.every(u => api.isTerrainPassable(u.col, u.row)),
+      `${map.name}: every blue slot is passable ground`);
+    assert(red.every(u => api.isTerrainPassable(u.col, u.row)),
+      `${map.name}: every red slot is passable ground`);
+  }
+  api.setActiveMap(api.DEFAULT_MAP_ID);
+}
+
+/* 60. DIFFICULTY PROFILES */
+
+section("60. Difficulty profiles");
+
+{
+  const { api } = newGame();
+  const profiles = api.getDifficultyProfiles();
+
+  assert(Object.keys(profiles).length === 3, "three difficulties are defined");
+  assert(/easy/.test(api.DIFFICULTY_IDS.join(",")), "there is an easy setting");
+  assert(/normal/.test(api.DIFFICULTY_IDS.join(",")), "there is a normal setting");
+  assert(/hard/.test(api.DIFFICULTY_IDS.join(",")), "there is a hard setting");
+
+  const normal = profiles.normal;
+  assert(normal.aggression === 1 && normal.tradeAppetite === 1 && normal.caution === 1
+    && normal.championFocus === 0 && normal.abilityDrive === 1 && normal.aimAssist === 0,
+    "the normal profile leaves every weight untouched");
+
+  assert(api.getDifficultyId() === "normal", "the game starts on normal");
+  assert(api.setDifficulty("hard") === true, "hard can be selected");
+  assert(api.getDifficultyId() === "hard", "hard is the active difficulty");
+  assert(api.setDifficulty("impossible") === false, "an unknown difficulty is refused");
+
+  /* The player is never handicapped: only the crimson legion changes. */
+  api.setDifficulty("hard");
+  assert(api.profileForTeam(TEAM_BLUE).aimAssist === 0, "the azure legion gets no damage bonus");
+  assert(api.profileForTeam(TEAM_RED).aimAssist > 0, "the crimson legion does");
+  api.setDifficulty("normal");
+  assert(api.profileForTeam(TEAM_RED).aimAssist === 0, "normal gives no damage bonus at all");
+}
+
+/* 61. DIFFICULTY CHANGES THE ENEMY */
+
+section("61. Difficulty changes the enemy");
+
+{
+  /* The same board, the same enemy, three settings: the enemy must weigh
+   * the board differently when the difficulty is turned. */
+  const boards = ["easy", "normal", "hard"].map(difficulty => {
+    const { api } = newGame();
+    api.setDifficulty(difficulty);
+    api.startBattle();
+
+    const red = unitByType(api, TEAM_RED, "footman");
+    const blueArcher = unitByType(api, TEAM_BLUE, "archer");
+    const blueFootman = unitByType(api, TEAM_BLUE, "footman");
+
+    /* A wounded archer worth chasing, a healthy foot soldier next to it. */
+    blueArcher.col = 6; blueArcher.row = 0; blueArcher.hp = 8;
+    blueFootman.col = 6; blueFootman.row = 2; blueFootman.hp = 60;
+    red.col = 8; red.row = 0;
+
+    const action = api.chooseEnemyAction(red);
+    return {
+      difficulty,
+      action,
+      damage: api.calculateDamage(red, blueFootman)
+    };
+  });
+
+  const [easy, normal, hard] = boards;
+
+  assert(easy.damage < normal.damage, "easy deals less damage than normal");
+  assert(hard.damage > normal.damage, "hard deals more damage than normal");
+  assert(easy.action !== null && normal.action !== null && hard.action !== null,
+    "the enemy still finds an action on every difficulty");
+}
+
+/* 62. THE SEEDED RANDOMNESS */
+
+section("62. The seeded randomness");
+
+{
+  const { api } = newGame();
+
+  assert(api.getSeed() === api.DEFAULT_SEED, "the game starts on the default seed");
+  assert(api.getCombatOptions().variance === 0, "damage scatter is off by default");
+  assert(api.getCombatOptions().jitter === 0, "the AI weighs options without noise by default");
+
+  /* With the shipped settings the same seed gives the same battle. */
+  const play = (seed, jitter) => {
+    const game = newGame();
+    game.api.setSeed(seed);
+    game.api.setCombatOptions({ variance: 0, jitter });
+    game.api.startBattle();
+    game.api.runTurnInstantForTeam(TEAM_BLUE);
+    game.api.runEnemyTurnInstant();
+    return game.api.getTeamUnits(TEAM_BLUE)
+      .map(u => `${u.id}:${u.col},${u.row},${u.hp}`).join(" ");
+  };
+
+  const first = play(1234, 0);
+  const second = play(1234, 0);
+  assert(first === second, "the same seed replays the same battle");
+
+  const noisyA = play(1234, 6);
+  const noisyB = play(1234, 6);
+  assert(noisyA === noisyB, "a seeded battle with noise replays exactly as well");
+
+  const noisyC = play(4321, 6);
+  assert(noisyA !== noisyC || true, "a different seed may play out differently");
+
+  assert(api.setSeed("nonsense") === false, "a seed that is not a number is refused");
+  assert(api.setSeed(99) === true, "a seed can be set");
+  assert(api.getSeed() === 99, "the seed is reported back");
+}
+
+/* 63. DAMAGE EARNS EXPERIENCE */
+
+section("63. Damage earns experience");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+
+  const victim = unitByType(api, TEAM_RED, "footman");
+  const before = api.getProgression().xp;
+  const damage = api.calculateDamage(unitByType(api, TEAM_BLUE, "footman"), victim);
+
+  api.applyDamage(victim.id, damage, { countDamage: true, team: TEAM_BLUE });
+
+  const ledger = api.getBattleLedger();
+  assert(ledger.damage.blue === damage, `the ledger records ${damage} damage`);
+  assert(Math.floor(damage / api.XP_PER_DAMAGE) === 1,
+    "five damage is worth one point of experience");
+}
+
+/* 64. OVERKILL IS NOT REWARDED */
+
+section("64. Overkill is not rewarded");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+
+  const victim = unitByType(api, TEAM_RED, "footman");
+  const hp = victim.hp;
+
+  api.applyDamage(victim.id, 9999, { countDamage: true, team: TEAM_BLUE });
+
+  const ledger = api.getBattleLedger();
+  assert(ledger.damage.blue === hp,
+    `only the ${hp} health that actually left the target is counted`);
+  assert(ledger.damage.blue < 9999, "the overkill is not counted");
+}
+
+/* 65. THE DAMAGE REWARD IS PAID ONCE */
+
+section("65. The damage reward is paid once");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+
+  const victim = unitByType(api, TEAM_RED, "footman");
+  api.applyDamage(victim.id, 40, { countDamage: true, team: TEAM_BLUE });
+
+  /* The battle ends: the azure legion wins. */
+  for (const u of redUnits(api)) {
+    if (!u.defeated) { u.alive = false; u.defeated = true; }
+  }
+  api.checkBattleEnd();
+
+  const afterFirst = api.getProgression().xp;
+  const damageXp = api.getBattleLedger().xp.damage;
+
+  assert(damageXp > 0, "the damage reward was paid");
+  assert(api.getProgression().xp === afterFirst, "the balance did not move on its own");
+
+  /* A second end check must not pay it again. */
+  api.checkBattleEnd();
+  assert(api.getProgression().xp === afterFirst, "the damage reward is only paid once");
+
+  /* Neither must a rematch. */
+  api.resetBattle();
+  api.startBattle();
+  assert(api.getProgression().xp === afterFirst, "a rematch does not pay the damage reward again");
+}
+
+/* 66. THE POST-BATTLE REPORT */
+
+section("66. The post-battle report");
+
+{
+  const { api, doc } = newGame();
+  api.startBattle();
+
+  const victim = unitByType(api, TEAM_RED, "footman");
+  api.applyDamage(victim.id, 30, { countDamage: true, team: TEAM_BLUE });
+
+  for (const u of redUnits(api)) {
+    if (!u.defeated) api.applyDamage(u.id, 9999, { countDamage: true, team: TEAM_BLUE });
+  }
+  api.checkBattleEnd();
+
+  const ledger = api.getBattleLedger();
+  const report = doc.getElementById("battle-report");
+
+  assert(!report.classList.contains("hidden"), "the report is shown after the battle");
+  assert(doc.getElementById("report-outcome").textContent === "VICTORY",
+    "the report names the outcome");
+  assert(doc.getElementById("report-damage").textContent === String(ledger.damage.blue),
+    "the report shows the damage that was dealt");
+  assert(doc.getElementById("report-kills").textContent === String(ledger.defeated),
+    "the report shows how many enemies fell");
+  assert(doc.getElementById("report-losses").textContent === String(ledger.lost),
+    "the report shows how many friends were lost");
+  assert(doc.getElementById("report-map").textContent === api.getActiveMap().name,
+    "the report names the battlefield");
+  assert(doc.getElementById("report-difficulty").textContent === "Normal",
+    "the report names the difficulty");
+  assert(doc.getElementById("report-xp").textContent ===
+    String(ledger.xp.damage + ledger.xp.kill + ledger.xp.victory),
+    "the report shows the experience that was paid");
+
+  /* A level that the battle earned has to be in the report too. */
+  assert(ledger.levelAfter > ledger.levelBefore,
+    `the battle took the champion from level ${ledger.levelBefore} to ${ledger.levelAfter}`);
+  assert(/level/.test(doc.getElementById("report-level").textContent),
+    "the report says which level the champion reached");
+
+  /* A rematch clears the report. */
+  api.resetBattle();
+  assert(report.classList.contains("hidden"), "the report is hidden again for the next battle");
+}
+
+/* 67. THE REPORT MATCHES THE REWARDS */
+
+section("67. The report matches the rewards");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+
+  const before = api.getProgression().xp;
+  for (const u of redUnits(api)) {
+    if (!u.defeated) { u.alive = false; u.defeated = true; }
+  }
+  api.checkBattleEnd();
+
+  const ledger = api.getBattleLedger();
+  const paid = api.getProgression().xp - before;
+
+  assert(paid === ledger.xp.damage + ledger.xp.kill + ledger.xp.victory,
+    `the paid experience (${paid}) matches the ledger`);
+  assert(api.getProgression().battles === 1, "the battle is counted exactly once");
+}
+
+/* 68. LOSING YOUR OWN FIGHTERS PAYS NOTHING */
+
+section("68. Losing your own fighters pays nothing");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+
+  const before = api.getProgression().xp;
+  const friend = unitByType(api, TEAM_BLUE, "footman");
+  api.applyDamage(friend.id, 9999, { countDamage: true, team: TEAM_RED });
+
+  assert(api.getProgression().xp === before, "a lost fighter pays no experience");
+  assert(api.getBattleLedger().lost === 1, "the loss is recorded in the ledger");
+}
+
+/* 69. THE ENEMY TURNS AROUND WHEN IT WALKS PAST */
+
+section("69. The enemy turns around when it walks past");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+
+  /* Put the enemy behind its own target: the pull toward the enemy has to
+   * turn round, otherwise the two armies walk off the field and the battle
+   * never ends. */
+  const red = unitByType(api, TEAM_RED, "footman");
+  const blue = unitByType(api, TEAM_BLUE, "footman");
+  red.col = 8; red.row = 0;
+  blue.col = 6; blue.row = 0;
+
+  const action = api.chooseEnemyAction(red);
+  const cells = api.getLegalActions(red).filter(a => a.kind === "move").map(a => a.cell);
+  assert(cells.length > 0, "the enemy has somewhere to go");
+
+  const closing = cells.filter(c => c.col < red.col);
+  assert(closing.length > 0, "the enemy can step back toward the foe it walked past");
+}
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);

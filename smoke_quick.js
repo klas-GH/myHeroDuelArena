@@ -286,7 +286,12 @@ const requiredClasses = [
   "terrain-forest", "terrain-rock", "terrain-highground", "terrain-boulder",
   "progression-strip", "prog-xp-bar", "prog-xp-fill", "prog-level", "prog-points",
   "reset-progress-button", "champion-panel", "champ-level", "ability-list",
-  "ability-row", "ability-name", "ability-state", "ability-button", "level-up-banner"
+  "ability-row", "ability-name", "ability-state", "ability-button", "level-up-banner",
+  "setup-panel", "setup-title", "setup-toggle", "setup-label", "setup-hint",
+  "difficulty-row", "difficulty-button", "map-row", "map-card", "map-name",
+  "map-tagline", "map-preview", "map-preview-cell", "battle-report", "report-head",
+  "report-outcome", "report-map", "report-difficulty", "report-grid", "report-cell",
+  "report-label", "report-value", "report-breakdown", "report-level"
 ];
 
 const missingClasses = requiredClasses.filter(c => !css.includes(`.${c}`));
@@ -398,6 +403,158 @@ assert(unitPointerRule && /pointer-events:\s*auto/.test(unitPointerRule[0]),
 /* The AI turn pulse is applied to a battlefield ancestor of the unit layers. */
 assert(htmlIds.includes("battlefield"), "index.html exposes a battlefield container");
 assert(/\.ai-turn-active\s+\.unit\.red/.test(css), "AI turn pulse targets red units under the battlefield");
+
+/* --- TEST 12: the pre-battle selector renders --- */
+
+console.log("\n12. Runtime — the pre-battle selector");
+
+{
+  const setup = doc.getElementById("setup-panel");
+  const difficultyRow = doc.getElementById("difficulty-row");
+  const mapRow = doc.getElementById("map-row");
+
+  assert(!!setup, "the setup panel exists");
+  assert(!!difficultyRow, "the difficulty row exists");
+  assert(!!mapRow, "the map row exists");
+
+  assert(difficultyRow.children.length === 3,
+    `three difficulty buttons are drawn (got ${difficultyRow.children.length})`);
+  assert(mapRow.children.length === 4,
+    `four battlefield cards are drawn (got ${mapRow.children.length})`);
+
+  const labels = difficultyRow.children.map(c => c.textContent);
+  assert(/Easy/.test(labels.join(",")) && /Normal/.test(labels.join(",")) && /Hard/.test(labels.join(",")),
+    "the difficulty buttons are named Easy, Normal and Hard");
+
+  assert(difficultyRow.children.every(c => c.classList.contains("difficulty-button")),
+    "the difficulty buttons carry their class");
+  assert(difficultyRow.children.filter(c => c.classList.contains("selected")).length === 1,
+    "one difficulty is marked as selected");
+
+  /* Every card carries a picture of its own ground: four rows of ten. */
+  for (const card of mapRow.children) {
+    const preview = card.children.find(c => c.classList.contains("map-preview"));
+    assert(!!preview, `the card for ${card.dataset.map} has a preview`);
+    assert(preview && preview.children.length === 40,
+      `the preview for ${card.dataset.map} has 40 cells (got ${preview ? preview.children.length : 0})`);
+    assert(preview && preview.children.every(c => /^map-preview-cell terrain-\w+$/.test(c.className)),
+      `every preview cell for ${card.dataset.map} names its terrain`);
+  }
+
+  assert(mapRow.children.filter(c => c.classList.contains("selected")).length === 1,
+    "one battlefield is marked as selected");
+
+  /* The hint explains the chosen difficulty. */
+  const hint = doc.getElementById("difficulty-hint");
+  assert(hint && hint.textContent.length > 0, "the difficulty hint is filled in");
+}
+
+/* --- TEST 12b: the selector is locked during a battle --- */
+
+console.log("\n12b. Runtime — the selector is locked during a battle");
+
+{
+  const mapRow = doc.getElementById("map-row");
+  const difficultyRow = doc.getElementById("difficulty-row");
+
+  api.startBattle();
+
+  const cards = doc.getElementById("map-row").children;
+  assert(cards.every(c => c.disabled === true), "the battlefield cards are locked during a battle");
+  assert(difficultyRow.children.every(c => c.disabled === true),
+    "the difficulty buttons are locked during a battle");
+  assert(doc.getElementById("setup-panel").classList.contains("locked"),
+    "the selector says that it is locked");
+
+  const before = api.getActiveMapId();
+  cards[1].dispatch("click");
+  assert(api.getActiveMapId() === before, "a locked card cannot change the ground");
+
+  api.resetBattle();
+  assert(!doc.getElementById("setup-panel").classList.contains("locked"),
+    "the selector unlocks between battles");
+  assert(doc.getElementById("map-row").children.every(c => c.disabled === false),
+    "the battlefield cards are usable again");
+}
+
+/* --- TEST 13: the selector changes the battlefield --- */
+
+console.log("\n13. Runtime — choosing a battlefield and a difficulty");
+
+{
+  const mapRow = doc.getElementById("map-row");
+  const terrainLayer = doc.getElementById("terrain-layer");
+  const difficultyRow = doc.getElementById("difficulty-row");
+
+  /* The selector is locked while a battle runs, so the fight is put back to
+   * the setup screen first. */
+  api.resetBattle();
+
+  const firstTerrain = terrainLayer.children.map(c => c.className).join("|");
+  const secondCard = mapRow.children[1];
+
+  let mapError = null;
+  try {
+    secondCard.dispatch("click");
+  } catch (err) {
+    mapError = err;
+  }
+  assert(mapError === null, `choosing a battlefield runs cleanly${mapError ? " -> " + mapError.message : ""}`);
+  assert(api.getActiveMapId() === secondCard.dataset.map, "the chosen battlefield is active");
+  assert(terrainLayer.children.map(c => c.className).join("|") !== firstTerrain,
+    "the battlefield is redrawn with the new ground");
+  assert(terrainLayer.children.length === 40, "the battlefield still renders 40 cells");
+
+  const hardButton = difficultyRow.children.find(c => c.dataset.difficulty === "hard");
+  let difficultyError = null;
+  try {
+    hardButton.dispatch("click");
+  } catch (err) {
+    difficultyError = err;
+  }
+  assert(difficultyError === null,
+    `choosing a difficulty runs cleanly${difficultyError ? " -> " + difficultyError.message : ""}`);
+  assert(api.getDifficultyId() === "hard", "the chosen difficulty is active");
+  assert(difficultyRow.children.filter(c => c.classList.contains("selected")).length === 1,
+    "exactly one difficulty stays selected");
+  assert(difficultyRow.children.find(c => c.dataset.difficulty === "hard").classList.contains("selected"),
+    "the chosen difficulty is the marked one");
+
+  /* Put the game back the way it was found. */
+  mapRow.children[0].dispatch("click");
+  difficultyRow.children.find(c => c.dataset.difficulty === "normal").dispatch("click");
+  assert(api.getActiveMapId() === api.DEFAULT_MAP_ID, "the default battlefield can be restored");
+  assert(api.getDifficultyId() === "normal", "the normal difficulty can be restored");
+}
+
+/* --- TEST 14: the post-battle report --- */
+
+console.log("\n14. Runtime — the post-battle report");
+
+{
+  const report = doc.getElementById("battle-report");
+  assert(report.classList.contains("hidden"), "the report starts hidden");
+
+  api.startBattle();
+  assert(report.classList.contains("hidden"), "the report stays hidden during the battle");
+
+  for (const u of api.getTeamUnits("red")) {
+    u.alive = false;
+    u.defeated = true;
+  }
+  api.checkBattleEnd();
+
+  assert(!report.classList.contains("hidden"), "the report appears when the battle ends");
+  assert(doc.getElementById("report-outcome").textContent === "VICTORY",
+    "the report names the outcome");
+  assert(/XP/.test(doc.getElementById("report-breakdown").textContent),
+    "the report breaks the experience down");
+  assert(doc.getElementById("report-level").textContent.length > 0,
+    "the report says where the champion stands");
+
+  api.resetBattle();
+  assert(report.classList.contains("hidden"), "the report is cleared for the next battle");
+}
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);

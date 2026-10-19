@@ -1489,3 +1489,299 @@ body {
     height: 16px;
   }
 }
+/* ======================================================================
+   v1.3.0 — PRE-BATTLE SELECTOR & POST-BATTLE REPORT
+   ====================================================================== */
+
+/* 1. SETUP PANEL
+ *
+ * The selector sits between the title bar and the battlefield. It is drawn
+ * from the same map data the engine plays on, so a card can never promise
+ * ground the battlefield does not have.
+ */
+.setup-panel {
+  z-index: 4;
+  padding: 8px 12px 10px;
+  background: linear-gradient(#1f2f24, #17251c);
+  border-bottom: 2px solid #806b3e;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setup-panel.collapsed .setup-block {
+  display: none;
+}
+
+/* The ground and the opponent are chosen between battles. During a fight
+ * the selector is locked, so the field can never change under the units. */
+.setup-panel.locked .difficulty-button,
+.setup-panel.locked .map-card {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.setup-panel.locked .setup-title::after {
+  content: " — LOCKED DURING THE BATTLE";
+  color: #9fb08a;
+  letter-spacing: 1px;
+}
+
+.setup-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.setup-title {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #e9c66c;
+}
+
+.setup-toggle {
+  padding: 3px 12px;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+  background: #293c30;
+  border: 1px solid #806b3e;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.setup-block {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.setup-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #9fb08a;
+  min-width: 74px;
+}
+
+.setup-hint {
+  font-size: 9px;
+  color: #b7bd9a;
+  font-style: italic;
+}
+
+/* 2. DIFFICULTY BUTTONS */
+.difficulty-row {
+  display: flex;
+  gap: 6px;
+}
+
+.difficulty-button {
+  padding: 5px 16px;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+  background: #22332a;
+  border: 1px solid #4c6349;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.difficulty-button.selected {
+  color: #17251c;
+  background: #e9c66c;
+  border-color: #f0dc9c;
+  font-weight: bold;
+}
+
+/* 3. MAP CARDS */
+.map-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.map-card {
+  flex: 1 1 160px;
+  max-width: 230px;
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  font-family: inherit;
+  text-align: left;
+  color: #d0d3b9;
+  background: #22332a;
+  border: 1px solid #4c6349;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.map-card.selected {
+  border-color: #e9c66c;
+  background: #2b3d2f;
+  box-shadow: 0 0 0 1px rgba(233, 198, 108, 0.35);
+}
+
+.map-name {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  color: #e9c66c;
+}
+
+.map-tagline {
+  font-size: 8px;
+  line-height: 1.35;
+  color: #a8b194;
+}
+
+/* The little picture of the ground. */
+.map-preview {
+  display: grid;
+  grid-template-rows: repeat(4, 6px);
+  grid-auto-flow: column;
+  grid-auto-columns: 6px;
+  gap: 1px;
+  margin-top: 3px;
+}
+
+.map-preview-cell {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+}
+
+/* The preview carries the same terrain class names as the battlefield, but
+ * without the drawn decorations — the colour is enough at this size. */
+.map-preview-cell::before,
+.map-preview-cell::after {
+  content: none;
+}
+
+.map-preview-cell.terrain-grass { background: #6c984c; }
+.map-preview-cell.terrain-forest { background: #2c5730; }
+.map-preview-cell.terrain-rock { background: #8d8b80; }
+.map-preview-cell.terrain-highground { background: #b9c06a; }
+.map-preview-cell.terrain-boulder { background: #4f4d45; }
+
+/* 4. POST-BATTLE REPORT
+ *
+ * The report is written from the battle ledger, so the numbers always match
+ * the rewards that were actually paid out.
+ */
+.battle-report {
+  margin: 8px auto 4px;
+  padding: 9px 11px;
+  width: min(560px, 96%);
+  text-align: left;
+  background: rgba(23, 37, 28, 0.92);
+  border: 1px solid #806b3e;
+  border-radius: 4px;
+}
+
+.report-head {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(128, 107, 62, 0.5);
+}
+
+.report-outcome {
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #e9c66c;
+}
+
+.report-outcome.defeat { color: #f87171; }
+.report-outcome.stalemate { color: #d0d3b9; }
+
+.report-map {
+  font-size: 10px;
+  color: #d0d3b9;
+}
+
+.report-difficulty {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #9fb08a;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 8px;
+}
+
+.report-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.report-label {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #9fb08a;
+}
+
+.report-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff5d7;
+}
+
+.report-breakdown {
+  margin-top: 7px;
+  font-size: 9px;
+  color: #d0d3b9;
+}
+
+.report-level {
+  margin-top: 3px;
+  font-size: 9px;
+  font-style: italic;
+  color: #b7bd9a;
+}
+
+@media (max-width: 560px) {
+  .setup-label {
+    min-width: 100%;
+  }
+
+  .setup-panel {
+    gap: 4px;
+    padding: 6px 8px 8px;
+  }
+
+  .map-card {
+    flex: 1 1 44%;
+    max-width: none;
+    padding: 5px 6px 6px;
+  }
+
+  .map-tagline {
+    display: none;
+  }
+
+  .map-preview {
+    grid-template-rows: repeat(4, 4px);
+    grid-auto-columns: 4px;
+  }
+
+  .map-preview-cell {
+    width: 4px;
+    height: 4px;
+  }
+
+  .report-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

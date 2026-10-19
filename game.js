@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.2.1 — OCTAGONAL FIELD, TIGHTER FORMATIONS & FIXED SELECTION
+   myHeroDuelArena v1.3.0 — CHOOSE THE GROUND, SET THE DIFFICULTY, EARN THE XP
    ==========================================================================
 
    SECTION GUIDE
@@ -37,6 +37,8 @@
        step costs the same as a straight one.
      * Permanent progression (champion level) is separate from battle state.
      * Every state change goes through one validation function.
+     * The default game stays deterministic. Randomness only exists when a
+       seed is used, and the seed only matters to the balance harness.
    ========================================================================== */
 
 "use strict";
@@ -44,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.2.1";
+const APP_VERSION = "v1.3.0";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -117,25 +119,255 @@ const TERRAIN_TYPES = {
 
 /* 2.1 TERRAIN MAP
  * One character per cell, one string per logical row (row 0 is the lowest row
- * on screen). The map is fixed so every battle starts identically and neither
- * army is given better ground than the other.
+ * on screen). The default map is fixed so every battle starts identically
+ * and neither army is given better ground than the other.
  *
  *   G = grass   F = forest   R = rock   H = high ground   B = boulder
  *
  * The layout is mirror symmetric (col <-> 9 - col):
  *   row 0  BFGGHHGGFB   row 1  GGFFFFFFGG
  *   row 2  GRGGHHGGRG   row 3  GGFGGGGFGG
+ *
+ * The live battlefield is whichever map is active; see the map registry in
+ * section 2.2. TERRAIN_MAP always holds the default map.
  */
-const TERRAIN_MAP = [
-  "BFGGHHGGFB",
-  "GGFFFFFFGG",
-  "GRGGHHGGRG",
-  "GGFGGGGFGG"
-];
-
 const TERRAIN_LEGEND = {
   G: "grass", F: "forest", R: "rock", H: "highground", B: "boulder"
 };
+
+/* 2.2 MAP REGISTRY
+ *
+ * Four handcrafted battlefields. Every map obeys the same three rules, so
+ * the choice is always about tactics and never about who gets the better
+ * ground:
+ *
+ *   1. MIRROR SYMMETRY. Every row reads the same from left to right and
+ *      from right to left (column c equals column 9 - c). Both armies
+ *      therefore start on identical terrain and meet on identical terrain.
+ *   2. VALID GROUND. Every deployment slot of both armies sits on passable
+ *      ground, so no map can ever start a battle with a unit stuck.
+ *   3. AT LEAST FOUR TERRAIN TYPES, so each map asks for a different plan
+ *      rather than repeating one texture.
+ *
+ *   G = grass   F = forest   R = rock   H = high ground   B = boulder
+ */
+const MAP_REGISTRY = [
+  {
+    id: "old_frontier",
+    name: "The Old Frontier",
+    tagline: "Open ground and two rocky rises. The even battlefield.",
+    terrain: [
+      "BFGGHHGGFB",
+      "GGFFFFFFGG",
+      "GRGGHHGGRG",
+      "GGFGGGGFGG"
+    ]
+  },
+  {
+    id: "forest_march",
+    name: "The Forest March",
+    tagline: "Deep wood on both flanks. Cover for whoever holds it.",
+    terrain: [
+      "BFGFFFFGFB",
+      "GFFHHHHFFG",
+      "GFRHHHHRFG",
+      "GFGFFFFGFG"
+    ]
+  },
+  {
+    id: "broken_pass",
+    name: "The Broken Pass",
+    tagline: "A fallen wall splits the field. Only the ridges lead through.",
+    terrain: [
+      "GGGRGGRGGG",
+      "GGGBBBBGGG",
+      "GGRHHHHRGG",
+      "GGGRGGRGGG"
+    ]
+  },
+  {
+    id: "high_ground",
+    name: "The High Ground",
+    tagline: "A raised plateau in the centre. Whoever holds it shoots free.",
+    terrain: [
+      "GFFRBBRFFG",
+      "GGHHHHHHGG",
+      "GGHHHHHHGG",
+      "GFFRBBRFFG"
+    ]
+  }
+];
+
+const DEFAULT_MAP_ID = "old_frontier";
+
+/* The terrain of the default map. Kept as its own copy so the historic
+ * constant keeps working even if a map is edited later. */
+const TERRAIN_MAP = MAP_REGISTRY[0].terrain.map(row => row);
+
+const MAP_IDS = MAP_REGISTRY.map(map => map.id);
+
+function getMapRegistry() {
+  return MAP_REGISTRY;
+}
+
+function getMapById(id) {
+  return MAP_REGISTRY.find(map => map.id === id) || null;
+}
+
+function getActiveMap() {
+  return getMapById(activeMapId) || MAP_REGISTRY[0];
+}
+
+function getActiveMapId() {
+  return getActiveMap().id;
+}
+
+/* Switching a map is only allowed between battles, so a running battle can
+ * never find the ground changing under its feet. */
+function setActiveMap(id) {
+  const map = getMapById(id);
+  if (!map) return false;
+  activeMapId = map.id;
+  return true;
+}
+
+/* How many cells of every terrain type a map uses. The previews and the
+ * balance harness both need this. */
+function getMapTerrainCounts(map) {
+  const counts = { grass: 0, forest: 0, rock: 0, highground: 0, boulder: 0 };
+  const source = typeof map === "string" ? (getMapById(map) || getActiveMap()) : (map || getActiveMap());
+  for (const row of source.terrain) {
+    for (const ch of row) {
+      const type = TERRAIN_LEGEND[ch];
+      if (type && Object.prototype.hasOwnProperty.call(counts, type)) counts[type]++;
+    }
+  }
+  return counts;
+}
+
+/* The cells a unit with a single movement point can stand on. */
+function walkableCells(map) {
+  const cells = new Set();
+  for (let row = 0; row < GRID_ROWS; row++) {
+    for (let col = 0; col < GRID_COLS; col++) {
+      const type = TERRAIN_LEGEND[(map.terrain[row] || "")[col]];
+      if (type && TERRAIN_TYPES[type].passable && TERRAIN_TYPES[type].cost <= 1) {
+        cells.add(`${col},${row}`);
+      }
+    }
+  }
+  return cells;
+}
+
+/* True when a unit with one movement point can walk from the azure lines to
+ * the crimson lines. A map that walls a whole unit type out of the battle
+ * is broken, however good it looks.
+ *
+ * The walk follows the same rules the engine uses: the octagonal step, and a
+ * diagonal step that is refused only when both of its side cells are walled
+ * in. */
+function mapConnectsArmies(map) {
+  const source = typeof map === "string" ? getMapById(map) : map;
+  if (!source) return false;
+
+  const walkable = walkableCells(source);
+  const passable = new Set();
+  for (let row = 0; row < GRID_ROWS; row++) {
+    for (let col = 0; col < GRID_COLS; col++) {
+      const type = TERRAIN_LEGEND[(source.terrain[row] || "")[col]];
+      if (type && TERRAIN_TYPES[type].passable) passable.add(`${col},${row}`);
+    }
+  }
+
+  const reached = new Set();
+  const queue = [];
+
+  for (const slot of BLUE_FORMATION) {
+    const key = `${slot.col},${slot.row}`;
+    if (reached.has(key)) continue;
+    reached.add(key);
+    queue.push({ col: slot.col, row: slot.row });
+  }
+
+  while (queue.length) {
+    const cell = queue.shift();
+    for (let dc = -1; dc <= 1; dc++) {
+      for (let dr = -1; dr <= 1; dr++) {
+        if (dc === 0 && dr === 0) continue;
+        const nc = cell.col + dc;
+        const nr = cell.row + dr;
+        const key = `${nc},${nr}`;
+        if (!walkable.has(key) || reached.has(key)) continue;
+        if (dc !== 0 && dr !== 0) {
+          /* A diagonal step needs at least one open side. */
+          const sideA = passable.has(`${cell.col + dc},${cell.row}`);
+          const sideB = passable.has(`${cell.col},${cell.row + dr}`);
+          if (!sideA && !sideB) continue;
+        }
+        reached.add(key);
+        queue.push({ col: nc, row: nr });
+      }
+    }
+  }
+
+  /* A crimson fighter has to be able to be reached, so every crimson slot
+   * needs a neighbouring cell the azure side can stand on. */
+  return RED_FORMATION.every(slot => {
+    for (let dc = -1; dc <= 1; dc++) {
+      for (let dr = -1; dr <= 1; dr++) {
+        if (dc === 0 && dr === 0) continue;
+        if (reached.has(`${slot.col + dc},${slot.row + dr}`)) return true;
+      }
+    }
+    return false;
+  });
+}
+
+/* True when a map is mirror symmetric and every deployment slot is on
+ * passable ground. The suites check this for every registered map. */
+function validateMap(map) {
+  const problems = [];
+  const source = typeof map === "string" ? getMapById(map) : map;
+  if (!source) return { ok: false, problems: ["unknown map"] };
+  if (!Array.isArray(source.terrain) || source.terrain.length !== GRID_ROWS) {
+    problems.push("a map needs exactly four rows");
+    return { ok: false, problems };
+  }
+  source.terrain.forEach((row, index) => {
+    if (typeof row !== "string" || row.length !== GRID_COLS) {
+      problems.push(`row ${index} needs exactly ${GRID_COLS} cells`);
+      return;
+    }
+    for (const ch of row) {
+      if (!TERRAIN_LEGEND[ch]) problems.push(`row ${index} uses an unknown terrain code "${ch}"`);
+    }
+    for (let col = 0; col < GRID_COLS; col++) {
+      if (row[col] !== row[GRID_COLS - 1 - col]) {
+        problems.push(`row ${index} is not mirror symmetric`);
+        break;
+      }
+    }
+  });
+  for (const slot of BLUE_FORMATION) {
+    const type = TERRAIN_LEGEND[(source.terrain[slot.row] || "")[slot.col]];
+    if (!type || !TERRAIN_TYPES[type].passable) {
+      problems.push(`blue slot (${slot.col},${slot.row}) is not passable`);
+    }
+  }
+  for (const slot of RED_FORMATION) {
+    const type = TERRAIN_LEGEND[(source.terrain[slot.row] || "")[slot.col]];
+    if (!type || !TERRAIN_TYPES[type].passable) {
+      problems.push(`red slot (${slot.col},${slot.row}) is not passable`);
+    }
+  }
+  if (!mapConnectsArmies(source)) {
+    problems.push("a one-move fighter cannot reach the crimson lines");
+  }
+  const counts = getMapTerrainCounts(source);
+  const used = Object.keys(counts).filter(key => counts[key] > 0);
+  if (used.length < 4) problems.push(`only ${used.length} terrain types are used`);
+  return { ok: problems.length === 0, problems, counts };
+}
 
 /* 3. CHAMPION ABILITIES
  *
@@ -213,6 +445,12 @@ const XP_REWARDS = {
 const XP_CHAMPION_BONUS = 40;
 const XP_VICTORY_BONUS = 50;
 
+/* Experience for the work itself: one point for every five points of damage
+ * the legion actually lands. Damage that overshoots a wounded target is
+ * never rewarded, because the target was already dead before the extra
+ * landed. */
+const XP_PER_DAMAGE = 5;
+
 /* Progression is stored under a namespaced key. */
 const STORAGE_KEY = "myHeroDuelArena.championProfile.v1";
 const PROFILE_VERSION = 1;
@@ -258,6 +496,145 @@ const AI_TIMING = {
   gap: 200
 };
 
+/* 5.1 DIFFICULTY PROFILES
+ *
+ * The difficulty setting never touches the rules. Damage, movement, terrain
+ * and abilities stay exactly the same for every setting, so a battle on Hard
+ * is still the same battle, only fought by a sharper opponent.
+ *
+ * Every knob is a multiplier on an existing AI weight. The Normal profile
+ * leaves every multiplier at one and adds nothing, which keeps the default
+ * behaviour byte for byte identical to earlier versions.
+ *
+ *   aggression   — how eagerly the enemy closes the distance
+ *   tradeAppetite— how much the enemy values dealing damage against risk
+ *   caution      — how much the enemy fears trading blows
+ *   championFocus— extra interest in the player's champion
+ *   abilityDrive— how readily the enemy spends its champion abilities
+ *   aimAssist    — flat damage the enemy adds to every blow
+ */
+const DIFFICULTY_PROFILES = {
+  easy: {
+    id: "easy",
+    label: "Easy",
+    hint: "The crimson legion hesitates, under-reads the field and rarely presses home.",
+    aggression: 0.65,
+    tradeAppetite: 0.8,
+    caution: 1.35,
+    championFocus: 0,
+    abilityDrive: 0.5,
+    aimAssist: -2
+  },
+  normal: {
+    id: "normal",
+    label: "Normal",
+    hint: "The crimson legion fights the way it always has.",
+    aggression: 1,
+    tradeAppetite: 1,
+    caution: 1,
+    championFocus: 0,
+    abilityDrive: 1,
+    aimAssist: 0
+  },
+  hard: {
+    id: "hard",
+    label: "Hard",
+    hint: "The crimson legion reads the field, hunts your champion and presses hard.",
+    aggression: 1.3,
+    tradeAppetite: 1.25,
+    caution: 0.75,
+    championFocus: 14,
+    abilityDrive: 1.6,
+    aimAssist: 2
+  }
+};
+
+const DIFFICULTY_IDS = Object.keys(DIFFICULTY_PROFILES);
+const DEFAULT_DIFFICULTY_ID = "normal";
+
+let currentDifficultyId = DEFAULT_DIFFICULTY_ID;
+
+function getDifficultyProfiles() {
+  return DIFFICULTY_PROFILES;
+}
+
+function getDifficultyId() {
+  return currentDifficultyId;
+}
+
+function setDifficulty(id) {
+  if (!Object.prototype.hasOwnProperty.call(DIFFICULTY_PROFILES, id)) return false;
+  currentDifficultyId = id;
+  return true;
+}
+
+/* The player is never handicapped by the difficulty setting: only the
+ * crimson legion changes. The blue side always plays by the normal rules,
+ * which also makes it a stable reference opponent for the balance harness. */
+function profileForTeam(team) {
+  if (team !== TEAM_RED) return DIFFICULTY_PROFILES.normal;
+  return DIFFICULTY_PROFILES[currentDifficultyId] || DIFFICULTY_PROFILES.normal;
+}
+
+/* 5.2 SEEDED RANDOMNESS
+ *
+ * The shipped game is fully deterministic: with the default settings the
+ * same battle always plays out the same way. The balance harness needs a
+ * different kind of control, so the engine also carries a seed and two
+ * optional knobs that are off by default:
+ *
+ *   variance — how far a blow can scatter around its expected damage
+ *   jitter   — how much noise the AI adds to every option it weighs
+ *
+ * The seed only matters when one of those knobs is turned up, which keeps
+ * the ordinary game untouched.
+ */
+const DEFAULT_SEED = 20260119;
+
+let randomSeed = DEFAULT_SEED;
+let randomState = DEFAULT_SEED;
+let combatVariance = 0;
+let aiJitter = 0;
+
+function clampFloat(value, min, max, fallback) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.min(max, Math.max(min, num));
+}
+
+function setSeed(seed) {
+  const value = Math.floor(Number(seed));
+  if (!Number.isFinite(value)) return false;
+  randomSeed = value >>> 0;
+  randomState = randomSeed;
+  return true;
+}
+
+function getSeed() {
+  return randomSeed;
+}
+
+/* mulberry32: small, fast and identical in every engine, so a seed always
+ * reproduces the same run. */
+function nextRandom() {
+  randomState = (randomState + 0x6D2B79F5) >>> 0;
+  let t = randomState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+function setCombatOptions(options) {
+  const opts = options || {};
+  combatVariance = clampFloat(opts.variance, 0, 0.5, combatVariance);
+  aiJitter = clampFloat(opts.jitter, 0, 50, aiJitter);
+  return { variance: combatVariance, jitter: aiJitter };
+}
+
+function getCombatOptions() {
+  return { variance: combatVariance, jitter: aiJitter };
+}
+
 /* 6. DOM ELEMENTS */
 
 const $status = document.getElementById("status");
@@ -298,6 +675,27 @@ const $abilityList = document.getElementById("ability-list");
 const $levelUpBanner = document.getElementById("level-up-banner");
 const $levelUpText = document.getElementById("level-up-text");
 
+/* Pre-battle selector: difficulty buttons and one card per battlefield. */
+const $setupPanel = document.getElementById("setup-panel");
+const $setupToggle = document.getElementById("setup-toggle");
+const $difficultyRow = document.getElementById("difficulty-row");
+const $difficultyHint = document.getElementById("difficulty-hint");
+const $mapRow = document.getElementById("map-row");
+
+/* Post-battle report. */
+const $battleReport = document.getElementById("battle-report");
+const $reportOutcome = document.getElementById("report-outcome");
+const $reportMap = document.getElementById("report-map");
+const $reportDifficulty = document.getElementById("report-difficulty");
+const $reportRounds = document.getElementById("report-rounds");
+const $reportDamage = document.getElementById("report-damage");
+const $reportTaken = document.getElementById("report-taken");
+const $reportKills = document.getElementById("report-kills");
+const $reportLosses = document.getElementById("report-losses");
+const $reportXp = document.getElementById("report-xp");
+const $reportBreakdown = document.getElementById("report-breakdown");
+const $reportLevel = document.getElementById("report-level");
+
 /* 7. GAME STATE */
 
 let gameState = STATE_INIT;
@@ -310,6 +708,15 @@ let attackIndicators = [];
 let aiActionQueue = [];
 let aiActionIndex = 0;
 let actionLock = false;
+
+/* The team the tactical AI is driving right now. It is only set while an AI
+ * turn is running, so the phase check still refuses abilities outside it. */
+let aiTurnTeam = null;
+
+/* True when the running AI turn owns the round bookkeeping. The enemy turn
+ * does; the harness turn for the reference opponent does not, because the
+ * round is closed by the enemy turn that follows it. */
+let aiTurnOwnsRound = false;
 
 /* Incremented for every battle. AI continuations compare against it so a
  * rematch can never be touched by a timer that was scheduled for the
@@ -326,6 +733,52 @@ let battleFinalized = false;
 
 /* Reward keys already handed out in this session. */
 const awardedRewards = new Set();
+
+/* The battlefield the next battle is fought on. */
+let activeMapId = DEFAULT_MAP_ID;
+
+/* The ledger of the running battle. Everything the post-battle report shows
+ * is written down here while the fight happens, so the report can never
+ * disagree with the rewards that were actually paid. */
+let battleLedger = createBattleLedger();
+
+function createBattleLedger() {
+  return {
+    mapId: DEFAULT_MAP_ID,
+    difficultyId: DEFAULT_DIFFICULTY_ID,
+    seed: DEFAULT_SEED,
+    rounds: 0,
+    damage: { blue: 0, red: 0 },
+    defeated: 0,
+    lost: 0,
+    xp: { damage: 0, kill: 0, victory: 0 },
+    levelBefore: 1,
+    levelAfter: 1
+  };
+}
+
+/* Damage that actually left a target. Overkill is not counted. */
+function recordDamage(team, amount) {
+  if (!amount || amount <= 0) return 0;
+  const key = team === TEAM_RED ? "red" : "blue";
+  battleLedger.damage[key] += amount;
+  return amount;
+}
+
+function getBattleLedger() {
+  return {
+    mapId: battleLedger.mapId,
+    difficultyId: battleLedger.difficultyId,
+    seed: battleLedger.seed,
+    rounds: battleLedger.rounds,
+    damage: { blue: battleLedger.damage.blue, red: battleLedger.damage.red },
+    defeated: battleLedger.defeated,
+    lost: battleLedger.lost,
+    xp: { damage: battleLedger.xp.damage, kill: battleLedger.xp.kill, victory: battleLedger.xp.victory },
+    levelBefore: battleLedger.levelBefore,
+    levelAfter: battleLedger.levelAfter
+  };
+}
 
 /* Pending timers are tracked so a reset can cancel them safely. */
 const pendingTimers = new Set();
@@ -472,7 +925,7 @@ function isInBounds(col, row) {
 /* The single source of truth for what a cell contains. */
 function getTerrainAt(col, row) {
   if (!isInBounds(col, row)) return TERRAIN_TYPES.boulder;
-  const rowMap = TERRAIN_MAP[row] || "";
+  const rowMap = getActiveMap().terrain[row] || "";
   const key = rowMap[col] || "G";
   return TERRAIN_TYPES[TERRAIN_LEGEND[key]] || TERRAIN_TYPES.grass;
 }
@@ -969,20 +1422,36 @@ function calculateDamage(attacker, defender, options) {
   const attackerPos = opts.attackerPos || attacker;
   const defenderPos = opts.defenderPos || defender;
 
-  const atkBonus = getUnitAtkBonus(attacker) + (opts.extraDamage || 0);
+  const profile = profileForTeam(attacker.team);
+  const atkBonus = getUnitAtkBonus(attacker) + (opts.extraDamage || 0) + profile.aimAssist;
   const defBonus = getUnitDefBonus(defender) + getTerrainDefBonus(defenderPos);
   const aimBonus = opts.useTerrainAim === false ? 0 : getTerrainAimBonus(attackerPos);
 
-  const raw = attackValue(attacker, attackerPos, defenderPos) + atkBonus + aimBonus
+  let raw = attackValue(attacker, attackerPos, defenderPos) + atkBonus + aimBonus
     - Math.floor((defender.def + defBonus) / 2);
+
+  /* Damage scatter is off unless the balance harness turns it on, so the
+   * ordinary game keeps its exact numbers. */
+  if (combatVariance > 0) {
+    raw = Math.round(raw * (1 + (nextRandom() * 2 - 1) * combatVariance));
+  }
+
   return Math.max(1, raw);
 }
 
-function applyDamage(targetId, amount) {
+function applyDamage(targetId, amount, options) {
+  const opts = options || {};
   const target = units.get(targetId);
   if (!target || !target.alive || target.defeated) return 0;
 
+  const hpBefore = target.hp;
   target.hp = Math.max(0, target.hp - amount);
+  const dealt = hpBefore - target.hp;
+
+  /* Only a real blow counts towards the damage reward, and only the health
+   * that actually left the target counts: overkill is never rewarded. */
+  if (opts.countDamage) recordDamage(opts.team || target.team, dealt);
+
   const el = unitElements.get(targetId);
   if (el) {
     updateUnitHealthBar(el, target);
@@ -998,8 +1467,15 @@ function applyDamage(targetId, amount) {
       el.classList.add("defeated");
       el.style.pointerEvents = "none";
     }
-    /* The reward is keyed by the battle, so it can only ever be paid once. */
-    awardExperienceForDefeat(target);
+    /* The reward is keyed by the battle, so it can only ever be paid once.
+     * Only the crimson legion pays out: losing one of your own fighters is
+     * a loss, never an income. */
+    if (target.team === TEAM_RED) {
+      battleLedger.defeated += 1;
+      awardExperienceForDefeat(target);
+    } else {
+      battleLedger.lost += 1;
+    }
     return amount;
   }
   return amount;
@@ -1068,7 +1544,9 @@ function canAiUseAbility(unit, ability, targetId) {
   if (!unit.alive || unit.defeated) return false;
   if (unit.type !== "champion") return false;
   if (!battleActive || gameState === STATE_ENDED) return false;
-  if (currentTurn !== "enemy" || unit.team !== TEAM_RED) return false;
+  /* Only the team the AI is currently driving may use an ability. Outside an
+   * AI turn there is no such team, so the answer is always no. */
+  if (aiTurnTeam !== unit.team) return false;
   if (!isAbilityUnlocked(ability.id)) return false;
   if (getAbilityUses(unit, ability.id) >= ability.usesPerBattle) return false;
   if (ability.actionCost === "attack" && unit.hasAttacked) return false;
@@ -1089,7 +1567,7 @@ function canAiUseAbility(unit, ability, targetId) {
 function applyAbilityEffect(unit, ability, target) {
   if (ability.type === "offensive") {
     const damage = calculateDamage(unit, target, { extraDamage: ability.damageBonus });
-    applyDamage(target.id, damage);
+    applyDamage(target.id, damage, { countDamage: true, team: unit.team });
     logEvent(`${unit.displayName} uses ${ability.name} on ${target.displayName} for ${damage} damage.`, unit.team === TEAM_BLUE ? "player" : "ai");
     if (!target.alive || target.defeated) {
       logEvent(`${target.displayName} is defeated.`, "system");
@@ -1359,6 +1837,7 @@ function startBattle() {
   $startButton.disabled = true;
   $startButton.textContent = "ARENA READY";
   $battleResult.classList.add("hidden");
+  hideBattleReport();
   $turnBanner.classList.remove("hidden");
   $endTurnButton.classList.remove("hidden");
   $endTurnButton.disabled = false;
@@ -1368,6 +1847,13 @@ function startBattle() {
 
   resetActionFlags();
   resetAbilityUses();
+  renderSetupPanel();
+  battleLedger = createBattleLedger();
+  battleLedger.mapId = getActiveMapId();
+  battleLedger.difficultyId = getDifficultyId();
+  battleLedger.seed = randomSeed;
+  battleLedger.levelBefore = progression.level;
+  battleLedger.levelAfter = progression.level;
   applyChampionProgression(getPlayerChampion());
   refreshAllHealthBars();
   updateTurnBanner();
@@ -1406,14 +1892,17 @@ function endPlayerTurn() {
  * deterministic, so the same battlefield always produces the same plan.
  */
 
-/* Front-to-back order: red advances toward lower columns, so the unit with
- * the lowest column acts first. Ties break on row, then on id. */
-function buildEnemyActionQueue() {
-  return redUnitIds
+/* Front-to-back order: the units of a team take their turn from the front
+ * rank backwards, so the fighter that is already closest to the enemy moves
+ * first. Ties break on row, then on id. */
+function buildActionQueue(team) {
+  const ids = team === TEAM_BLUE ? blueUnitIds : redUnitIds;
+  const direction = team === TEAM_BLUE ? -1 : 1;
+  return ids
     .map(id => units.get(id))
     .filter(u => u && u.alive && !u.defeated)
     .sort((a, b) => {
-      if (a.col !== b.col) return a.col - b.col;
+      if (a.col !== b.col) return (a.col - b.col) * direction;
       if (a.row !== b.row) return a.row - b.row;
       return a.id.localeCompare(b.id);
     });
@@ -1438,33 +1927,59 @@ function estimateIncomingDamage(col, row, team, defenderDef) {
 
 function evaluateAttackAction(attacker, target, attackerPos) {
   const pos = attackerPos || attacker;
+  const profile = profileForTeam(attacker.team);
   const damage = calculateDamage(attacker, target, { attackerPos: pos });
   const kills = damage >= target.hp;
 
-  let score = damage * AI_TUNING.damageWeight;
+  let score = damage * AI_TUNING.damageWeight * profile.tradeAppetite;
   if (kills) score += AI_TUNING.killBonus + targetValue(target);
   if (target.hp <= target.maxHp * 0.5) score += AI_TUNING.finishBonus;
   score += getTerrainAimBonus(pos);
 
+  /* A sharper opponent goes after the banner carrier. */
+  if (profile.championFocus && target.type === "champion") {
+    score += profile.championFocus;
+  }
+
   /* Trading blows is a real cost. */
   const retaliation = estimateIncomingDamage(pos.col, pos.row, attacker.team, attacker.def);
-  score -= retaliation * AI_TUNING.retaliationWeight;
+  score -= retaliation * AI_TUNING.retaliationWeight * profile.caution;
   return score;
+}
+
+/* Which way is forward for this unit. Normally the enemy lies ahead and
+ * forward is the way the army marches. When every living enemy has already
+ * walked past the unit, forward turns around: a unit that keeps marching on
+ * would leave the field and the battle would never end. */
+function advanceDirection(unit) {
+  const forward = unit.team === TEAM_BLUE ? 1 : -1;
+  let enemyAhead = false;
+  let enemyBehind = false;
+  for (const [, other] of units) {
+    if (!other.alive || other.defeated) continue;
+    if (other.team === unit.team) continue;
+    const delta = (other.col - unit.col) * forward;
+    if (delta > 0) enemyAhead = true;
+    else if (delta < 0) enemyBehind = true;
+  }
+  if (enemyAhead || !enemyBehind) return forward;
+  return -forward;
 }
 
 function evaluateMoveAction(unit, cell) {
   const terrain = getTerrainAt(cell.col, cell.row);
-  const advance = unit.team === TEAM_BLUE ? cell.col - unit.col : unit.col - cell.col;
+  const profile = profileForTeam(unit.team);
+  const advance = (cell.col - unit.col) * advanceDirection(unit);
 
   let score = 0;
-  score += advance * AI_TUNING.advanceWeight;
+  score += advance * AI_TUNING.advanceWeight * profile.aggression;
   score += terrain.def * AI_TUNING.coverWeight;
 
   const currentThreat = estimateIncomingDamage(unit.col, unit.row, unit.team, unit.def);
   const nextThreat = estimateIncomingDamage(cell.col, cell.row, unit.team, unit.def);
   /* Only the CHANGE in danger matters. A unit that is already exposed does
    * not refuse to advance just because arrows can still reach it. */
-  score -= (nextThreat - currentThreat) * AI_TUNING.threatWeight;
+  score -= (nextThreat - currentThreat) * AI_TUNING.threatWeight * profile.caution;
 
   /* A wounded unit under threat is happy to run. */
   if (unit.hp <= unit.maxHp * 0.5 && currentThreat > 0 && nextThreat < currentThreat) {
@@ -1478,7 +1993,7 @@ function evaluateMoveAction(unit, cell) {
   }
 
   if (unit.range <= 1 && advance > 0) {
-    score += Math.min(advance, 2) * AI_TUNING.meleeAdvanceBonus;
+    score += Math.min(advance, 2) * AI_TUNING.meleeAdvanceBonus * profile.aggression;
   }
 
   /* A unit that can loose an arrow likes the high ground. */
@@ -1546,20 +2061,21 @@ function countThreatenedBeneficiaries(unit, ability) {
 }
 
 function evaluateAbilityAction(unit, ability, target) {
+  const profile = profileForTeam(unit.team);
   if (ability.type === "offensive") {
     const damage = calculateDamage(unit, target, { extraDamage: ability.damageBonus });
     const kills = damage >= target.hp;
     let score = damage * AI_TUNING.offensiveAbilityDamage;
-    if (kills) score += AI_TUNING.killBonus + targetValue(target) + AI_TUNING.offensiveAbilityBonus;
+    if (kills) score += AI_TUNING.killBonus + targetValue(target) + AI_TUNING.offensiveAbilityBonus * profile.abilityDrive;
     return score;
   }
 
   const beneficiaries = countAbilityBeneficiaries(unit, ability);
-  if (beneficiaries < AI_TUNING.supportMinimum) return -1;
+  if (beneficiaries < AI_TUNING.supportMinimum / profile.abilityDrive) return -1;
 
   let score = beneficiaries * (ability.type === "defensive"
     ? AI_TUNING.guardPerAlly
-    : AI_TUNING.supportPerAlly);
+    : AI_TUNING.supportPerAlly) * profile.abilityDrive;
   if (ability.type === "defensive") {
     score += countThreatenedBeneficiaries(unit, ability) * AI_TUNING.threatenedBonus;
   }
@@ -1614,19 +2130,20 @@ function actionKey(action) {
 }
 
 function evaluateAction(action) {
+  let score = 0;
   if (action.kind === "attack") {
-    return AI_TUNING.actNowBonus + evaluateAttackAction(action.unit, action.target);
-  }
-  if (action.kind === "move") {
-    let score = evaluateMoveAction(action.unit, action.cell);
+    score = AI_TUNING.actNowBonus + evaluateAttackAction(action.unit, action.target);
+  } else if (action.kind === "move") {
+    score = evaluateMoveAction(action.unit, action.cell);
     const follow = bestAttackFrom(action.unit, action.cell);
     if (follow) score += follow.score;
-    return score;
+  } else if (action.kind === "ability") {
+    score = evaluateAbilityAction(action.unit, action.ability, action.target);
   }
-  if (action.kind === "ability") {
-    return evaluateAbilityAction(action.unit, action.ability, action.target);
-  }
-  return 0;
+  /* The jitter is off by default, so the shipped game weighs every option by
+   * the rules alone. The balance harness turns it up to explore strategies. */
+  if (aiJitter > 0) score += nextRandom() * aiJitter;
+  return score;
 }
 
 /* Picks the best legal action for a unit, or null when holding position is
@@ -1649,7 +2166,9 @@ function runEnemyTurn() {
   $turnBanner.classList.add("ai-turn-active");
   $battlefield.classList.add("ai-turn-active");
 
-  aiActionQueue = buildEnemyActionQueue();
+  aiTurnTeam = TEAM_RED;
+  aiTurnOwnsRound = true;
+  aiActionQueue = buildActionQueue(TEAM_RED);
   aiActionIndex = 0;
 
   if (aiActionQueue.length === 0) {
@@ -1659,12 +2178,36 @@ function runEnemyTurn() {
   executeNextEnemyAction();
 }
 
+/* Plays one team's turn with the tactical AI, resolving the whole turn in one
+ * step. The balance harness uses it to fight the reference opponent with
+ * exactly the same brain the enemy uses, instead of a copy of the rules.
+ *
+ * The turn does not close the round: the round is closed by the enemy turn
+ * that follows it, so the round counter stays honest. */
+function runTurnInstantForTeam(team) {
+  const previous = instantTimers;
+  instantTimers = true;
+  const previousTeam = aiTurnTeam;
+  const previousOwnsRound = aiTurnOwnsRound;
+  try {
+    aiTurnTeam = team;
+    aiTurnOwnsRound = false;
+    aiActionQueue = buildActionQueue(team);
+    aiActionIndex = 0;
+    if (aiActionQueue.length > 0) executeNextEnemyAction();
+  } finally {
+    instantTimers = previous;
+    aiTurnTeam = previousTeam;
+    aiTurnOwnsRound = previousOwnsRound;
+  }
+}
+
 function executeNextEnemyAction() {
   if (battleToken !== currentBattleToken) return;
   if (gameState === STATE_ENDED) return;
 
   if (aiActionIndex >= aiActionQueue.length) {
-    finishEnemyTurn();
+    if (aiTurnOwnsRound) finishEnemyTurn();
     return;
   }
 
@@ -1749,7 +2292,7 @@ function performAiAttack(unit, target) {
     if (attackerEl) attackerEl.classList.remove("attacking");
 
     const damage = calculateDamage(unit, target);
-    applyDamage(target.id, damage);
+    applyDamage(target.id, damage, { countDamage: true, team: unit.team });
 
     logEvent(`${unit.displayName} attacks ${target.displayName} for ${damage} damage.`, "ai");
 
@@ -1787,6 +2330,7 @@ function performAiAbility(unit, ability, target) {
 }
 
 function finishEnemyTurn() {
+  aiTurnTeam = null;
   currentTurn = "player";
   roundNumber++;
   gameState = STATE_PLAYER_SELECTING;
@@ -1813,6 +2357,7 @@ function checkBattleEnd() {
 
   if (!livingBlue || !livingRed) {
     battleActive = false;
+    renderSetupPanel();
     gameState = STATE_ENDED;
     currentTurn = "ended";
     clearSelection();
@@ -1820,11 +2365,14 @@ function checkBattleEnd() {
     $abilityWrap.classList.add("hidden");
     $turnBanner.classList.add("hidden");
 
+    let outcome = "stalemate";
     if (!livingRed && livingBlue) {
+      outcome = "victory";
       $battleResult.textContent = "VICTORY — AZURE LEGION PREVAILS";
       $battleResult.className = "battle-result victory";
       logEvent("Azure Legion is victorious!", "system");
     } else if (!livingBlue && livingRed) {
+      outcome = "defeat";
       $battleResult.textContent = "DEFEAT — CRIMSON LEGION PREVAILS";
       $battleResult.className = "battle-result defeat";
       logEvent("Crimson Legion has triumphed.", "system");
@@ -1839,7 +2387,7 @@ function checkBattleEnd() {
 
     if (!battleFinalized) {
       battleFinalized = true;
-      finalizeBattleResult(!livingRed && livingBlue);
+      finalizeBattleResult(!livingRed && livingBlue, outcome);
     }
     return true;
   }
@@ -1847,16 +2395,32 @@ function checkBattleEnd() {
 }
 
 /* The completion bonus is paid exactly once per battle. */
-function finalizeBattleResult(victory) {
+function finalizeBattleResult(victory, outcome) {
   progression.battles += 1;
   if (victory) progression.wins += 1;
 
+  battleLedger.rounds = roundNumber;
+
+  /* Experience for the damage itself. The key is tied to the battle, so the
+   * reward can only ever be paid once, however often the end check runs. */
+  const damageXp = Math.floor(battleLedger.damage.blue / XP_PER_DAMAGE);
+  if (damageXp > 0) {
+    battleLedger.xp.damage = damageXp;
+    awardExperience(damageXp, `${battleLedger.damage.blue} damage dealt`, `battle:${battleId}:damage`);
+  }
   if (victory) {
+    battleLedger.xp.victory = XP_VICTORY_BONUS;
     awardExperience(XP_VICTORY_BONUS, "victory", `battle:${battleId}:victory`);
   }
+
+  /* The level is read after the rewards, so a level that the last blow
+   * earned is still shown. */
+  battleLedger.levelAfter = progression.level;
+
   saveChampionProgression();
   updateProgressionUI();
   updateChampionPanel();
+  renderBattleReport(outcome || (victory ? "victory" : "defeat"));
 }
 
 function awardExperienceForDefeat(defeatedUnit) {
@@ -1867,6 +2431,7 @@ function awardExperienceForDefeat(defeatedUnit) {
     total += XP_CHAMPION_BONUS;
     reason = `defeated the enemy champion`;
   }
+  battleLedger.xp.kill += total;
   awardExperience(total, reason, `battle:${battleId}:kill:${defeatedUnit.id}`);
 }
 
@@ -1874,6 +2439,8 @@ function resetBattle() {
   cancelPendingTimers();
   aiActionQueue = [];
   aiActionIndex = 0;
+  aiTurnTeam = null;
+  aiTurnOwnsRound = false;
   actionLock = false;
   currentBattleToken = ++battleToken;
   battleFinalized = false;
@@ -1888,11 +2455,13 @@ function resetBattle() {
   initArmies();
   renderArmies();
   renderTerrain();
+  renderSetupPanel();
 
   $startButton.disabled = false;
   $startButton.textContent = "ENTER THE ARENA";
   $battleResult.classList.add("hidden");
   $battleResult.className = "battle-result hidden";
+  hideBattleReport();
   $turnBanner.classList.add("hidden");
   $turnBanner.classList.remove("ai-turn-active");
   $battlefield.classList.remove("ai-turn-active");
@@ -1908,6 +2477,149 @@ function resetBattle() {
 }
 
 /* 21. UI HELPERS */
+
+/* 21.1 PRE-BATTLE SELECTOR
+ *
+ * The selector is drawn from the same data the engine plays on, so a card
+ * can never promise ground the battlefield does not have. Each map card
+ * carries a small picture of its own terrain.
+ */
+function renderSetupPanel() {
+  if (!$setupPanel) return;
+  renderDifficultyButtons();
+  renderMapCards();
+  /* The ground and the opponent are chosen between battles: the field must
+   * never change under a running fight. */
+  $setupPanel.classList.toggle("locked", battleActive);
+}
+
+function renderDifficultyButtons() {
+  if (!$difficultyRow) return;
+  const locked = battleActive;
+  $difficultyRow.innerHTML = "";
+  for (const id of DIFFICULTY_IDS) {
+    const profile = DIFFICULTY_PROFILES[id];
+    const button = document.createElement("button");
+    button.className = "difficulty-button" + (id === currentDifficultyId ? " selected" : "");
+    button.type = "button";
+    button.disabled = locked;
+    button.dataset.difficulty = id;
+    button.textContent = profile.label;
+    button.title = profile.hint;
+    button.addEventListener("click", () => selectDifficulty(id));
+    $difficultyRow.appendChild(button);
+  }
+  if ($difficultyHint) {
+    const profile = DIFFICULTY_PROFILES[currentDifficultyId] || DIFFICULTY_PROFILES.normal;
+    $difficultyHint.textContent = profile.hint;
+  }
+}
+
+function renderMapCards() {
+  if (!$mapRow) return;
+  const locked = battleActive;
+  $mapRow.innerHTML = "";
+  for (const map of MAP_REGISTRY) {
+    const card = document.createElement("button");
+    card.className = "map-card" + (map.id === activeMapId ? " selected" : "");
+    card.type = "button";
+    card.disabled = locked;
+    card.dataset.map = map.id;
+
+    const name = document.createElement("span");
+    name.className = "map-name";
+    name.textContent = map.name;
+    card.appendChild(name);
+
+    const tagline = document.createElement("span");
+    tagline.className = "map-tagline";
+    tagline.textContent = map.tagline;
+    card.appendChild(tagline);
+
+    const preview = document.createElement("span");
+    preview.className = "map-preview";
+    for (let row = 0; row < GRID_ROWS; row++) {
+      for (let col = 0; col < GRID_COLS; col++) {
+        const cell = document.createElement("span");
+        cell.className = `map-preview-cell terrain-${TERRAIN_LEGEND[map.terrain[row][col]] || "grass"}`;
+        preview.appendChild(cell);
+      }
+    }
+    card.appendChild(preview);
+
+    card.addEventListener("click", () => selectMap(map.id));
+    $mapRow.appendChild(card);
+  }
+}
+
+function selectDifficulty(id) {
+  if (battleActive) return false;
+  if (!setDifficulty(id)) return false;
+  renderSetupPanel();
+  const profile = DIFFICULTY_PROFILES[id];
+  logEvent(`Difficulty set to ${profile.label}.`, "system");
+  return true;
+}
+
+function selectMap(id) {
+  if (battleActive) return false;
+  if (!setActiveMap(id)) return false;
+  renderSetupPanel();
+  renderTerrain();
+  logEvent(`Battlefield set to ${getActiveMap().name}.`, "system");
+  return true;
+}
+
+function toggleSetupPanel() {
+  if (!$setupPanel || !$setupToggle) return;
+  const collapsed = $setupPanel.classList.contains("collapsed");
+  $setupPanel.classList.toggle("collapsed", !collapsed);
+  $setupToggle.textContent = collapsed ? "HIDE" : "SHOW";
+}
+
+/* 21.2 POST-BATTLE REPORT
+ *
+ * The report shows the ledger that was written while the battle ran, so the
+ * numbers always match the rewards that were actually paid out.
+ */
+function renderBattleReport(outcome) {
+  if (!$battleReport) return;
+
+  const map = getMapById(battleLedger.mapId) || getActiveMap();
+  const profile = DIFFICULTY_PROFILES[battleLedger.difficultyId] || DIFFICULTY_PROFILES.normal;
+  const totalXp = battleLedger.xp.damage + battleLedger.xp.kill + battleLedger.xp.victory;
+
+  if ($reportOutcome) {
+    $reportOutcome.textContent = outcome === "victory" ? "VICTORY"
+      : outcome === "defeat" ? "DEFEAT" : "NO SURVIVORS";
+    $reportOutcome.className = "report-outcome " + outcome;
+  }
+  if ($reportMap) $reportMap.textContent = map.name;
+  if ($reportDifficulty) $reportDifficulty.textContent = profile.label;
+  if ($reportRounds) $reportRounds.textContent = String(battleLedger.rounds);
+  if ($reportDamage) $reportDamage.textContent = String(battleLedger.damage.blue);
+  if ($reportTaken) $reportTaken.textContent = String(battleLedger.damage.red);
+  if ($reportKills) $reportKills.textContent = String(battleLedger.defeated);
+  if ($reportLosses) $reportLosses.textContent = String(battleLedger.lost);
+  if ($reportXp) $reportXp.textContent = String(totalXp);
+  if ($reportBreakdown) {
+    $reportBreakdown.textContent =
+      `Damage ${battleLedger.xp.damage} XP  ·  Kills ${battleLedger.xp.kill} XP  ·  Victory ${battleLedger.xp.victory} XP`;
+  }
+  if ($reportLevel) {
+    $reportLevel.textContent = battleLedger.levelAfter > battleLedger.levelBefore
+      ? `Champion rose from level ${battleLedger.levelBefore} to level ${battleLedger.levelAfter}.`
+      : `Champion stays at level ${battleLedger.levelAfter}.`;
+  }
+  $battleReport.dataset.outcome = outcome;
+  $battleReport.classList.remove("hidden");
+}
+
+function hideBattleReport() {
+  if (!$battleReport) return;
+  $battleReport.classList.add("hidden");
+  $battleReport.dataset.outcome = "";
+}
 
 function updateTurnBanner() {
   $roundText.textContent = `ROUND ${roundNumber}`;
@@ -2344,7 +3056,7 @@ function executeAttack(attackerId, targetId) {
     if (attackerEl) attackerEl.classList.remove("attacking");
 
     const damage = calculateDamage(attacker, target);
-    applyDamage(targetId, damage);
+    applyDamage(targetId, damage, { countDamage: true, team: attacker.team });
 
     logEvent(`${attacker.displayName} attacks ${target.displayName} for ${damage} damage.`, "player");
     if (getTerrainDefBonus(target) > 0) {
@@ -2374,12 +3086,17 @@ function initGame() {
   initArmies();
   renderArmies();
   renderTerrain();
+  renderSetupPanel();
   updateProgressionUI();
 
   $startButton.addEventListener("click", () => {
     if (gameState === STATE_ENDED || battleActive) resetBattle();
     startBattle();
   });
+
+  if ($setupToggle) {
+    $setupToggle.addEventListener("click", () => toggleSetupPanel());
+  }
 
   $endTurnButton.addEventListener("click", () => {
     if (currentTurn === "player" && !checkBattleEnd()) {
@@ -2413,6 +3130,8 @@ if (typeof window !== "undefined") {
     /* constants */
     GRID_COLS,
     GRID_ROWS,
+    TEAM_BLUE,
+    TEAM_RED,
     UNIT_STATS,
     TERRAIN_TYPES,
     TERRAIN_MAP,
@@ -2428,6 +3147,14 @@ if (typeof window !== "undefined") {
     STORAGE_KEY,
     PROFILE_VERSION,
     AI_TUNING,
+    MAP_REGISTRY,
+    DEFAULT_MAP_ID,
+    MAP_IDS,
+    DIFFICULTY_PROFILES,
+    DIFFICULTY_IDS,
+    DEFAULT_DIFFICULTY_ID,
+    XP_PER_DAMAGE,
+    DEFAULT_SEED,
 
     /* state */
     getUnits: () => units,
@@ -2443,6 +3170,33 @@ if (typeof window !== "undefined") {
     getProgression: () => Object.assign({}, progression, { unlocked: progression.unlocked.slice() }),
     isStorageAvailable: () => storageAvailable,
     getAwardedRewards: () => new Set(awardedRewards),
+
+    /* maps */
+    getMapRegistry,
+    getMapById,
+    getActiveMap,
+    getActiveMapId,
+    setActiveMap,
+    getMapTerrainCounts,
+    validateMap,
+    selectMap,
+    renderSetupPanel,
+
+    /* difficulty */
+    getDifficultyProfiles,
+    getDifficultyId,
+    setDifficulty,
+    selectDifficulty,
+    profileForTeam,
+
+    /* seeded randomness */
+    setSeed,
+    getSeed,
+    setCombatOptions,
+    getCombatOptions,
+
+    /* battle ledger */
+    getBattleLedger,
 
     /* terrain */
     getTerrainAt,
@@ -2519,6 +3273,11 @@ if (typeof window !== "undefined") {
       } finally {
         instantTimers = previous;
       }
-    }
+    },
+
+    /* Resolves one team's turn with the tactical AI in one step. The
+     * balance harness uses it so the reference opponent is fought by the
+     * same brain the enemy uses. */
+    runTurnInstantForTeam
   };
 }
