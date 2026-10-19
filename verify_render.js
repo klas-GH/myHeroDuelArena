@@ -602,6 +602,40 @@ async function main() {
     assert(progression.abilities.filter(a => a.ready).length === 1, "the unlocked ability is ready");
     assert(progression.quickActions > 0, "a ready ability is offered as a quick action");
 
+    console.log("\n11.5 The champion — two weapons");
+
+    const weapons = await cdp.evaluate(`(() => {
+      const api = window.MyHeroDuelArena;
+      const champ = api.getPlayerChampion();
+      const enemy = api.getTeamUnits('red').find(u => u.type === 'footman');
+      const before = { col: champ.col, row: champ.row };
+      /* Put the enemy three cells away on a clear row. */
+      champ.col = 0; champ.row = 2;
+      enemy.col = 3; enemy.row = 2;
+      const canShoot = api.canAttack(champ, enemy);
+      const shot = api.calculateDamage(champ, enemy);
+      const melee = (() => {
+        enemy.col = 1; enemy.row = 2;
+        return api.calculateDamage(champ, enemy);
+      })();
+      champ.col = before.col; champ.row = before.row;
+      return {
+        canShoot,
+        shot,
+        melee,
+        bowAtk: champ.shot ? champ.shot.atk : null,
+        bowRange: champ.shot ? champ.shot.range : null,
+        panel: document.getElementById('champ-stats').textContent,
+        selected: document.getElementById('selected-stats').textContent
+      };
+    })()`);
+
+    assert(weapons.bowRange === 3, `the champion carries a bow that reaches ${weapons.bowRange} cells`);
+    assert(weapons.canShoot === true, "the champion can loose an arrow at three cells");
+    assert(weapons.shot < weapons.melee, `the arrow hits softer than the blow (${weapons.shot} < ${weapons.melee})`);
+    assert(/BOW/.test(weapons.panel), `the champion panel shows the bow (${weapons.panel})`);
+    assert(/BOW/.test(weapons.selected), `the selection panel shows the bow (${weapons.selected})`);
+
     console.log("\n12. Progression — the level-up banner and the AI turn state");
 
     const levelUp = await cdp.evaluate(`(() => {

@@ -67,13 +67,18 @@ const STATE_ENDED = "ended";
  * Ranges are measured the octagonal way (see section 14), so a range of 3
  * covers a 7x7 block around the unit. The ranged numbers are set so the
  * area they sweep stays close to what it was on the old orthogonal grid.
+ *
+ * `shot` is a second reach for a unit that carries a bow. The champion
+ * fights with its own weapon at close range and can loose an arrow at a
+ * longer distance, but the arrow carries less force than a blow.
  */
 const UNIT_STATS = {
   archer:   { hp: 40, atk: 14, def: 4,  move: 2, range: 3, special: null },
   footman:  { hp: 60, atk: 12, def: 6,  move: 1, range: 1, special: null },
   ballista: { hp: 45, atk: 18, def: 3,  move: 1, range: 4, special: null },
   chevalier:{ hp: 55, atk: 16, def: 5,  move: 3, range: 1, special: null },
-  champion: { hp: 90, atk: 20, def: 8,  move: 2, range: 1, special: "rally" }
+  champion: { hp: 90, atk: 20, def: 8,  move: 2, range: 1, special: "rally",
+              shot: { atk: 16, range: 3 } }
 };
 
 /* 1.4 CHAMPION ABILITY SET — every champion owns the same three abilities. */
@@ -239,7 +244,9 @@ const AI_TUNING = {
   threatenedBonus: 8,         /* extra score for covering a threatened ally */
   offensiveAbilityBonus: 28,  /* score for a damaging champion ability   */
   offensiveAbilityDamage: 1.2,/* damage weight for the same              */
-  minActionScore: 2           /* an action must be worth this much to run*/
+  championAllyProximity: 5,  /* score per ally the champion can rally    */
+  championAllyRadius: 1,     /* how close the champion keeps its ranks    */
+  minActionScore: 2         /* an action must be worth this much to run*/
 };
 
 /* AI turn pacing. Short enough that a full turn does not feel like a wait,
@@ -362,6 +369,7 @@ function createUnit(id, team, type) {
     def: stats.def,
     move: stats.move,
     range: stats.range,
+    shot: stats.shot ? { atk: stats.shot.atk, range: stats.shot.range } : null,
     special: stats.special,
     abilities: type === "champion" ? CHAMPION_ABILITIES.slice() : [],
     alive: true,
@@ -722,7 +730,8 @@ function selectUnit(id) {
 
   $selectionInfo.classList.remove("hidden");
   $selectedName.textContent = unit.displayName;
-  $selectedStats.textContent = `ATK ${unit.atk} | DEF ${unit.def} | RNG ${unit.range}`;
+  $selectedStats.textContent = `ATK ${unit.atk} | DEF ${unit.def} | RNG ${unit.range}` +
+    (unit.shot ? ` (BOW ${unit.shot.atk} / ${unit.shot.range})` : "");
   $selectedHealth.style.width = "100%";
 
   const hints = [];
@@ -894,14 +903,44 @@ function hasLineOfSight(from, to, range) {
   return true;
 }
 
+/* A unit fights with its own weapon. The champion also carries a bow, so it
+ * can cover the ranks it guards without leaving them. The bow reaches
+ * further but hits softer than the champion's own blow. */
+function isBowShot(attacker, attackerPos, targetPos) {
+  if (!attacker.shot) return false;
+  return fieldDistance(attackerPos, targetPos) > attacker.range;
+}
+
+function canReach(attacker, attackerPos, targetPos) {
+  const dist = fieldDistance(attackerPos, targetPos);
+  if (dist <= attacker.range) return true;
+  return !!(attacker.shot && dist <= attacker.shot.range);
+}
+
+/* Reach and line of sight in one answer. A blow at arm's length is never
+ * blocked, an arrow or a bolt always is. */
+function hasReach(attacker, attackerPos, targetPos) {
+  const dist = fieldDistance(attackerPos, targetPos);
+  if (dist <= 1) return true;
+  if (dist <= attacker.range) return hasLineOfSight(attackerPos, targetPos, attacker.range);
+  if (attacker.shot && dist <= attacker.shot.range) {
+    return hasLineOfSight(attackerPos, targetPos, attacker.shot.range);
+  }
+  return false;
+}
+
+/* The force of the blow that lands on the target. */
+function attackValue(attacker, attackerPos, targetPos) {
+  return isBowShot(attacker, attackerPos, targetPos) ? attacker.shot.atk : attacker.atk;
+}
+
 function getValidTargets(unit, from) {
   const pos = from || unit;
   const targets = [];
   for (const [, u] of units) {
     if (!u.alive || u.defeated) continue;
     if (u.team === unit.team) continue;
-    if (fieldDistance(pos, u) > unit.range) continue;
-    if (!hasLineOfSight(pos, u, unit.range)) continue;
+    if (!hasReach(unit, pos, u)) continue;
     targets.push(u);
   }
   return targets;
@@ -913,8 +952,7 @@ function canAttack(attacker, target) {
   if (!target.alive || target.defeated) return false;
   if (attacker.team === target.team) return false;
   if (attacker.hasAttacked) return false;
-  if (fieldDistance(attacker, target) > attacker.range) return false;
-  if (!hasLineOfSight(attacker, target, attacker.range)) return false;
+  if (!hasReach(attacker, attacker, target)) return false;
   return true;
 }
 
@@ -931,7 +969,8 @@ function calculateDamage(attacker, defender, options) {
   const defBonus = getUnitDefBonus(defender) + getTerrainDefBonus(defenderPos);
   const aimBonus = opts.useTerrainAim === false ? 0 : getTerrainAimBonus(attackerPos);
 
-  const raw = attacker.atk + atkBonus + aimBonus - Math.floor((defender.def + defBonus) / 2);
+  const raw = attackValue(attacker, attackerPos, defenderPos) + atkBonus + aimBonus
+    - Math.floor((defender.def + defBonus) / 2);
   return Math.max(1, raw);
 }
 
@@ -1385,10 +1424,9 @@ function estimateIncomingDamage(col, row, team, defenderDef) {
   let total = 0;
   for (const [, enemy] of units) {
     if (!enemy.alive || enemy.defeated || enemy.team === team) continue;
-    const dist = fieldDistance({ col, row }, enemy);
-    if (dist > enemy.range) continue;
+    if (!canReach(enemy, enemy, { col, row })) continue;
     const weight = enemy.range > 1 ? 1 : 0.7;
-    const attack = enemy.atk + getUnitAtkBonus(enemy);
+    const attack = attackValue(enemy, enemy, { col, row }) + getUnitAtkBonus(enemy);
     total += weight * Math.max(1, attack - Math.floor(defenderDef / 2));
   }
   return total;
@@ -1417,7 +1455,6 @@ function evaluateMoveAction(unit, cell) {
   let score = 0;
   score += advance * AI_TUNING.advanceWeight;
   score += terrain.def * AI_TUNING.coverWeight;
-  if (terrain.aim > 0 && unit.range > 1) score += terrain.aim * AI_TUNING.elevationWeight;
 
   const currentThreat = estimateIncomingDamage(unit.col, unit.row, unit.team, unit.def);
   const nextThreat = estimateIncomingDamage(cell.col, cell.row, unit.team, unit.def);
@@ -1439,7 +1476,33 @@ function evaluateMoveAction(unit, cell) {
   if (unit.range <= 1 && advance > 0) {
     score += Math.min(advance, 2) * AI_TUNING.meleeAdvanceBonus;
   }
+
+  /* A unit that can loose an arrow likes the high ground. */
+  const shootRange = unit.shot ? unit.shot.range : unit.range;
+  if (shootRange > 1 && terrain.aim > 0) {
+    score += terrain.aim * AI_TUNING.elevationWeight;
+  }
+
+  /* The champion is a standard-bearer as much as a fighter, so it prefers a
+   * cell that still reaches its own ranks. Without this the bow would let
+   * it wander off alone and leave the army it is meant to rally. */
+  if (unit.type === "champion") {
+    score += countAlliesNear(unit, cell, AI_TUNING.championAllyRadius) * AI_TUNING.championAllyProximity;
+  }
   return score;
+}
+
+/* How many living allies of the unit would stand next to a candidate cell. */
+function countAlliesNear(unit, cell, radius) {
+  let count = 0;
+  for (const [, ally] of units) {
+    if (!ally.alive || ally.defeated) continue;
+    if (ally.team !== unit.team) continue;
+    if (ally.id === unit.id) continue;
+    if (fieldDistance(cell, ally) > radius) continue;
+    count++;
+  }
+  return count;
 }
 
 /* The best attack available from a hypothetical position. */
@@ -1950,6 +2013,7 @@ function updateChampionPanel() {
   const bonus = getLevelBonuses(progression.level);
   $champStats.textContent =
     `HP ${champion.hp}/${champion.maxHp} · ATK ${champion.atk} · DEF ${champion.def}` +
+    (champion.shot ? ` · BOW ${champion.shot.atk}/${champion.shot.range}` : "") +
     (bonus.hp || bonus.atk || bonus.def ? ` (base +${bonus.hp} HP +${bonus.atk} ATK +${bonus.def} DEF)` : "");
 
   renderAbilityList(champion);

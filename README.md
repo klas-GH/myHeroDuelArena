@@ -18,6 +18,7 @@ open index.html
 | Octagonal field | Movement, reach, weapon range and ability radii all measure the octagonal way: the longest axis decides. A diagonal step costs the same as a straight one, and melee reaches the eight cells around a unit. |
 | Tighter formation | Nine fighters per side instead of eleven: two of every kind except the champion. The two foot soldiers and the two chevaliers hold the front rank, the two ballista and the two archers hold the middle column, and the champion guards the rear. The whole army gives up one column, so the no man's land between the lines widens to four columns. |
 | Balance | Ranged numbers follow the new distance rule: archer 3, ballista 4, support radii 1. The abilities describe their new reach. |
+| The champion's bow | The champion fights with its own blow (20 ATK, arm's length) and can also loose an arrow (16 ATK, three cells) when it wants to fight from a distance. The arrow hits softer, so the champion stays the strongest fighter without becoming a better archer than the archers. |
 | Interface | A click on the field before the battle starts now says what to do next and pulses the start control. |
 
 ### The field: hexagons, octagons, or the old grid?
@@ -85,8 +86,10 @@ it, so a unit standing in cover has to be flanked.
 experience is paid out once.
 
 **The champion** is a stronger unit than the rest of the legion. It keeps the
-same rules as everyone else, and its three abilities are unlocked by
-progression rather than by the battle:
+same rules as everyone else, and it carries two weapons: its own blow (20 ATK
+at arm's length) and a bow (16 ATK, three cells) for when it would rather
+fight from a distance. Its three abilities are unlocked by progression rather
+than by the battle:
 
 | Ability | Unlocks | Cost | Effect |
 | --- | --- | --- | --- |

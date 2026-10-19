@@ -575,11 +575,56 @@ section("23. Damage formula");
   const redChampion = unitByType(api, TEAM_RED, "champion");
 
   const expected = champion.atk - Math.floor(footman.def / 2);
+  footman.col = champion.col + 1;
+  footman.row = champion.row;
   assert(api.calculateDamage(champion, footman) === expected,
     `champion(${champion.atk}) vs footman(def${footman.def}) = ${expected}`);
   const expected2 = archer.atk - Math.floor(redChampion.def / 2);
   assert(api.calculateDamage(archer, redChampion) === expected2,
     `archer(${archer.atk}) vs champion(def${redChampion.def}) = ${expected2}`);
+}
+
+/* 23.1 THE CHAMPION'S BOW */
+
+section("23.1. The champion's bow");
+
+{
+  const { api } = newGame();
+  const champion = unitByType(api, TEAM_BLUE, "champion");
+  const target = unitByType(api, TEAM_RED, "footman");
+
+  assert(!!champion.shot, "the champion carries a bow");
+  assert(champion.shot.range === 3, "the bow reaches three cells");
+  assert(champion.shot.atk < champion.atk, "the bow hits softer than the champion's own blow");
+
+  /* A blow at arm's length uses the champion's own strength. */
+  champion.col = 0; champion.row = 2;
+  target.col = 0; target.row = 3;
+  assert(api.canAttack(champion, target), "the champion strikes an adjacent enemy");
+  const melee = api.calculateDamage(champion, target);
+  assert(melee === champion.atk - Math.floor(target.def / 2),
+    `the blow deals the champion's full strength (${melee})`);
+
+  /* An arrow from further away is weaker, but it keeps its reach. */
+  target.col = 3; target.row = 2;
+  assert(api.canAttack(champion, target), "the champion shoots an enemy three cells away");
+  const shot = api.calculateDamage(champion, target);
+  assert(shot === champion.shot.atk - Math.floor(target.def / 2),
+    `the arrow deals the bow's strength (${shot})`);
+  assert(shot < melee, "the arrow hits softer than the blow");
+
+  /* The bow is not a licence to shoot across the map. */
+  target.col = 4; target.row = 2;
+  assert(!api.canAttack(champion, target), "the bow does not reach four cells");
+  assert(api.getValidTargets(champion).every(t => t.id !== target.id),
+    "a target beyond the bow is not offered");
+
+  /* The arrow is stopped by the terrain like any other shot. */
+  const archer = unitByType(api, TEAM_BLUE, "archer");
+  archer.col = 2; archer.row = 1;
+  const blocked = unitByType(api, TEAM_RED, "footman");
+  blocked.col = 5; blocked.row = 1;
+  assert(!api.canAttack(archer, blocked), "a blocked shot is still refused for the archer");
 }
 
 /* 24. UNIT ROLES */
