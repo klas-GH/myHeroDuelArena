@@ -497,8 +497,12 @@ function getTerrainDefBonus(unit) {
 }
 
 /* Aim granted by the ground a unit shoots from. Only ranged units benefit. */
+/* High ground helps anything that can shoot from a distance, including the
+ * champion when it looses an arrow rather than using its own blow. */
 function getTerrainAimBonus(unit) {
-  if (!unit || unit.range <= 1) return 0;
+  if (!unit) return 0;
+  const reach = unit.shot ? Math.max(unit.range, unit.shot.range) : unit.range;
+  if (reach <= 1) return 0;
   return getTerrainAt(unit.col, unit.row).aim;
 }
 

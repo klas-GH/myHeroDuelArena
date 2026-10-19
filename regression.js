@@ -853,6 +853,27 @@ section("31. High ground improves ranged damage");
   assert(meleeRaised === meleeFlat, "melee gains no benefit from high ground");
 }
 
+/* 31.1 THE CHAMPION PROFITS FROM HIGH GROUND WHEN IT SHOOTS */
+
+section("31.1. The champion profits from high ground when it shoots");
+
+{
+  const { api } = newGame();
+  const champion = unitByType(api, TEAM_BLUE, "champion");
+  const target = unitByType(api, TEAM_RED, "footman");
+
+  /* Put the champion on high ground and the target two cells away on the
+   * same row, so the shot is a bow shot. */
+  champion.col = 4; champion.row = 0;
+  target.col = 6; target.row = 0;
+
+  const raised = api.calculateDamage(champion, target);
+  champion.col = 3; champion.row = 0;
+  const flat = api.calculateDamage(champion, target);
+
+  assert(raised === flat + 1, `the arrow gains the high ground bonus (${flat} -> ${raised})`);
+}
+
 /* 32. LINE OF SIGHT BLOCKING */
 
 section("32. Line of sight blocking");

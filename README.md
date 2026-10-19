@@ -97,11 +97,11 @@ than by the battle:
 | Power Strike | level 2 | the attack action | A heavy melee blow that deals 8 extra damage. Two uses per battle. |
 | Guarding Aura | level 3 | the whole turn | The champion and adjacent allies gain +3 DEF for two rounds. |
 
-**Progression** is kept per browser. Experience is paid for damage dealt
-(roughly half the damage), for each defeated unit, and a bonus for winning.
-Every level grants one ability point, and levels 2 to 5 grant permanent HP,
-ATK and DEF bonuses. The `RESET` control in the progression strip clears the
-profile, but asks for a confirmation first.
+**Progression** is kept per browser. Experience is paid for every defeated
+unit (8 to 60 depending on the kind, plus 40 more for the enemy champion)
+and 50 for winning. Every level grants one ability point, and levels 2 to 5
+grant permanent HP, ATK and DEF bonuses. The `RESET` control in the
+progression strip clears the profile, but asks for a confirmation first.
 
 ## Project layout
 
