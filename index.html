@@ -5,7 +5,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#17251c">
-  <title>myHeroDuelArena v1.1.0</title>
+  <title>myHeroDuelArena v1.2.0</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
@@ -15,7 +15,7 @@
 
     <header class="topbar">
       <div class="game-title">MY HERO DUEL ARENA</div>
-      <div class="version">v1.1.0 · TACTICAL</div>
+      <div class="version">v1.2.0 · TACTICAL</div>
     </header>
 
     <section class="landscape" id="battlefield" aria-label="Outdoor castle battlefield">
@@ -57,12 +57,18 @@
         <div class="army-name">CRIMSON LEGION</div>
       </section>
 
+      <div class="terrain-layer" id="terrain-layer"></div>
+
       <div class="units-layer" id="blue-units"></div>
       <div class="units-layer" id="red-units"></div>
 
       <div class="marker-layer" id="move-indicators"></div>
       <div class="marker-layer" id="attack-indicators"></div>
       <div class="center-line"></div>
+
+      <div id="level-up-banner" class="level-up-banner hidden">
+        <span id="level-up-text">CHAMPION LEVEL 2</span>
+      </div>
     </section>
 
     <footer class="bottom-panel">
@@ -70,9 +76,21 @@
         <span id="turn-text">PLAYER TURN</span>
         <span id="round-text">ROUND 1</span>
       </div>
+
+      <div id="progression-strip" class="progression-strip">
+        <div class="prog-level-badge">LV <span id="prog-level">1</span></div>
+        <div class="prog-xp-block">
+          <div class="prog-xp-bar"><div id="prog-xp-fill" class="prog-xp-fill"></div></div>
+          <div id="prog-xp-text" class="prog-xp-text">0 / 100 XP</div>
+        </div>
+        <div class="prog-points-badge">AP <span id="prog-points">1</span></div>
+        <button id="reset-progress-button" class="reset-progress-button" type="button">RESET</button>
+      </div>
+
       <div id="status">THE ARMIES AWAIT YOUR COMMAND</div>
       <div id="combat-log" class="combat-log"></div>
       <button id="start-button">ENTER THE ARENA</button>
+
       <div id="selection-info" class="selection-info hidden">
         <div class="sel-label">SELECTED</div>
         <div id="selected-name" class="sel-name">--</div>
@@ -82,9 +100,20 @@
         </div>
         <div id="action-hints" class="action-hints"></div>
       </div>
+
       <div id="ability-button-wrap" class="ability-wrap hidden">
-        <button id="rally-button" class="rally-button">RALLY ALLIES</button>
+        <div id="ability-actions" class="ability-actions"></div>
       </div>
+
+      <div id="champion-panel" class="champion-panel hidden">
+        <div class="champ-head">
+          <span class="champ-title">AZURE CHAMPION</span>
+          <span id="champ-level" class="champ-level">LEVEL 1</span>
+        </div>
+        <div id="champ-stats" class="champ-stats"></div>
+        <div id="ability-list" class="ability-list"></div>
+      </div>
+
       <button id="end-turn-button" class="end-turn-button hidden">END TURN</button>
       <div id="battle-result" class="battle-result hidden"></div>
       <div class="footer-note">A DUEL FOR HONOR AND GLORY</div>

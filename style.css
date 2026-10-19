@@ -1,4 +1,4 @@
-/* 1.1.0 TACTICAL BATTLEFIELD STYLES */
+/* 1.2.0 TACTICAL BATTLEFIELD STYLES */
 
 /* 1. RESET & BASE */
 * {
@@ -391,6 +391,130 @@ body {
 .marker-layer > * {
   pointer-events: auto;
 }
+
+/* 4.3 TERRAIN LAYER
+ * The terrain is drawn under the units and never intercepts a click, so the
+ * battlefield stays easy to select on a touch screen.
+ */
+.terrain-layer {
+  position: absolute;
+  top: 46%;
+  bottom: 8px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.terrain-cell {
+  position: absolute;
+  width: 10%;
+  height: 25%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Open grassland — a couple of faint tufts so the field reads as grass. */
+.terrain-grass::before {
+  content: "";
+  position: absolute;
+  left: 44%;
+  bottom: 14%;
+  width: 18px;
+  height: 9px;
+  background:
+    radial-gradient(circle at 4px 9px, rgba(198, 214, 128, 0.45) 2px, transparent 3px),
+    radial-gradient(circle at 12px 9px, rgba(198, 214, 128, 0.35) 2px, transparent 3px);
+}
+
+/* Forest — a clump of conifers that also blocks line of sight. */
+.terrain-forest::before,
+.terrain-forest::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 22px solid #2c5730;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
+}
+
+.terrain-forest::before {
+  left: 10%;
+  bottom: 16%;
+}
+
+.terrain-forest::after {
+  left: 34%;
+  bottom: 26%;
+  border-bottom-color: #3b7040;
+  border-left-width: 7px;
+  border-right-width: 7px;
+  border-bottom-width: 17px;
+}
+
+/* Rocky ground — angular stones; costly to cross but not impassable. */
+.terrain-rock::before {
+  content: "";
+  position: absolute;
+  left: 18%;
+  bottom: 18%;
+  width: 30%;
+  height: 24%;
+  background: #8d8b80;
+  clip-path: polygon(50% 0, 100% 58%, 78% 100%, 18% 100%, 0 52%);
+  opacity: 0.85;
+}
+
+.terrain-rock::after {
+  content: "";
+  position: absolute;
+  left: 52%;
+  bottom: 14%;
+  width: 22%;
+  height: 16%;
+  background: #6f6d63;
+  clip-path: polygon(40% 0, 100% 66%, 62% 100%, 0 76%);
+  opacity: 0.8;
+}
+
+/* High ground — a raised ridge the archers fight from. */
+.terrain-highground::before {
+  content: "";
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  bottom: 6%;
+  height: 64%;
+  background: linear-gradient(180deg, rgba(158, 196, 116, 0.6), rgba(92, 136, 66, 0.32));
+  border-top: 2px solid rgba(222, 240, 178, 0.6);
+  border-radius: 42% 42% 12% 12% / 58% 58% 10% 10%;
+}
+
+/* Rock formation — impassable, and it blocks shots. */
+.terrain-boulder::before {
+  content: "";
+  position: absolute;
+  left: 16%;
+  bottom: 12%;
+  width: 68%;
+  height: 52%;
+  background: linear-gradient(160deg, #7f7c6f, #4f4d45);
+  clip-path: polygon(18% 100%, 4% 46%, 26% 6%, 60% 0, 92% 28%, 100% 76%, 76% 100%);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.5);
+}
+
+.terrain-boulder::after {
+  content: "";
+  position: absolute;
+  left: 30%;
+  bottom: 40%;
+  width: 24%;
+  height: 10%;
+  background: rgba(226, 226, 210, 0.25);
+  clip-path: polygon(20% 100%, 0 20%, 60% 0, 100% 70%);
+}
 /* 4.1 BLUE UNITS (LEFT) — faces right */
 .unit.blue .unit-silhouette {
   transform: scaleX(1);
@@ -560,7 +684,237 @@ body {
   opacity: 0.85;
 }
 
-/* 8. COMBAT UI (BOTTOM PANEL) */
+/* 7.1 ABILITY TARGET MARKER */
+.attack-indicator.ability-target {
+  border-color: #e9c66c;
+  background: rgba(233, 198, 108, 0.25);
+  width: 30px;
+  height: 30px;
+}
+
+/* 8.8 PROGRESSION STRIP
+ * Always visible: level, experience, unspent ability points and the reset.
+ */
+.progression-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 380px;
+  padding: 4px 6px;
+  border: 1px solid rgba(233, 198, 108, 0.25);
+  border-radius: 6px;
+  background: rgba(18, 34, 26, 0.5);
+}
+
+.prog-level-badge,
+.prog-points-badge {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+  white-space: nowrap;
+}
+
+.prog-level-badge span,
+.prog-points-badge span {
+  color: #e9c66c;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.prog-xp-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.prog-xp-bar {
+  height: 5px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.prog-xp-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #c99f3f, #e9c66c);
+  transition: width 0.3s ease;
+}
+
+.prog-xp-text {
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: #aab7a3;
+  line-height: 1.3;
+}
+
+.reset-progress-button {
+  border: 1px solid rgba(233, 198, 108, 0.4);
+  border-radius: 4px;
+  background: transparent;
+  color: #aab7a3;
+  padding: 4px 7px;
+  font-family: Arial, sans-serif;
+  font-size: 7px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.reset-progress-button.armed {
+  border-color: #f87171;
+  color: #f87171;
+}
+
+/* 8.9 CHAMPION PANEL
+ * Shown only while the player's champion is selected, so the battlefield
+ * keeps as much room as possible on a phone.
+ */
+.champion-panel {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid rgba(233, 198, 108, 0.35);
+  border-radius: 8px;
+  background: rgba(18, 34, 26, 0.6);
+}
+
+.champion-panel.hidden {
+  display: none;
+}
+
+.champ-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.champ-title {
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  color: #e9c66c;
+}
+
+.champ-level {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+}
+
+.champ-stats {
+  font-size: 8px;
+  color: #aab7a3;
+  line-height: 1.3;
+}
+
+.ability-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ability-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name button"
+    "desc button"
+    "state button";
+  align-items: center;
+  gap: 1px 8px;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.ability-row.locked {
+  opacity: 0.62;
+}
+
+.ability-row.ready {
+  border-color: rgba(233, 198, 108, 0.5);
+}
+
+.ability-name {
+  grid-area: name;
+  font-size: 9px;
+  font-weight: bold;
+  color: #fff4d0;
+}
+
+.ability-desc {
+  grid-area: desc;
+  font-size: 7px;
+  color: #aab7a3;
+  line-height: 1.3;
+}
+
+.ability-state {
+  grid-area: state;
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: #e9c66c;
+}
+
+.ability-row.locked .ability-state {
+  color: #f87171;
+}
+
+.ability-button {
+  grid-area: button;
+  border: 1px solid #e9c66c;
+  border-radius: 4px;
+  background: linear-gradient(#b9944b, #75552a);
+  color: #fff4d0;
+  padding: 6px 8px;
+  font-family: Arial, sans-serif;
+  font-size: 7px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  min-width: 52px;
+}
+
+.ability-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ability-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* 8.10 LEVEL UP BANNER */
+.level-up-banner {
+  position: absolute;
+  z-index: 6;
+  top: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border: 2px solid #e9c66c;
+  border-radius: 8px;
+  background: rgba(24, 37, 28, 0.92);
+  color: #e9c66c;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  box-shadow: 0 0 18px rgba(233, 198, 108, 0.45);
+}
+
+.level-up-banner.hidden {
+  display: none;
+}
+
+/* 8.11 COMBAT UI (BOTTOM PANEL) */
 .bottom-panel {
   z-index: 5;
   min-height: 150px;
@@ -946,6 +1300,19 @@ body {
   animation: rally-glow 1.5s ease-in-out infinite;
 }
 
+@keyframes guard-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 rgba(126, 186, 255, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(126, 186, 255, 0.8));
+  }
+}
+
+.unit.guarded .unit-silhouette {
+  animation: guard-glow 1.6s ease-in-out infinite;
+}
+
 @keyframes ai-thinking {
   0%, 100% {
     opacity: 1;
@@ -969,6 +1336,7 @@ body {
   .unit.defeated .unit-silhouette,
   .unit.moving .unit-silhouette,
   .unit.rallied .unit-silhouette,
+  .unit.guarded .unit-silhouette,
   .ai-turn-active .unit.red .unit-silhouette {
     animation: none !important;
     transition: none !important;
@@ -1007,6 +1375,15 @@ body {
   .combat-log {
     max-height: 36px;
   }
+
+  .ability-desc {
+    display: none;
+  }
+
+  .champion-panel {
+    padding: 5px 7px;
+    gap: 3px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -1044,8 +1421,28 @@ body {
     height: 18px;
   }
 
+  .attack-indicator.ability-target {
+    width: 24px;
+    height: 24px;
+  }
+
   .combat-log {
     font-size: 7px;
+  }
+
+  .terrain-forest::before,
+  .terrain-forest::after {
+    border-left-width: 7px;
+    border-right-width: 7px;
+    border-bottom-width: 16px;
+  }
+
+  .terrain-forest::after {
+    border-bottom-width: 13px;
+  }
+
+  .ability-desc {
+    display: none;
   }
 }
 

@@ -19,7 +19,6 @@ const os = require("os");
 
 const ROOT = __dirname;
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const PORT = 9333;
 const PAGE = "file:///" + path.join(ROOT, "index.html").replace(/\\/g, "/");
 
 let passed = 0;
@@ -197,19 +196,45 @@ class CDP {
   }
 }
 
+/* Picks a free TCP port so parallel or leftover browsers can never be
+ * mistaken for the one this run started. */
+function findFreePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.on("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const port = srv.address().port;
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+/* Kills any browser left behind by an earlier run of this script. */
+function killStaleBrowsers() {
+  return new Promise(resolve => {
+    const killer = spawn("taskkill", ["/F", "/T", "/IM", "msedge.exe"], { stdio: "ignore" });
+    killer.on("exit", () => resolve());
+    killer.on("error", () => resolve());
+    setTimeout(resolve, 5000);
+  });
+}
+
 async function main() {
   if (!fs.existsSync(EDGE)) {
     console.error("Edge not found at " + EDGE);
     process.exit(1);
   }
 
+  await killStaleBrowsers();
+
   const profile = path.join(os.tmpdir(), "myHeroDuelArena-edge-verify");
-  fs.rmSync(profile, { recursive: true, force: true });
+  try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }); } catch (e) { /* stale profile */ }
+  const port = await findFreePort();
   const browser = spawn(EDGE, [
     "--headless=new",
     "--disable-gpu",
     "--no-sandbox",
-    "--remote-debugging-port=" + PORT,
+    "--remote-debugging-port=" + port,
     "--user-data-dir=" + profile,
     "--window-size=1280,900",
     "--allow-file-access-from-files",
@@ -217,11 +242,17 @@ async function main() {
   ], { stdio: "ignore" });
 
   let cdp;
+  let fatal = null;
   try {
-    await waitForPort(PORT, 20000);
+    await waitForPort(port, 20000);
+    /* The browser this run started must still be alive, otherwise the
+     * connection would belong to a leftover instance. */
+    if (browser.exitCode !== null) {
+      throw new Error("the browser exited before the checks could run");
+    }
     await new Promise(r => setTimeout(r, 1200));
 
-    const targets = await fetchJson(`http://127.0.0.1:${PORT}/json/list`);
+    const targets = await fetchJson(`http://127.0.0.1:${port}/json/list`);
     const page = targets.find(t => t.type === "page" && t.webSocketDebuggerUrl);
     if (!page) throw new Error("no page target found");
 
@@ -369,9 +400,10 @@ async function main() {
      * select a unit before comparing the two coordinate spaces. Move markers
      * point at empty cells, so they are checked against the grid itself
      * rather than against unit positions. */
-    const agree = await cdp.evaluate(`(() => {
+     const agree = await cdp.evaluate(`(() => {
       document.getElementById('start-button').click();
-      document.querySelector('.unit.blue').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const u = document.querySelector('.unit.blue');
+      u.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       const out = { checked: 0, mismatched: 0, worst: 0 };
       const markers = [...document.querySelectorAll('.move-indicator, .attack-indicator')];
@@ -396,10 +428,17 @@ async function main() {
         out.worst = Math.max(out.worst, bestD);
         if (bestD > 2) out.mismatched++;
       }
+      const api = window.MyHeroDuelArena;
+      out.diag = {
+        unitClass: u.className,
+        state: api.getState ? api.getState() : null,
+        selected: document.querySelectorAll('.unit.selected').length,
+        unitCount: document.querySelectorAll('.unit').length
+      };
       return out;
     })()`);
 
-    assert(agree.checked > 0, `markers were rendered and measured (${agree.checked})`);
+    assert(agree.checked > 0, `markers were rendered and measured (${agree.checked}) ${JSON.stringify(agree.diag)}`);
     assert(agree.mismatched === 0, `every marker sits on a grid cell centre (${agree.mismatched} mismatched, worst offset ${agree.worst.toFixed(2)}px)`);
 
     console.log("\n6. Styling — team identity and facing");
@@ -496,16 +535,195 @@ async function main() {
 
     assert(moved.moved === true, `clicking a move marker relocates the unit (${moved.before} -> ${moved.after})`);
 
+    console.log("\n10. Terrain — the field is decorated and stays click-through");
+
+    const terrain = await cdp.evaluate(`(() => {
+      const layer = document.getElementById('terrain-layer');
+      const cells = [...layer.children];
+      const cell = cells[0];
+      const r = cell.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return {
+        count: cells.length,
+        types: [...new Set(cells.map(c => c.className))],
+        layerPointerEvents: getComputedStyle(layer).pointerEvents,
+        cellPointerEvents: getComputedStyle(cell).pointerEvents,
+        hitIsTerrain: hit ? hit.classList.contains('terrain-cell') : false,
+        hitTag: hit ? (hit.className || hit.tagName) : null
+      };
+    })()`);
+
+    assert(terrain.count === 40, `the terrain layer renders one cell per grid position (${terrain.count})`);
+    assert(terrain.types.length >= 4, `several terrain appearances are used (${terrain.types.length})`);
+    assert(terrain.layerPointerEvents === "none", "the terrain layer ignores pointer events");
+    assert(terrain.cellPointerEvents === "none", "terrain cells ignore pointer events");
+    assert(terrain.hitIsTerrain === false,
+      `terrain never covers a unit (hit test reached ${terrain.hitTag})`);
+
+    console.log("\n11. Progression — the champion strip and panel");
+
+    const progression = await cdp.evaluate(`(() => {
+      const champ = document.querySelector('.unit.blue.champion');
+      champ.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const panel = document.getElementById('champion-panel');
+      return {
+        panelVisible: !panel.classList.contains('hidden'),
+        level: document.getElementById('prog-level').textContent,
+        points: document.getElementById('prog-points').textContent,
+        xp: document.getElementById('prog-xp-text').textContent,
+        abilities: [...document.querySelectorAll('#ability-list .ability-row')].map(r => ({
+          locked: r.classList.contains('locked'),
+          ready: r.classList.contains('ready')
+        })),
+        quickActions: document.querySelectorAll('#ability-actions .ability-button').length,
+        champLevel: document.getElementById('champ-level').textContent
+      };
+    })()`);
+
+    assert(progression.panelVisible === true, "selecting the champion opens the champion panel");
+    assert(progression.level === "1", `the progression strip shows the champion level (got ${JSON.stringify(progression.level)})`);
+    assert(progression.points === "1", `the progression strip shows the unspent ability points (got ${JSON.stringify(progression.points)})`);
+    assert(/XP/.test(progression.xp), "the progression strip shows the experience counter");
+    assert(/LEVEL/.test(progression.champLevel), "the champion panel shows the level");
+    assert(progression.abilities.length === 3, `all three champion abilities are listed (${progression.abilities.length})`);
+    assert(progression.abilities.filter(a => a.locked).length === 2, "abilities above the current level are locked");
+    assert(progression.abilities.filter(a => a.ready).length === 1, "the unlocked ability is ready");
+    assert(progression.quickActions > 0, "a ready ability is offered as a quick action");
+
+    console.log("\n12. Progression — the level-up banner and the AI turn state");
+
+    const levelUp = await cdp.evaluate(`(() => {
+      const api = window.MyHeroDuelArena;
+      api.awardExperience(150, 'verify', 'battle:verify');
+      const banner = document.getElementById('level-up-banner');
+      const shown = !banner.classList.contains('hidden');
+      const text = document.getElementById('level-up-text').textContent;
+      return { shown, text, level: document.getElementById('prog-level').textContent };
+    })()`);
+
+    assert(levelUp.shown === true, `the level-up banner appears when the champion levels up (hidden=${!levelUp.shown})`);
+    assert(/LEVEL 2/.test(levelUp.text), `the banner names the new level (${levelUp.text})`);
+    assert(levelUp.level === "2", `the progression strip follows the level up (got ${levelUp.level})`);
+
+    const aiTurn = await cdp.evaluate(`(() => {
+      document.getElementById('end-turn-button').click();
+      const field = document.getElementById('battlefield');
+      const redUnit = document.querySelector('.unit.red');
+      const r = redUnit.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return {
+        active: field.classList.contains('ai-turn-active'),
+        banner: document.getElementById('turn-text').textContent,
+        hitIsRedUnit: hit === redUnit || !!(hit && hit.closest && hit.closest('.unit.red')),
+        hitTag: hit ? (hit.className || hit.tagName) : null
+      };
+    })()`);
+
+    assert(aiTurn.active === true, "the battlefield is flagged during the enemy phase");
+    assert(aiTurn.banner === "ENEMY TURN", "the banner announces the enemy phase");
+    assert(aiTurn.hitIsRedUnit === true,
+      `red units stay clickable during the enemy phase (hit test reached ${aiTurn.hitTag})`);
+
+    console.log("\n13. Responsive — the layout survives narrow and short viewports");
+
+    const viewports = [
+      { name: "desktop", width: 1280, height: 900 },
+      { name: "tablet", width: 820, height: 1180 },
+      { name: "phone", width: 390, height: 844 },
+      { name: "small phone", width: 320, height: 640 }
+    ];
+
+    for (const vp of viewports) {
+      await cdp.send("Emulation.setDeviceMetricsOverride", {
+        width: vp.width,
+        height: vp.height,
+        deviceScaleFactor: 1,
+        mobile: vp.width < 700
+      });
+      await new Promise(r => setTimeout(r, 400));
+
+      const layout = await cdp.evaluate(`(() => {
+        const field = document.getElementById('battlefield');
+        const fr = field.getBoundingClientRect();
+        const units = [...document.querySelectorAll('.unit')];
+        const layer = document.getElementById('blue-units');
+        const lr = layer.getBoundingClientRect();
+        const controls = ['start-button', 'end-turn-button', 'progression-strip', 'champion-panel']
+          .map(id => document.getElementById(id))
+          .filter(Boolean)
+          .map(el => {
+            const r = el.getBoundingClientRect();
+            return { id: el.id, right: r.right, width: r.width, visible: r.width > 0 };
+          });
+        return {
+          fieldWidth: fr.width,
+          fieldLeft: fr.left,
+          fieldRight: fr.right,
+          layerWidth: lr.width,
+          docScrollWidth: document.documentElement.scrollWidth,
+          docClientWidth: document.documentElement.clientWidth,
+          controls,
+          unitCount: units.length,
+          unitsInsideField: units.every(u => {
+            const r = u.getBoundingClientRect();
+            return r.left >= fr.left - 1 && r.right <= fr.right + 1;
+          }),
+          smallestUnit: Math.min(...units.map(u => {
+            const s = u.querySelector('.unit-silhouette').getBoundingClientRect();
+            return Math.min(s.width, s.height);
+          }))
+        };
+      })()`);
+
+      assert(layout.unitCount === 22, `[${vp.name}] all units are rendered (${layout.unitCount})`);
+      assert(layout.unitsInsideField === true, `[${vp.name}] every unit stays inside the battlefield`);
+      assert(layout.docScrollWidth <= layout.docClientWidth + 1,
+        `[${vp.name}] the page does not scroll sideways (${layout.docScrollWidth} > ${layout.docClientWidth})`);
+      assert(layout.controls.filter(c => c.visible).every(c => c.right <= layout.docClientWidth + 1),
+        `[${vp.name}] the visible controls fit the viewport (${JSON.stringify(layout.controls)})`);
+      assert(layout.smallestUnit >= 20,
+        `[${vp.name}] unit sprites stay legible (smallest ${layout.smallestUnit.toFixed(1)}px)`);
+    }
+
+    await cdp.send("Emulation.clearDeviceMetricsOverride");
+    await new Promise(r => setTimeout(r, 300));
+
     console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
+  } catch (err) {
+    fatal = err;
   } finally {
     if (cdp) cdp.close();
+    /* Edge spawns child processes that keep the profile directory locked, so
+     * the whole process tree is killed before the profile is removed. */
+    try {
+      await new Promise(resolve => {
+        const killer = spawn("taskkill", ["/F", "/T", "/PID", String(browser.pid)], { stdio: "ignore" });
+        killer.on("exit", resolve);
+        killer.on("error", resolve);
+        setTimeout(resolve, 4000);
+      });
+    } catch (e) { /* fall back to the plain kill below */ }
     browser.kill();
     await new Promise(resolve => {
       if (browser.exitCode !== null) return resolve();
       browser.once("exit", resolve);
       setTimeout(resolve, 3000);
     });
-    try { fs.rmSync(profile, { recursive: true, force: true }); } catch (e) { /* best effort */ }
+    /* The profile directory can still be locked by the browser process for a
+     * moment after it exits, so the cleanup is retried and never fatal. */
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+        break;
+      } catch (e) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  }
+
+  if (fatal) {
+    console.error("verification error:", fatal);
+    process.exit(1);
   }
 
   process.exit(failed > 0 ? 1 : 0);
