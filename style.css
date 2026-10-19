@@ -1,5 +1,6 @@
-/* 1. RESET & BASE */
+/* 1.1.0 TACTICAL BATTLEFIELD STYLES */
 
+/* 1. RESET & BASE */
 * {
   box-sizing: border-box;
 }
@@ -30,7 +31,6 @@ body {
 }
 
 /* 2. LAYOUT & ARENA */
-
 .topbar {
   z-index: 5;
   display: flex;
@@ -55,7 +55,6 @@ body {
 }
 
 /* 3. LANDSCAPE & BACKGROUND */
-
 .landscape {
   position: relative;
   isolation: isolate;
@@ -73,7 +72,6 @@ body {
 }
 
 /* 3.1 SKY & ATMOSPHERE */
-
 .sky {
   position: absolute;
   top: 0;
@@ -144,7 +142,6 @@ body {
 }
 
 /* 3.2 CASTLE & STRONGHOLD (background layer, behind armies) */
-
 .mountains {
   position: absolute;
   z-index: 0;
@@ -279,7 +276,6 @@ body {
 }
 
 /* 3.3 BATTLEFIELD GROUND */
-
 .ground-hill {
   position: absolute;
   z-index: 0;
@@ -330,17 +326,20 @@ body {
   background: rgba(232, 213, 161, 0.18);
 }
 
-/* 4. ARMIES & FORMATIONS */
-
+/* 4. ARMIES & FORMATIONS
+ * The battlefield uses one shared coordinate space. Both unit layers and all
+ * marker layers span the full field width, so a unit can move from its own
+ * half into the neutral centre without breaking its layout.
+ */
 .army {
   position: absolute;
-  top: 46%;
-  bottom: 8px;
+  top: 44%;
   width: 50%;
+  height: 16px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
   z-index: 3;
+  pointer-events: none;
 }
 
 .army-blue {
@@ -352,8 +351,7 @@ body {
 }
 
 .army-name {
-  padding: 5px 3px;
-  width: 92%;
+  padding: 3px 8px;
   text-align: center;
   font-size: clamp(8px, 2.5vw, 11px);
   font-weight: bold;
@@ -369,50 +367,68 @@ body {
   color: #ffd0bd;
 }
 
-.units {
+/* 4.1 UNIT LAYERS — full field width, one cell per grid column */
+.units-layer {
+  position: absolute;
+  top: 46%;
+  bottom: 8px;
+  left: 0;
   width: 100%;
-  flex: 1;
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 6px;
-  padding-bottom: 10px;
+  z-index: 3;
 }
 
-/* 4.1 BLUE ARMY (LEFT) — faces right */
+/* 4.2 MARKER LAYERS */
+.marker-layer {
+  position: absolute;
+  top: 46%;
+  bottom: 8px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
 
-.army-blue .unit {
+.marker-layer > * {
+  pointer-events: auto;
+}
+/* 4.1 BLUE UNITS (LEFT) — faces right */
+.unit.blue .unit-silhouette {
   transform: scaleX(1);
 }
 
-/* 4.2 RED ARMY (RIGHT) — faces left */
-
-.army-red .unit {
+/* 4.2 RED UNITS (RIGHT) — faces left */
+.unit.red .unit-silhouette {
   transform: scaleX(-1);
 }
 
 /* 5. UNIT SILHOUETTES */
-
 .unit {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  width: 42px;
-  height: 42px;
+  justify-content: center;
+  width: 10%;
   text-align: center;
   text-shadow: 0 2px 3px #17251c;
   cursor: pointer;
   z-index: 3;
+  transform: translate(-50%, -50%);
+  transition: left 0.35s ease, top 0.35s ease, opacity 0.3s ease;
 }
 
 .unit-silhouette {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   overflow: visible;
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+}
+
+/* The <svg> wrapper must fill the silhouette box for the <use> to scale. */
+.unit-glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .unit-silhouette use,
@@ -469,20 +485,19 @@ body {
 }
 
 /* 6. TEAM IDENTITY & COLORS */
-
-.army-blue .unit-silhouette {
+.unit.blue .unit-silhouette {
   color: #c5e3ff;
 }
 
-.army-red .unit-silhouette {
+.unit.red .unit-silhouette {
   color: #ffc4ad;
 }
 
-.army-blue .health-fill {
+.unit.blue .health-fill {
   background: #60a5fa;
 }
 
-.army-red .health-fill {
+.unit.red .health-fill {
   background: #f87171;
 }
 
@@ -500,8 +515,52 @@ body {
   height: 5px;
 }
 
-/* 7. COMBAT UI (BOTTOM PANEL) */
+/* 7. TACTICAL INDICATORS */
 
+/* Movement destination markers */
+.move-indicator {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #60a5fa;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.18);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.move-indicator.target-red {
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.18);
+}
+
+/* Attack target markers — ring colour follows the team being attacked */
+.attack-indicator {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 2px solid #f87171;
+  border-radius: 50%;
+  background: rgba(248, 113, 113, 0.22);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.attack-indicator.target-blue {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.22);
+}
+
+.move-indicator:hover,
+.attack-indicator:hover {
+  opacity: 0.85;
+}
+
+/* 8. COMBAT UI (BOTTOM PANEL) */
 .bottom-panel {
   z-index: 5;
   min-height: 150px;
@@ -523,6 +582,70 @@ body {
   min-height: 14px;
 }
 
+/* 8.1 TURN BANNER */
+.turn-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 16px;
+  border-radius: 6px;
+  background: rgba(233, 198, 108, 0.12);
+  border: 1px solid rgba(233, 198, 108, 0.3);
+}
+
+.turn-banner.hidden {
+  display: none;
+}
+
+#turn-text {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #e9c66c;
+}
+
+#round-text {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+}
+
+/* 8.2 COMBAT LOG */
+.combat-log {
+  width: 100%;
+  max-width: 380px;
+  max-height: 48px;
+  overflow-y: auto;
+  font-family: Arial, sans-serif;
+  font-size: 8px;
+  line-height: 1.3;
+  color: #aab7a3;
+  text-align: center;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.combat-log .log-entry {
+  display: block;
+  margin: 0;
+}
+
+.combat-log .log-entry.player {
+  color: #c5e3ff;
+}
+
+.combat-log .log-entry.ai {
+  color: #ffd0bd;
+}
+
+.combat-log .log-entry.system {
+  color: #e9c66c;
+}
+
+/* 8.3 START BUTTON */
 #start-button {
   border: 2px solid #f1d58a;
   border-radius: 6px;
@@ -545,6 +668,7 @@ body {
   cursor: not-allowed;
 }
 
+/* 8.4 SELECTION INFO */
 .selection-info {
   display: flex;
   flex-direction: column;
@@ -574,6 +698,13 @@ body {
   color: #fff4d0;
 }
 
+.sel-stats {
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: #aab7a3;
+  line-height: 1.3;
+}
+
 .health-bar-wrap {
   width: 110px;
 }
@@ -587,7 +718,72 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-#battle-result {
+.action-hints {
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: #aab7a3;
+  text-align: center;
+  line-height: 1.3;
+  max-width: 140px;
+}
+
+/* 8.5 ABILITY BUTTON */
+.ability-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.ability-wrap.hidden {
+  display: none;
+}
+
+.rally-button {
+  border: 2px solid #e9c66c;
+  border-radius: 6px;
+  background: linear-gradient(#b9944b, #75552a);
+  color: #fff4d0;
+  padding: 10px 22px;
+  font-family: Georgia, serif;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.rally-button:active {
+  transform: scale(0.97);
+}
+
+.rally-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 8.6 END TURN BUTTON */
+.end-turn-button {
+  border: 2px solid #f1d58a;
+  border-radius: 6px;
+  background: linear-gradient(#c94a3f, #7a2d2a);
+  color: #fff4d0;
+  padding: 12px 28px;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.end-turn-button:active {
+  transform: scale(0.97);
+}
+
+.end-turn-button.hidden {
+  display: none;
+}
+
+/* 8.7 BATTLE RESULT */
+.battle-result {
   font-size: 13px;
   font-weight: bold;
   letter-spacing: 1px;
@@ -596,15 +792,15 @@ body {
   min-height: 18px;
 }
 
-#battle-result.hidden {
+.battle-result.hidden {
   display: none;
 }
 
-#battle-result.victory {
+.battle-result.victory {
   color: #86efac;
 }
 
-#battle-result.defeat {
+.battle-result.defeat {
   color: #f87171;
 }
 
@@ -614,16 +810,19 @@ body {
   color: #aab7a3;
 }
 
-/* 8. ANIMATIONS */
-
+/* 9. ANIMATIONS */
+/* The unit box is centred on its grid cell with translate(-50%, -50%).
+ * Every keyframe that animates `transform` must repeat that translate,
+ * otherwise the animation replaces the centring and the unit drifts to the
+ * top-left corner of its cell. */
 @keyframes arrive {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.9);
+    transform: translate(-50%, calc(-50% + 14px)) scale(0.9);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
@@ -633,10 +832,10 @@ body {
 
 @keyframes idle-breathe {
   0%, 100% {
-    transform: translateY(0) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
   50% {
-    transform: translateY(-2px) scale(1.015);
+    transform: translate(-50%, calc(-50% - 2px)) scale(1.015);
   }
 }
 
@@ -660,36 +859,32 @@ body {
   animation: select-pulse 2s ease-in-out infinite;
 }
 
+/* Lunge animations use the independent `translate` property so they compose
+ * with the red facing flip (`transform: scaleX(-1)`) instead of replacing it. */
 @keyframes attack-lunge {
-  0% {
-    transform: translateX(0);
+  0%, 100% {
+    translate: 0 0;
   }
   50% {
-    transform: translateX(18px);
-  }
-  100% {
-    transform: translateX(0);
+    translate: 18px 0;
   }
 }
 
-.army-blue .unit.attacking .unit-silhouette {
+.unit.blue.attacking .unit-silhouette {
   animation: attack-lunge 0.5s ease-in-out both;
 }
 
-.army-red .unit.attacking .unit-silhouette {
-  animation: attack-lunge-red 0.5s ease-in-out both;
-}
-
 @keyframes attack-lunge-red {
-  0% {
-    transform: scaleX(-1) translateX(0);
+  0%, 100% {
+    translate: 0 0;
   }
   50% {
-    transform: scaleX(-1) translateX(-18px);
+    translate: -18px 0;
   }
-  100% {
-    transform: scaleX(-1) translateX(0);
-  }
+}
+
+.unit.red.attacking .unit-silhouette {
+  animation: attack-lunge-red 0.5s ease-in-out both;
 }
 
 @keyframes damage-flash {
@@ -710,7 +905,8 @@ body {
 @keyframes defeat-fade {
   to {
     opacity: 0;
-    transform: translateY(16px) scale(0.75);
+    translate: 0 16px;
+    scale: 0.75;
   }
 }
 
@@ -723,15 +919,57 @@ body {
   animation: defeat-fade 0.55s ease-in both forwards;
 }
 
-/* 9. REDUCED MOTION */
+/* 9.1 MOVEMENT & ABILITY ANIMATIONS */
+@keyframes move-hop {
+  0%, 100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -5px;
+  }
+}
 
+.unit.moving .unit-silhouette {
+  animation: move-hop 0.4s ease-out both;
+}
+
+@keyframes rally-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 rgba(233, 198, 108, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(233, 198, 108, 0.8));
+  }
+}
+
+.unit.rallied .unit-silhouette {
+  animation: rally-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes ai-thinking {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.ai-turn-active .unit.red .unit-silhouette {
+  animation: ai-thinking 1.5s ease-in-out infinite;
+}
+
+/* 9.2 REDUCED MOTION */
 @media (prefers-reduced-motion: reduce) {
   .unit,
   .unit.selected .selection-ring,
   .unit.champion,
   .unit.attacking .unit-silhouette,
   .unit.damaged .unit-silhouette,
-  .unit.defeated .unit-silhouette {
+  .unit.defeated .unit-silhouette,
+  .unit.moving .unit-silhouette,
+  .unit.rallied .unit-silhouette,
+  .ai-turn-active .unit.red .unit-silhouette {
     animation: none !important;
     transition: none !important;
   }
@@ -750,7 +988,6 @@ body {
 }
 
 /* 10. RESPONSIVE LAYOUT */
-
 @media (max-height: 680px) {
   .landscape {
     min-height: 430px;
@@ -766,14 +1003,13 @@ body {
     min-height: 120px;
     padding: 10px 10px;
   }
+
+  .combat-log {
+    max-height: 36px;
+  }
 }
 
 @media (max-width: 420px) {
-  .unit {
-    width: 36px;
-    height: 36px;
-  }
-
   .unit-silhouette {
     width: 28px;
     height: 28px;
@@ -796,18 +1032,24 @@ body {
     padding: 10px 22px;
     font-size: 12px;
   }
+
+  .end-turn-button {
+    padding: 10px 22px;
+    font-size: 12px;
+  }
+
+  .move-indicator,
+  .attack-indicator {
+    width: 18px;
+    height: 18px;
+  }
+
+  .combat-log {
+    font-size: 7px;
+  }
 }
 
 @media (max-width: 340px) {
-  .units {
-    gap: 4px;
-  }
-
-  .unit {
-    width: 32px;
-    height: 32px;
-  }
-
   .unit-silhouette {
     width: 24px;
     height: 24px;
@@ -816,5 +1058,11 @@ body {
   .selection-ring {
     width: 38px;
     height: 38px;
+  }
+
+  .move-indicator,
+  .attack-indicator {
+    width: 16px;
+    height: 16px;
   }
 }

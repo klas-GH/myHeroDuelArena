@@ -5,7 +5,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#17251c">
-  <title>myHeroDuelArena v1.0.1</title>
+  <title>myHeroDuelArena v1.1.0</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
@@ -15,10 +15,10 @@
 
     <header class="topbar">
       <div class="game-title">MY HERO DUEL ARENA</div>
-      <div class="version">v1.0.1 · BATTLEFIELD</div>
+      <div class="version">v1.1.0 · TACTICAL</div>
     </header>
 
-    <section class="landscape" aria-label="Outdoor castle battlefield">
+    <section class="landscape" id="battlefield" aria-label="Outdoor castle battlefield">
 
       <div class="sky"></div>
       <div class="sun"></div>
@@ -51,27 +51,41 @@
 
       <section class="army army-blue">
         <div class="army-name">AZURE LEGION</div>
-        <div class="units" id="blue-units"></div>
       </section>
 
       <section class="army army-red">
         <div class="army-name">CRIMSON LEGION</div>
-        <div class="units" id="red-units"></div>
       </section>
 
+      <div class="units-layer" id="blue-units"></div>
+      <div class="units-layer" id="red-units"></div>
+
+      <div class="marker-layer" id="move-indicators"></div>
+      <div class="marker-layer" id="attack-indicators"></div>
       <div class="center-line"></div>
     </section>
 
     <footer class="bottom-panel">
+      <div id="turn-banner" class="turn-banner hidden">
+        <span id="turn-text">PLAYER TURN</span>
+        <span id="round-text">ROUND 1</span>
+      </div>
       <div id="status">THE ARMIES AWAIT YOUR COMMAND</div>
+      <div id="combat-log" class="combat-log"></div>
       <button id="start-button">ENTER THE ARENA</button>
       <div id="selection-info" class="selection-info hidden">
         <div class="sel-label">SELECTED</div>
         <div id="selected-name" class="sel-name">--</div>
+        <div id="selected-stats" class="sel-stats"></div>
         <div class="health-bar-wrap">
           <div class="health-bar"><div id="selected-health" class="health-fill"></div></div>
         </div>
+        <div id="action-hints" class="action-hints"></div>
       </div>
+      <div id="ability-button-wrap" class="ability-wrap hidden">
+        <button id="rally-button" class="rally-button">RALLY ALLIES</button>
+      </div>
+      <button id="end-turn-button" class="end-turn-button hidden">END TURN</button>
       <div id="battle-result" class="battle-result hidden"></div>
       <div class="footer-note">A DUEL FOR HONOR AND GLORY</div>
     </footer>
