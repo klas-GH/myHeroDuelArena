@@ -1,4 +1,4 @@
-/* REGRESSION TEST SUITE - myHeroDuelArena v1.6.0
+/* REGRESSION TEST SUITE - myHeroDuelArena v1.7.0
  * Run: node regression.js
  *
  * Validates the real game rules. The engine is loaded from game.js through
@@ -78,17 +78,17 @@ section("1. Army composition");
   const blue = blueUnits(api);
   const red = redUnits(api);
 
-  assert(blue.length === 9, `blue army has ${blue.length} units`);
-  assert(red.length === 9, `red army has ${red.length} units`);
+  assert(blue.length === 7, `blue army has ${blue.length} units`);
+  assert(red.length === 7, `red army has ${red.length} units`);
   assert(blue.filter(u => u.type === "archer").length === 2, "blue: 2 archers");
   assert(blue.filter(u => u.type === "footman").length === 2, "blue: 2 foot soldiers");
-  assert(blue.filter(u => u.type === "ballista").length === 2, "blue: 2 ballista");
-  assert(blue.filter(u => u.type === "chevalier").length === 2, "blue: 2 chevaliers");
+  assert(blue.filter(u => u.type === "ballista").length === 1, "blue: 1 ballista");
+  assert(blue.filter(u => u.type === "chevalier").length === 1, "blue: 1 chevalier");
   assert(blue.filter(u => u.type === "champion").length === 1, "blue: 1 champion");
   assert(red.filter(u => u.type === "archer").length === 2, "red: 2 archers");
   assert(red.filter(u => u.type === "footman").length === 2, "red: 2 foot soldiers");
-  assert(red.filter(u => u.type === "ballista").length === 2, "red: 2 ballista");
-  assert(red.filter(u => u.type === "chevalier").length === 2, "red: 2 chevaliers");
+  assert(red.filter(u => u.type === "ballista").length === 1, "red: 1 ballista");
+  assert(red.filter(u => u.type === "chevalier").length === 1, "red: 1 chevalier");
   assert(red.filter(u => u.type === "champion").length === 1, "red: 1 champion");
   assert(blue.every(u => u.team === TEAM_BLUE), "all blue units are blue team");
   assert(red.every(u => u.team === TEAM_RED), "all red units are red team");
@@ -101,8 +101,8 @@ section("2. Unique unit IDs");
 {
   const { api } = newGame();
   const all = [...api.getUnits().values()];
-  assert(all.length === 18, `exactly ${all.length} units total`);
-  assert(new Set(all.map(u => u.id)).size === 18, "all 18 unit IDs are unique");
+  assert(all.length === 14, `exactly ${all.length} units total`);
+  assert(new Set(all.map(u => u.id)).size === 14, "all 14 unit IDs are unique");
 }
 
 /* 3. INITIAL POSITIONS */
@@ -127,31 +127,34 @@ section("3. Initial positions");
 
   const champ = unitByType(api, TEAM_BLUE, "champion");
   const front = blue.filter(u => u.type === "footman" || u.type === "chevalier");
-  assert(front.every(f => f.col === champ.col + 2), "the front rank stands two columns ahead of the champion");
-  assert(front.length === 4, `the front rank covers every lane (${front.length} fighters)`);
-  assert(new Set(front.map(f => f.row)).size === 4, "the front rank fills all four lanes");
+  assert(front.every(f => f.col === champ.col + 1), "the front rank stands one column ahead of the champion");
+  assert(front.length === 3, `the front rank covers three lanes (${front.length} fighters)`);
+  assert(new Set(front.map(f => f.row)).size === 3, "the front rank fills three lanes");
+  assert(!front.some(f => f.row === champ.row), "the champion's lane is free in the front rank");
 
-  const mid = blue.filter(u => u.type === "ballista" || u.type === "archer");
-  assert(mid.every(m => m.col === champ.col + 1), "the shooters hold the middle column");
-  assert(mid.length === 4, `the middle rank covers every lane (${mid.length} shooters)`);
-  assert(new Set(mid.map(m => m.row)).size === 4, "the middle rank fills all four lanes");
+  const shooters = blue.filter(u => u.type === "ballista" || u.type === "archer");
+  assert(shooters.every(s => s.col === champ.col), "the shooters hold the rear column with the champion");
+  assert(shooters.length === 3, `the rear rank covers three lanes (${shooters.length} shooters)`);
+  assert(new Set(shooters.map(s => s.row)).size === 3, "the rear rank fills three lanes");
 
   const archers = blue.filter(u => u.type === "archer");
-  assert(archers.every(a => a.col > champ.col), "champion is behind the archers");
-  assert(champ.col === 0, "champion holds the rear position with rally");
+  assert(archers.every(a => a.col === champ.col), "the archers stand in the rear column");
+  assert(champ.col === 1, "champion holds the rear position with rally");
+  assert(champ.footprint === 2, "the champion is drawn across two columns");
+  assert(blue.filter(u => u.type === "champion").length === 1, "the champion is one unit, not two");
 
   const chevaliers = blue.filter(u => u.type === "chevalier");
-  assert(chevaliers.every(c => c.col === 2), "the chevaliers fight in the front rank");
+  assert(chevaliers.every(c => c.col === 2), "the chevalier fights in the front rank");
   const ballistas = blue.filter(u => u.type === "ballista");
-  assert(ballistas.every(b => b.col === 1), "both ballista stand in the middle column");
+  assert(ballistas.every(b => b.col === 1), "the ballista stands in the rear column");
 
   const redChamp = unitByType(api, TEAM_RED, "champion");
   assert(redChamp.col === api.GRID_COLS - 1 - champ.col, "red formation mirrors blue formation");
   assert(redChamp.row === champ.row, "the champions face each other across the field");
   assert(red.filter(u => u.type === "chevalier").every(c => c.col === api.GRID_COLS - 1 - 2),
-    "the red chevaliers hold the red front rank");
+    "the red chevalier holds the red front rank");
   assert(red.filter(u => u.type === "ballista").every(b => b.col === api.GRID_COLS - 1 - 1),
-    "both red ballista stand in the red middle column");
+    "the red ballista stands in the red rear column");
 }
 
 /* 4. NO OVERLAPPING LIVING UNITS */
@@ -263,7 +266,7 @@ section("8. Attack range");
   const footman = unitByType(api, TEAM_BLUE, "footman");
   const archer = unitByType(api, TEAM_BLUE, "archer");
   const ballista = unitByType(api, TEAM_BLUE, "ballista");
-  assert(footman.range === 1, "footman melee range is 1");
+  assert(footman.range === 2, "footman melee reach is 2");
   assert(archer.range === 3, "archer range is 3");
   assert(ballista.range === 4, "ballista range is 4");
 
@@ -277,9 +280,9 @@ section("8. Attack range");
   assert(archer.range > footman.range, "ranged unit outranges the melee unit");
 }
 
-/* 8.1 MELEE REACHES DIAGONALLY */
+/* 8.1 MELEE REACHES DIAGONALLY AND TWO COLUMNS FORWARD */
 
-section("8.1. Melee reaches diagonally");
+section("8.1. Melee reaches diagonally and two columns forward");
 
 {
   const { api } = newGame();
@@ -294,7 +297,51 @@ section("8.1. Melee reaches diagonally");
   target.col = footman.col + 2;
   target.row = footman.row + 1;
   assert(api.fieldDistance(footman, target) === 2, "a knight's move is two steps away");
-  assert(!api.canAttack(footman, target), "melee does not reach a knight's move away");
+  assert(api.canAttack(footman, target), "melee reaches two columns forward");
+}
+
+/* 8.2 THE FRONT LINE: WHO A BLADE MAY AND MAY NOT REACH
+ *
+ * A bow reaches any target inside its range: the front line of the other
+ * army never covers anything from a shot. A blade only cuts forward, and it
+ * never cuts through a living shield.
+ */
+
+section("8.2. The front line");
+
+{
+  const { api } = newGame();
+
+  /* A shooter reaches any enemy in range, even one that stands behind the
+   * front line of the other army. */
+  const archer = unitByType(api, TEAM_BLUE, "archer");
+  const shielded = unitByType(api, TEAM_RED, "archer");
+  const redFoot = unitByType(api, TEAM_RED, "footman");
+
+  shielded.col = archer.col + 2;
+  shielded.row = archer.row;
+  redFoot.col = shielded.col - 1;
+  redFoot.row = shielded.row;
+  assert(api.isShielded(shielded, TEAM_RED, TEAM_BLUE), "the foot soldier covers the archer behind it");
+  assert(api.canAttack(archer, shielded), "a bow reaches a target that is covered by the front line");
+
+  /* A blade cannot reach through that same cover. */
+  const footman = unitByType(api, TEAM_BLUE, "footman");
+  footman.col = shielded.col - 2;
+  footman.row = shielded.row;
+  assert(!api.canAttack(footman, shielded), "a blade cannot cut through a living shield");
+
+  /* With the cover gone, the same blade reaches the target. */
+  redFoot.alive = false;
+  redFoot.defeated = true;
+  assert(!api.isShielded(shielded, TEAM_RED, TEAM_BLUE), "the cover is gone with the foot soldier");
+  assert(api.canAttack(footman, shielded), "a blade reaches the rank behind once the front is broken");
+
+  /* A blade never strikes backwards. */
+  const rear = unitByType(api, TEAM_RED, "footman");
+  rear.col = footman.col - 1;
+  rear.row = footman.row;
+  assert(!api.canAttack(footman, rear), "a blade never strikes backwards");
 }
 
 /* 9. INVALID TARGET REJECTION */
@@ -352,7 +399,8 @@ section("12. One attack per unit per phase");
 {
   const { api } = startedGame();
   const attacker = unitByType(api, TEAM_BLUE, "footman");
-  const target = redUnits(api)[0];
+  /* A foot soldier of the front rank, with nothing standing in front of it. */
+  const target = redUnits(api).find(u => u.type === "footman");
   attacker.col = target.col - 1;
   attacker.row = target.row;
 
@@ -489,8 +537,8 @@ section("19. Victory and defeat");
 
 {
   const { api } = startedGame();
-  assert(blueUnits(api).length === 9, "blue starts with 11 living");
-  assert(redUnits(api).length === 9, "red starts with 11 living");
+  assert(blueUnits(api).length === 7, "blue starts with 7 living");
+  assert(redUnits(api).length === 7, "red starts with 7 living");
 
   for (const u of redUnits(api)) { u.alive = false; u.defeated = true; }
   assert(api.checkBattleEnd() === true, "red has no living units -> victory condition met");
@@ -528,9 +576,9 @@ section("21. Clean rematch");
   api.checkBattleEnd();
   api.resetBattle();
 
-  assert(api.getUnits().size === 18, "rematch rebuilds exactly 18 units");
-  assert(blueUnits(api).length === 9, "rematch restores 9 units per side");
-  assert(redUnits(api).length === 9, "rematch restores 9 units per side");
+  assert(api.getUnits().size === 14, "rematch rebuilds exactly 14 units");
+  assert(blueUnits(api).length === 7, "rematch restores 7 units per side");
+  assert(redUnits(api).length === 7, "rematch restores 7 units per side");
   assert(blueUnits(api).every(u => u.hp === u.maxHp), "rematch restores full blue health");
   assert(redUnits(api).every(u => u.hp === u.maxHp), "rematch restores full red health");
   assert(api.getUnits().values().every(u => !u.hasMoved && !u.hasAttacked), "rematch clears action flags");
@@ -577,8 +625,21 @@ section("23. Damage formula");
   const redChampion = unitByType(api, TEAM_RED, "champion");
 
   const expected = champion.atk - Math.floor(footman.def / 2);
-  footman.col = champion.col + 1;
-  footman.row = champion.row;
+  /* Put the target on open ground in front of the champion, so the numbers
+   * show the plain formula without a cover bonus. */
+  let open = null;
+  for (let dc = 1; dc <= 2 && !open; dc++) {
+    for (let dr = -2; dr <= 2 && !open; dr++) {
+      const col = champion.col + dc;
+      const row = champion.row + dr;
+      if (row < 0 || row >= api.GRID_ROWS) continue;
+      if (api.getTerrainDefBonus({ col, row }) === 0) open = { col, row };
+    }
+  }
+  assert(!!open, "found open ground in front of the champion");
+  footman.col = open.col;
+  footman.row = open.row;
+  assert(api.getStrikeKind(champion, champion, footman) === "melee", "the champion fights with its own weapon up close");
   assert(api.calculateDamage(champion, footman) === expected,
     `champion(${champion.atk}) vs footman(def${footman.def}) = ${expected}`);
   const expected2 = archer.atk - Math.floor(redChampion.def / 2);
@@ -864,15 +925,45 @@ section("31.1. The champion profits from high ground when it shoots");
   const champion = unitByType(api, TEAM_BLUE, "champion");
   const target = unitByType(api, TEAM_RED, "footman");
 
-  /* Put the champion on high ground and the target two cells away on the
-   * same row, so the shot is a bow shot. */
-  champion.col = 4; champion.row = 0;
-  target.col = 6; target.row = 0;
+  /* The bow reaches three cells. Closer than that the champion swings its
+   * own weapon, so the shot has to be made from exactly three cells. The
+   * search looks for a high cell and a plain cell that both stand three
+   * cells from the same target, so the ground is the only difference. */
+  let pair = null;
+  for (let row = 0; row < api.GRID_ROWS && !pair; row++) {
+    for (let col = 0; col < api.GRID_COLS && !pair; col++) {
+      if (api.getTerrainAt(col, row).aim <= 0) continue;
+      for (let tcol = 0; tcol < api.GRID_COLS && !pair; tcol++) {
+        for (let trow = 0; trow < api.GRID_ROWS && !pair; trow++) {
+          if (api.fieldDistance({ col, row }, { col: tcol, row: trow }) !== 3) continue;
+          for (let fcol = 0; fcol < api.GRID_COLS && !pair; fcol++) {
+            for (let frow = 0; frow < api.GRID_ROWS && !pair; frow++) {
+              if (api.fieldDistance({ col: fcol, row: frow }, { col: tcol, row: trow }) !== 3) continue;
+              if (api.getTerrainAt(fcol, frow).aim > 0) continue;
+              pair = {
+                high: { col, row },
+                flat: { col: fcol, row: frow },
+                target: { col: tcol, row: trow }
+              };
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  assert(!!pair, "found a high cell and a plain cell at the same distance from a target");
 
+  target.col = pair.target.col;
+  target.row = pair.target.row;
+  champion.col = pair.high.col;
+  champion.row = pair.high.row;
   const raised = api.calculateDamage(champion, target);
-  champion.col = 3; champion.row = 0;
+  champion.col = pair.flat.col;
+  champion.row = pair.flat.row;
   const flat = api.calculateDamage(champion, target);
 
+  assert(api.getStrikeKind(champion, champion, target) === "ranged", "the blow at three cells is a bow shot");
   assert(raised === flat + 1, `the arrow gains the high ground bonus (${flat} -> ${raised})`);
 }
 
@@ -1095,7 +1186,9 @@ section("39. Experience awards");
   api.applyDamage(victim.id, 9999);
   assert(api.getProgression().xp > before, "defeating a unit awards experience");
 
-  const expected = api.XP_REWARDS[victim.type];
+  /* A banner carrier is worth its own value plus the champion's bonus. */
+  const expected = api.XP_REWARDS[victim.type] +
+    (victim.type === "champion" ? api.XP_CHAMPION_BONUS : 0);
   assert(api.getProgression().xp === before + expected,
     `the award matches the unit's value (${expected})`);
 }
@@ -1217,7 +1310,7 @@ section("45. Resetting progression");
   assert(p.xp === 0, "the reset clears the experience");
   assert(p.abilityPoints === 1, "the reset restores the starting ability points");
   assert(p.unlocked.length === 1 && p.unlocked[0] === "rally", "the reset restores the starting abilities");
-  assert(api.getUnits().size === 18, "resetting progression does not disturb the battlefield");
+  assert(api.getUnits().size === 14, "resetting progression does not disturb the battlefield");
 }
 
 /* 46. ABILITY FRAMEWORK */
@@ -1450,7 +1543,7 @@ section("53. Integration — battle flow and rewards");
   doc.getElementById("start-button").dispatch("click");
   assert(api.getProgression().xp === xpAfterWin, "a rematch does not pay the victory bonus again");
   assert(api.getProgression().wins === 1, "the rematch does not count as a second win");
-  assert(api.getUnits().size === 18, "the rematch rebuilds both armies");
+  assert(api.getUnits().size === 14, "the rematch rebuilds both armies");
   assert(api.getState().battleActive === true, "the rematch starts a fresh battle");
 }
 
@@ -1918,8 +2011,8 @@ section("69. The enemy turns around when it walks past");
    * never ends. */
   const red = unitByType(api, TEAM_RED, "footman");
   const blue = unitByType(api, TEAM_BLUE, "footman");
-  red.col = 8; red.row = 0;
-  blue.col = 6; blue.row = 0;
+  red.col = 6; red.row = 0;
+  blue.col = 4; blue.row = 0;
 
   const action = api.chooseEnemyAction(red);
   const cells = api.getLegalActions(red).filter(a => a.kind === "move").map(a => a.cell);

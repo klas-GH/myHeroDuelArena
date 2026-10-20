@@ -1,4 +1,4 @@
-/* RENDER VERIFICATION — myHeroDuelArena v1.6.0
+/* RENDER VERIFICATION — myHeroDuelArena v1.7.0
  * Run: node verify_render.js
  *
  * Drives the real page in headless Edge via the DevTools protocol and checks
@@ -282,6 +282,22 @@ async function main() {
 
     console.log("\n1. Rendering — silhouettes resolve to real SVG geometry");
 
+    /* The troops walk onto the field when the page opens. A measurement
+     * taken in the middle of that entrance catches a troop that is still
+     * gliding in, so the checks wait for the army to take its place. */
+    const settled = await cdp.evaluate(`(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      for (let i = 0; i < 60; i++) {
+        const walking = [...document.querySelectorAll('.unit')].some(u =>
+          u.getAnimations().some(a => a.animationName === 'arrive' && a.playState === 'running'));
+        if (!walking) return { ok: true, waited: i * 100 };
+        await wait(100);
+      }
+      return { ok: false, waited: 6000 };
+    })()`);
+
+    assert(settled.ok === true, `the army finished taking its place on the field (${settled.waited}ms)`);
+
     const glyph = await cdp.evaluate(`(() => {
       const sil = document.querySelector('.unit-silhouette');
       if (!sil) return { error: 'no silhouette' };
@@ -310,30 +326,65 @@ async function main() {
     assert(glyph.wrapperWidth > 0 && glyph.wrapperHeight > 0, `<svg> wrapper renders with non-zero size (${glyph.wrapperWidth}x${glyph.wrapperHeight})`);
     assert(glyph.wrapperWidth >= glyph.silWidth * 0.9, "<svg> wrapper fills the silhouette box");
 
-    console.log("\n2. Rendering — every unit sprite is visible and sized");
+    console.log("\n2. Rendering — the troop artwork is in the DOM and sized");
 
-    const spriteStats = await cdp.evaluate(`(() => {
+    const artStats = await cdp.evaluate(`(() => {
       const units = [...document.querySelectorAll('.unit')];
-      const out = { total: units.length, visible: 0, zero: 0, min: Infinity, max: 0 };
+      const out = {
+        total: units.length,
+        loaded: 0,
+        sized: 0,
+        wrongSrc: [],
+        noFallback: 0,
+        min: Infinity,
+        championArt: 0,
+        otherArt: Infinity,
+        types: []
+      };
       for (const u of units) {
-        const use = u.querySelector('use');
-        if (!use) { out.zero++; continue; }
-        const svg = u.querySelector('.unit-glyph');
-        const r = svg ? svg.getBoundingClientRect() : { width: 0, height: 0 };
+        const type = u.classList[1];
+        const team = u.classList[2];
+        const img = u.querySelector('img.unit-image');
+        const art = u.querySelector('.unit-art');
+        const glyph = u.querySelector('.unit-glyph');
+
+        out.types.push(type + '-' + team);
+        if (!img || !art) {
+          out.wrongSrc.push(u.dataset.id + ':no-art');
+          continue;
+        }
+        const want = 'assets/troops/' + type + '-' + team + '.png';
+        if (img.getAttribute('src') !== want) {
+          out.wrongSrc.push(u.dataset.id + ':' + img.getAttribute('src'));
+        }
+        if (!glyph) out.noFallback++;
+        if (img.complete && img.naturalWidth > 0) out.loaded++;
+
+        const r = art.getBoundingClientRect();
         if (r.width > 0 && r.height > 0) {
-          out.visible++;
-          out.min = Math.min(out.min, r.width);
-          out.max = Math.max(out.max, r.width);
-        } else {
-          out.zero++;
+          out.sized++;
+          out.min = Math.min(out.min, Math.min(r.width, r.height));
+          if (u.classList.contains('champion')) {
+            out.championArt = Math.max(out.championArt, r.height);
+          } else {
+            out.otherArt = Math.min(out.otherArt, r.height);
+          }
         }
       }
       return out;
     })()`);
 
-    assert(spriteStats.total === 18, `all 18 unit sprites are in the DOM (got ${spriteStats.total})`);
-    assert(spriteStats.visible === 18, `all 18 unit sprites render with non-zero size (got ${spriteStats.visible})`);
-    assert(spriteStats.zero === 0, `no unit sprite collapsed to zero size (got ${spriteStats.zero})`);
+    assert(artStats.total === 14, `all 14 troops are in the DOM (got ${artStats.total})`);
+    assert(artStats.wrongSrc.length === 0,
+      `every troop points at its own picture (${JSON.stringify(artStats.wrongSrc)})`);
+    assert(artStats.loaded === 14, `all 14 troop pictures loaded (got ${artStats.loaded})`);
+    assert(artStats.sized === 14, `all 14 troop pictures render with non-zero size (got ${artStats.sized})`);
+    assert(artStats.noFallback === 0, `every troop keeps its inline fallback glyph (${artStats.noFallback} missing)`);
+    assert(artStats.min >= 20, `the troop pictures stay legible (smallest ${artStats.min.toFixed(1)}px)`);
+    assert(artStats.championArt > artStats.otherArt * 1.05,
+      `the champion is drawn larger than the rank (${artStats.championArt.toFixed(1)}px vs ${artStats.otherArt.toFixed(1)}px)`);
+    assert(new Set(artStats.types).size === 10,
+      `the army uses ten different pictures (${new Set(artStats.types).size})`);
 
     console.log("\n3. Layout — units sit inside the battlefield");
 
@@ -341,15 +392,37 @@ async function main() {
       const field = document.getElementById('battlefield');
       const fr = field.getBoundingClientRect();
       const units = [...document.querySelectorAll('.unit')];
+      const labels = [...document.querySelectorAll('.army')].map(a => a.getBoundingClientRect());
       const rows = new Map();
       let outside = 0;
       let overflowTop = 0;
       let overflowBottom = 0;
+      let artOutside = 0;
+      let labelClash = 0;
+      let overlaysOutside = 0;
 
       for (const u of units) {
         const r = u.getBoundingClientRect();
         if (r.top < fr.top - 1) overflowTop++;
         if (r.bottom > fr.bottom + 1) overflowBottom++;
+
+        /* The picture may not leave the field, and it may not cover the
+         * army names that stand above the ground. */
+        const art = u.querySelector('.unit-art').getBoundingClientRect();
+        if (art.top < fr.top - 1 || art.bottom > fr.bottom + 1) artOutside++;
+        for (const l of labels) {
+          const overlaps = art.right > l.left && art.left < l.right &&
+            art.bottom > l.top && art.top < l.bottom;
+          if (overlaps) labelClash++;
+        }
+
+        /* The name and the health bar are drawn over the troop, so they
+         * have to stay on the field as well. */
+        for (const part of [u.querySelector('.unit-label'), u.querySelector('.unit-health')]) {
+          if (!part) { overlaysOutside++; continue; }
+          const p = part.getBoundingClientRect();
+          if (p.top < fr.top - 1 || p.bottom > fr.bottom + 1) overlaysOutside++;
+        }
 
         const layer = u.closest('.units-layer');
         const lr = layer.getBoundingClientRect();
@@ -357,45 +430,67 @@ async function main() {
         const key = Math.round(((centre - lr.top) / lr.height) * 4);
         rows.set(key, (rows.get(key) || 0) + 1);
       }
-      return { rowKeys: [...rows.keys()].sort((a,b)=>a-b), counts: [...rows.values()], overflowTop, overflowBottom };
+      return {
+        rowKeys: [...rows.keys()].sort((a,b)=>a-b),
+        counts: [...rows.values()],
+        overflowTop,
+        overflowBottom,
+        artOutside,
+        labelClash,
+        overlaysOutside
+      };
     })()`);
 
     assert(layout.rowKeys.length === 4, `units occupy exactly four distinct rows (got ${layout.rowKeys.length}: ${layout.rowKeys})`);
     assert(layout.overflowTop === 0, `no unit overflows the top of the battlefield (got ${layout.overflowTop})`);
     assert(layout.overflowBottom === 0, `no unit overflows the bottom of the battlefield (got ${layout.overflowBottom})`);
+    assert(layout.artOutside === 0, `every troop picture stays inside the battlefield (got ${layout.artOutside} outside)`);
+    assert(layout.labelClash === 0, `no troop picture covers the army names (got ${layout.labelClash} clashes)`);
+    assert(layout.overlaysOutside === 0, `every name and health bar stays on the field (got ${layout.overlaysOutside} outside)`);
 
     console.log("\n4. Layout — unit and marker cells agree");
 
     /* Units are anchored with translate(-50%, -50%) so that the box centre
      * lands on the cell centre. Any animation that replaces `transform`
-     * silently breaks that anchor, so the check runs with animations live. */
+     * silently breaks that anchor, so the check runs with animations live.
+     *
+     * A troop that stands on one column is centred on its cell. The champion
+     * is drawn across two columns, so it stands on the border between them
+     * and still keeps the cell it occupies as its anchor. */
     const centred = await cdp.evaluate(`(() => {
-      const layer = document.getElementById('blue-units');
-      const lr = layer.getBoundingClientRect();
-      let worst = 0;
-      let worstCls = null;
-      let checked = 0;
-
+      const out = { checked: 0, worst: 0, worstCls: null, champions: 0, spans: new Set() };
       for (const u of document.querySelectorAll('.unit')) {
+        const layer = u.closest('.units-layer');
+        const lr = layer.getBoundingClientRect();
         const r = u.getBoundingClientRect();
         const cx = r.left + r.width / 2;
         const cy = r.top + r.height / 2;
 
-        let best = Infinity;
-        for (let c = 0; c < 10; c++) {
-          for (let rw = 0; rw < 4; rw++) {
-            const gx = lr.left + ((c + 0.5) / 10) * lr.width;
-            const gy = lr.top + ((rw + 0.5) / 4) * lr.height;
-            best = Math.min(best, Math.hypot(cx - gx, cy - gy));
-          }
-        }
-        checked++;
-        if (best > worst) { worst = best; worstCls = u.className; }
+        const col = Number(u.dataset.col);
+        const row = Number(u.dataset.row);
+        const span = Number(u.dataset.span) || 1;
+        out.spans.add(span);
+        if (span > 1) out.champions++;
+
+        /* The picture leans towards the enemy, so the blue champion sits on
+         * the right border of its column and the red one on the left. */
+        const dir = u.classList.contains('red') ? -1 : 1;
+        const colPct = ((col + 0.5) / 10) * 100 + (span - 1) * 0.5 * 10 * dir;
+        const rowPct = 100 - ((row + 0.5) / 4) * 100;
+
+        const gx = lr.left + (colPct / 100) * lr.width;
+        const gy = lr.top + (rowPct / 100) * lr.height;
+        const d = Math.hypot(cx - gx, cy - gy);
+        out.checked++;
+        if (d > out.worst) { out.worst = d; out.worstCls = u.className; }
       }
-      return { checked, worst, worstCls };
+      return { checked: out.checked, worst: out.worst, worstCls: out.worstCls, champions: out.champions, spans: [...out.spans] };
     })()`);
 
-    assert(centred.checked === 18, `all units were measured (${centred.checked})`);
+    assert(centred.checked === 14, `all units were measured (${centred.checked})`);
+    assert(centred.champions === 2, `both armies field one champion (${centred.champions})`);
+    assert(centred.spans.length === 2 && centred.spans.includes(1) && centred.spans.includes(2),
+      `only the champion is drawn across two columns (${centred.spans})`);
     assert(centred.worst < 3, `every unit is centred on its grid cell (worst offset ${centred.worst.toFixed(2)}px${centred.worstCls ? " on " + centred.worstCls : ""})`);
 
     const motion = await cdp.evaluate(`(() => ({
@@ -458,13 +553,15 @@ async function main() {
     const styling = await cdp.evaluate(`(() => {
       const blue = document.querySelector('.unit.blue .unit-silhouette');
       const red  = document.querySelector('.unit.red .unit-silhouette');
+      const blueArt = document.querySelector('.unit.blue .unit-art');
+      const redArt  = document.querySelector('.unit.red .unit-art');
       const mBlue = getComputedStyle(blue);
       const mRed  = getComputedStyle(red);
       return {
         blueColor: mBlue.color,
         redColor: mRed.color,
-        blueTransform: mBlue.transform,
-        redTransform: mRed.transform
+        blueTransform: getComputedStyle(blueArt).transform,
+        redTransform: getComputedStyle(redArt).transform
       };
     })()`);
 
@@ -476,8 +573,8 @@ async function main() {
      * independent translate/scale properties instead of `transform`. */
     const facing = await cdp.evaluate(`(() => {
       const redUnit = document.querySelector('.unit.red');
-      const sil = redUnit.querySelector('.unit-silhouette');
-      const read = () => getComputedStyle(sil).transform;
+      const art = redUnit.querySelector('.unit-art');
+      const read = () => getComputedStyle(art).transform;
 
       const idle = read();
       redUnit.classList.add('attacking');
@@ -688,6 +785,19 @@ async function main() {
       });
       await new Promise(r => setTimeout(r, 400));
 
+      /* A troop that is still walking to its cell is measured on the way,
+       * so the layout is only read once the field has come to rest. */
+      await cdp.evaluate(`(async () => {
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+        for (let i = 0; i < 30; i++) {
+          const moving = [...document.querySelectorAll('.unit')].some(u =>
+            u.getAnimations().some(a => a.playState === 'running' && a.transitionProperty));
+          if (!moving) return true;
+          await wait(100);
+        }
+        return false;
+      })()`);
+
       const layout = await cdp.evaluate(`(() => {
         const field = document.getElementById('battlefield');
         const fr = field.getBoundingClientRect();
@@ -716,28 +826,68 @@ async function main() {
           docClientWidth: document.documentElement.clientWidth,
           controls,
           unitCount: units.length,
+          /* The anchor of a troop has to stay on the field. */
           unitsInsideField: units.every(u => {
             const r = u.getBoundingClientRect();
-            return r.left >= fr.left - 1 && r.right <= fr.right + 1;
+            const cx = r.left + r.width / 2;
+            const cy = r.top + r.height / 2;
+            return cx >= fr.left && cx <= fr.right && cy >= fr.top && cy <= fr.bottom;
           }),
+          /* The picture itself is centred in its box, so the painted pixels
+           * are what has to stay on the field. */
+          picturesInsideField: units.every(u => {
+            const img = u.querySelector('.unit-image');
+            const r = img.getBoundingClientRect();
+            const scale = Math.min(r.width / (img.naturalWidth || 1), r.height / (img.naturalHeight || 1));
+            const w = (img.naturalWidth || 1) * scale;
+            const h = (img.naturalHeight || 1) * scale;
+            const left = r.left + (r.width - w) / 2;
+            const right = left + w;
+            const bottom = r.bottom;
+            const top = bottom - h;
+            return left >= fr.left - 1 && right <= fr.right + 1 && top >= fr.top - 1 && bottom <= fr.bottom + 1;
+          }),
+          field: { left: fr.left, right: fr.right, top: fr.top, bottom: fr.bottom, width: fr.width, height: fr.height },
           smallestUnit: Math.min(...units.map(u => {
-            const s = u.querySelector('.unit-silhouette').getBoundingClientRect();
+            const s = u.querySelector('.unit-art').getBoundingClientRect();
             return Math.min(s.width, s.height);
           })),
+          championWidth: (() => {
+            const c = document.querySelector('.unit.blue.champion');
+            const layer = document.getElementById('blue-units');
+            if (!c || !layer) return 0;
+            /* The champion is drawn across two of the ten columns of the
+             * field. Its idle breath may stretch it a little, so the
+             * measurement is read against the field itself. */
+            return c.getBoundingClientRect().width / layer.getBoundingClientRect().width;
+          })(),
+          overlaysInsideField: units.every(u => {
+            for (const part of [u.querySelector('.unit-label'), u.querySelector('.unit-health')]) {
+              if (!part) continue;
+              const p = part.getBoundingClientRect();
+              if (p.top < fr.top - 1 || p.bottom > fr.bottom + 1) return false;
+            }
+            return true;
+          }),
           panelHeight: pr.height,
           panelRight: pr.right,
           cards
         };
       })()`);
 
-      assert(layout.unitCount === 18, `[${vp.name}] all units are rendered (${layout.unitCount})`);
-      assert(layout.unitsInsideField === true, `[${vp.name}] every unit stays inside the battlefield`);
+      assert(layout.unitCount === 14, `[${vp.name}] all units are rendered (${layout.unitCount})`);
+      assert(layout.unitsInsideField === true, `[${vp.name}] every unit keeps its anchor on the battlefield`);
+      assert(layout.picturesInsideField === true, `[${vp.name}] every troop picture stays inside the battlefield`);
       assert(layout.docScrollWidth <= layout.docClientWidth + 1,
         `[${vp.name}] the page does not scroll sideways (${layout.docScrollWidth} > ${layout.docClientWidth})`);
       assert(layout.controls.filter(c => c.visible).every(c => c.right <= layout.docClientWidth + 1),
         `[${vp.name}] the visible controls fit the viewport (${JSON.stringify(layout.controls)})`);
       assert(layout.smallestUnit >= 20,
         `[${vp.name}] unit sprites stay legible (smallest ${layout.smallestUnit.toFixed(1)}px)`);
+      assert(Math.abs(layout.championWidth - 0.2) < 0.02,
+        `[${vp.name}] the champion is drawn across two columns (${(layout.championWidth * 10).toFixed(2)} columns)`);
+      assert(layout.overlaysInsideField === true,
+        `[${vp.name}] every name and health bar stays on the field`);
 
       /* The selector has to stay out of the way: it must not eat the screen
        * and it must not push the battlefield off the page sideways. */
@@ -779,36 +929,59 @@ async function main() {
 
     assert(ready.ok === true, "the field is back under player control");
 
-    const target = await cdp.evaluate(`(() => {
-      const u = [...document.querySelectorAll('.unit.blue')].find(el => {
-        const s = el.getBoundingClientRect();
-        return s.width > 0;
-      });
+    /* A troop that has just moved is still gliding to its new cell, and a
+     * click would then land on the cell it used to stand on. The field is
+     * given time to settle before anything is measured. */
+    await new Promise(r => setTimeout(r, 800));
+
+    const candidates = await cdp.evaluate(`(() => [...document.querySelectorAll('.unit.blue')].map(u => {
       const r = u.getBoundingClientRect();
-      const x = r.left + r.width / 2;
-      const y = r.top + r.height / 2;
-      const hit = document.elementFromPoint(x, y);
-      return {
-        x, y,
-        id: u.dataset.id,
-        hitIsUnit: hit === u || !!(hit && hit.closest && hit.closest('.unit')),
-        hitTag: hit ? (hit.className.baseVal !== undefined ? hit.className.baseVal : hit.className) : null
-      };
-    })()`);
+      return { id: u.dataset.id, w: r.width };
+    }).filter(c => c.w > 0))()`);
 
-    assert(target.hitIsUnit === true,
-      `the hit test reaches the unit itself (got ${target.hitTag})`);
+    assert(candidates.length === 7, `the blue army offers seven troops to click (${candidates.length})`);
 
-    await cdp.mouseClick(target.x, target.y);
-    await new Promise(r => setTimeout(r, 400));
+    let target = null;
+    let picked = null;
 
-    const picked = await cdp.evaluate(`(() => ({
-      selected: document.querySelectorAll('.unit.selected').length,
-      selectedId: window.MyHeroDuelArena.getState().selectedUnitId,
-      panelVisible: !document.getElementById('selection-info').classList.contains('hidden'),
-      moveMarkers: document.querySelectorAll('.move-indicator').length
-    }))()`);
+    for (const candidate of candidates) {
+      /* The spot is measured and clicked back to back, so the troop cannot
+       * have walked away in between. */
+      const spot = await cdp.evaluate(`(() => {
+        const u = document.querySelector('.unit[data-id="${candidate.id}"]');
+        const r = u.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const hit = document.elementFromPoint(x, y);
+        return {
+          x, y,
+          hitIsUnit: hit === u || !!(hit && hit.closest && hit.closest('.unit')),
+          hitTag: hit ? (hit.className.baseVal !== undefined ? hit.className.baseVal : hit.className) : null
+        };
+      })()`);
 
+      assert(spot.hitIsUnit === true, `the hit test reaches the unit itself (got ${spot.hitTag})`);
+
+      await cdp.mouseClick(spot.x, spot.y);
+      await new Promise(r => setTimeout(r, 350));
+
+      const state = await cdp.evaluate(`(() => ({
+        selected: document.querySelectorAll('.unit.selected').length,
+        selectedId: window.MyHeroDuelArena.getState().selectedUnitId,
+        panelVisible: !document.getElementById('selection-info').classList.contains('hidden'),
+        moveMarkers: document.querySelectorAll('.move-indicator').length
+      }))()`);
+
+      if (state.selectedId === candidate.id) {
+        target = candidate;
+        picked = state;
+        /* A troop that is walled in has no cell to mark; the next one is
+         * tried until a troop with a way forward is found. */
+        if (state.moveMarkers > 0) break;
+      }
+    }
+
+    assert(picked !== null, "a real click selects the troop it was aimed at");
     assert(picked.selected === 1, `a real click selects the unit (${picked.selected} selected)`);
     assert(picked.selectedId === target.id, `the clicked unit is the selected one (${picked.selectedId})`);
     assert(picked.panelVisible === true, "the selection panel opens");

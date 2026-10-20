@@ -333,7 +333,7 @@ body {
  */
 .army {
   position: absolute;
-  top: 44%;
+  top: 40%;
   width: 50%;
   height: 16px;
   display: flex;
@@ -384,6 +384,11 @@ body {
   width: 100%;
   pointer-events: none;
   z-index: 3;
+  /* The layer is the measuring box for the troop artwork: the pictures are
+   * sized against the field itself, so they grow with the battlefield and
+   * shrink gracefully on a small screen. */
+  container-type: size;
+  container-name: field;
 }
 
 .units-layer > .unit {
@@ -529,29 +534,60 @@ body {
   clip-path: polygon(20% 100%, 0 20%, 60% 0, 100% 70%);
 }
 /* 4.1 BLUE UNITS (LEFT) — faces right */
-.unit.blue .unit-silhouette {
+.unit.blue .unit-art {
   transform: scaleX(1);
 }
 
 /* 4.2 RED UNITS (RIGHT) — faces left */
-.unit.red .unit-silhouette {
+.unit.red .unit-art {
   transform: scaleX(-1);
 }
 
-/* 5. UNIT SILHOUETTES */
+/* 5. UNIT ARTWORK
+ *
+ * Every troop is a large illustration that stands on the ground line of its
+ * own row. The picture is sized against the battlefield, not against the
+ * screen, so the whole army keeps its proportions on a phone as well as on
+ * a desktop.
+ *
+ * The art box is the bottom of the row: the troops stand on the bottom edge
+ * of their cell and lean forward into it. The champion is the exception —
+ * its picture is taller and fills its cell from the ground line to the top
+ * of it, which is what makes it the centrepiece of the army.
+ */
 .unit {
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   width: 10%;
+  height: 25cqh;
   text-align: center;
   text-shadow: 0 2px 3px #17251c;
   cursor: pointer;
   z-index: 3;
   transform: translate(-50%, -50%);
   transition: left 0.35s ease, top 0.35s ease, opacity 0.3s ease;
+}
+
+/* The art box carries the picture and everything that moves with it. */
+.unit-art {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 21cqh;
+  pointer-events: none;
+}
+
+.unit.champion {
+  width: 20%;
+}
+
+/* The champion's picture fills its own cell: it is taller than the other
+ * troops and it stands between two columns, but it never reaches into the
+ * lane behind it. A picture that grew past its cell would be hidden by the
+ * troop standing behind, and it would be cut off by the edge of the field
+ * when the champion stood in the front lane. */
+.unit.champion .unit-art {
+  height: 25cqh;
 }
 
 /* 5.0 DAMAGE NUMBERS — the number of a blow, shown on the field
@@ -598,11 +634,33 @@ body {
   }
 }
 
+/* The inline SVG is the fallback: it is only seen when a picture cannot be
+ * loaded. It fills the art box, so the troop keeps its place on the field. */
 .unit-silhouette {
-  width: 30px;
-  height: 30px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: visible;
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+}
+
+/* The troop picture itself. It stands on the bottom of the art box, so the
+ * feet of the figure never float above the ground. */
+.unit-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.4));
+  pointer-events: none;
+}
+
+/* A picture that failed to load steps aside for the inline silhouette. */
+.unit-image-missing {
+  display: none;
 }
 
 /* The <svg> wrapper must fill the silhouette box for the <use> to scale. */
@@ -619,11 +677,14 @@ body {
 }
 
 .unit-label {
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
   font-family: Arial, sans-serif;
-  font-size: clamp(6px, 1.6vw, 8px);
+  font-size: clamp(7px, 1.8vw, 10px);
   font-weight: bold;
   color: #fff3d4;
-  margin-top: 3px;
   line-height: 1;
   pointer-events: none;
   opacity: 0.92;
@@ -631,16 +692,21 @@ body {
 
 .unit-health {
   position: absolute;
-  top: -8px;
+  top: -2cqh;
   left: 50%;
   transform: translateX(-50%);
-  width: 30px;
-  height: 4px;
+  width: 62%;
+  height: 5px;
   background: rgba(0, 0, 0, 0.5);
   border-radius: 2px;
   overflow: hidden;
-  opacity: 0.65;
+  opacity: 0.75;
   pointer-events: none;
+}
+
+.unit.champion .unit-health {
+  width: 31%;
+  height: 6px;
 }
 
 .health-fill {
@@ -650,19 +716,25 @@ body {
   transition: width 0.25s ease, background-color 0.2s ease;
 }
 
+/* The ring of the selected unit stands on the ground around its feet. */
 .selection-ring {
   position: absolute;
-  top: 50%;
   left: 50%;
-  width: 46px;
-  height: 46px;
+  bottom: 1cqh;
+  width: 12cqw;
+  height: 12cqw;
   border: 2px solid #e9c66c;
   border-radius: 50%;
-  transform: translate(-50%, -50%) scale(0.92);
+  transform: translateX(-50%) scale(0.92);
   opacity: 0;
   pointer-events: none;
   box-shadow: 0 0 8px rgba(233, 198, 108, 0.55);
   z-index: 2;
+}
+
+.unit.champion .selection-ring {
+  width: 16cqw;
+  height: 16cqw;
 }
 
 /* 6. TEAM IDENTITY & COLORS */
@@ -682,18 +754,13 @@ body {
   background: #f87171;
 }
 
-.unit.champion .unit-silhouette {
-  width: 42px;
-  height: 42px;
-}
-
 .unit.champion .unit-label {
-  font-size: clamp(7px, 2vw, 9px);
+  font-size: clamp(8px, 2vw, 11px);
   color: #e9c66c;
 }
 
 .unit.champion .health-fill {
-  height: 5px;
+  height: 6px;
 }
 
 /* 7. TACTICAL INDICATORS */
@@ -1308,11 +1375,11 @@ body {
 @keyframes select-pulse {
   0%, 100% {
     opacity: 0.6;
-    transform: translate(-50%, -50%) scale(0.92);
+    transform: translateX(-50%) scale(0.92);
   }
   50% {
     opacity: 0.95;
-    transform: translate(-50%, -50%) scale(1.06);
+    transform: translateX(-50%) scale(1.06);
   }
 }
 
@@ -1332,7 +1399,7 @@ body {
   }
 }
 
-.unit.blue.attacking .unit-silhouette {
+.unit.blue.attacking .unit-art {
   animation: attack-lunge 0.5s ease-in-out both;
 }
 
@@ -1345,7 +1412,7 @@ body {
   }
 }
 
-.unit.red.attacking .unit-silhouette {
+.unit.red.attacking .unit-art {
   animation: attack-lunge-red 0.5s ease-in-out both;
 }
 
@@ -1360,7 +1427,7 @@ body {
   }
 }
 
-.unit.damaged .unit-silhouette {
+.unit.damaged .unit-art {
   animation: damage-flash 0.5s ease-in-out both;
 }
 
@@ -1377,7 +1444,7 @@ body {
   opacity: 0.35;
 }
 
-.unit.defeated .unit-silhouette {
+.unit.defeated .unit-art {
   animation: defeat-fade 0.55s ease-in both forwards;
 }
 
@@ -1391,7 +1458,7 @@ body {
   }
 }
 
-.unit.moving .unit-silhouette {
+.unit.moving .unit-art {
   animation: move-hop 0.4s ease-out both;
 }
 
@@ -1404,7 +1471,7 @@ body {
   }
 }
 
-.unit.rallied .unit-silhouette {
+.unit.rallied .unit-art {
   animation: rally-glow 1.5s ease-in-out infinite;
 }
 
@@ -1417,7 +1484,7 @@ body {
   }
 }
 
-.unit.guarded .unit-silhouette {
+.unit.guarded .unit-art {
   animation: guard-glow 1.6s ease-in-out infinite;
 }
 
@@ -1430,13 +1497,13 @@ body {
   }
 }
 
-.ai-turn-active .unit.red .unit-silhouette {
+.ai-turn-active .unit.red .unit-art {
   animation: ai-thinking 1.5s ease-in-out infinite;
 }
 
 /* In a spectator battle the azure legion holds the field while it thinks,
  * so the pulse has to follow the team that is actually acting. */
-.ai-turn-blue-active .unit.blue .unit-silhouette {
+.ai-turn-blue-active .unit.blue .unit-art {
   animation: ai-thinking 1.5s ease-in-out infinite;
 }
 
@@ -1445,14 +1512,14 @@ body {
   .unit,
   .unit.selected .selection-ring,
   .unit.champion,
-  .unit.attacking .unit-silhouette,
-  .unit.damaged .unit-silhouette,
-  .unit.defeated .unit-silhouette,
-  .unit.moving .unit-silhouette,
-  .unit.rallied .unit-silhouette,
-  .unit.guarded .unit-silhouette,
-  .ai-turn-active .unit.red .unit-silhouette,
-  .ai-turn-blue-active .unit.blue .unit-silhouette {
+  .unit.attacking .unit-art,
+  .unit.damaged .unit-art,
+  .unit.defeated .unit-art,
+  .unit.moving .unit-art,
+  .unit.rallied .unit-art,
+  .unit.guarded .unit-art,
+  .ai-turn-active .unit.red .unit-art,
+  .ai-turn-blue-active .unit.blue .unit-art {
     animation: none !important;
     transition: none !important;
   }
@@ -1508,16 +1575,6 @@ body {
 }
 
 @media (max-width: 420px) {
-  .unit-silhouette {
-    width: 28px;
-    height: 28px;
-  }
-
-  .unit.champion .unit-silhouette {
-    width: 34px;
-    height: 34px;
-  }
-
   .army-name {
     font-size: 8px;
   }
@@ -1568,16 +1625,6 @@ body {
 }
 
 @media (max-width: 340px) {
-  .unit-silhouette {
-    width: 24px;
-    height: 24px;
-  }
-
-  .selection-ring {
-    width: 38px;
-    height: 38px;
-  }
-
   .move-indicator,
   .attack-indicator {
     width: 16px;

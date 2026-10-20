@@ -1,4 +1,4 @@
-/* BALANCE HARNESS — myHeroDuelArena v1.6.0
+/* BALANCE HARNESS — myHeroDuelArena v1.7.0
  * Run: node balance.js [options]
  *
  * Fights battles with the real engine, headless and without a browser, and

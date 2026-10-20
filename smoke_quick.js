@@ -1,4 +1,4 @@
-/* DOM SMOKE TEST — myHeroDuelArena v1.6.0
+/* DOM SMOKE TEST — myHeroDuelArena v1.7.0
  * Run: node smoke_quick.js
  *
  * Verifies the real game.js against a minimal DOM stub: every element id
@@ -101,13 +101,13 @@ if (loaded.error === null) {
   const red = doc.getElementById("red-units");
   const terrain = doc.getElementById("terrain-layer");
 
-  assert(blue.children.length === 9, `9 blue unit elements rendered (got ${blue.children.length})`);
-  assert(red.children.length === 9, `9 red unit elements rendered (got ${red.children.length})`);
+  assert(blue.children.length === 7, `7 blue unit elements rendered (got ${blue.children.length})`);
+  assert(red.children.length === 7, `7 red unit elements rendered (got ${red.children.length})`);
 
   const blueIds = new Set(blue.children.map(c => c.dataset.id));
   const redIds = new Set(red.children.map(c => c.dataset.id));
-  assert(blueIds.size === 9, "blue unit element ids are unique");
-  assert(redIds.size === 9, "red unit element ids are unique");
+  assert(blueIds.size === 7, "blue unit element ids are unique");
+  assert(redIds.size === 7, "red unit element ids are unique");
 
   const overlap = [...blueIds].filter(id => redIds.has(id));
   assert(overlap.length === 0, "no unit element id appears in both armies");
@@ -188,7 +188,7 @@ if (loaded.error === null) {
   assert(moveLayer.children.length > 0, `move destinations are shown (${moveLayer.children.length} cells)`);
 
   const selStats = doc.getElementById("selected-stats");
-  assert(/ATK/.test(selStats.textContent) && /RNG/.test(selStats.textContent), "selected unit stats are displayed");
+  assert(/ATK/.test(selStats.textContent) && /(RNG|MELEE|RANGE)/.test(selStats.textContent), "selected unit stats are displayed");
 
   /* Markers must be clickable and coloured by the team they refer to. */
   const moveMarker = moveLayer.children[0];
@@ -266,10 +266,10 @@ if (loaded.error === null) {
 
   const afterIds = new Set(blue.children.map(c => c.dataset.id));
   assert(afterIds.size === beforeIds.size, "rematch keeps the same unit count (no duplicates)");
-  assert(blue.children.length === 9, "rematch renders exactly 9 blue units again");
+  assert(blue.children.length === 7, "rematch renders exactly 7 blue units again");
   assert(doc.getElementById("terrain-layer").children.length === 40, "rematch redraws the terrain layer");
   assert(doc.getElementById("combat-log").children.length >= 0, "combat log is reachable after reset");
-  assert(api.getUnits().size === 18, "rematch rebuilds exactly 18 units");
+  assert(api.getUnits().size === 14, "rematch rebuilds exactly 14 units");
 }
 
 /* --- TEST 10: CSS class coverage --- */
@@ -340,8 +340,11 @@ assert(!!unitRule, "the base unit rule is present");
 assert(unitRule && /transition:[^;]*top/.test(unitRule), "unit transition animates `top`");
 assert(!unitRule || !/transition:[^;]*bottom/.test(unitRule), "unit transition no longer animates `bottom`");
 
-/* The unit box must hug its content so the health bar stays on the sprite. */
+/* The unit box is exactly one cell tall now: the artwork is measured
+ * against the battlefield, so the box may not force a height of its own in
+ * percentages of the cell. */
 assert(unitRule && !/height:\s*25%/.test(unitRule), "unit box no longer forces a 25% cell height");
+assert(unitRule && /height:\s*25cqh/.test(unitRule), "unit box is exactly one row tall");
 
 /* The keyframe that animates `transform` replaces the unit's
  * translate(-50%, -50%) centring, which shifts every unit to the top-left
@@ -367,19 +370,19 @@ for (const block of transformKeyframes) {
   const frames = block.match(/\{[^{}]*transform\s*:[^;}]*[;}]/g) || [];
   for (const frame of frames) {
     if (!/transform\s*:/.test(frame)) continue;
-    assert(/translate\(-50%/.test(frame),
+    assert(/translate(X)?\(-50%/.test(frame),
       `keyframe "${name}" keeps the unit centring translate`);
   }
 }
 
-/* Combat animations run on the silhouette, which already carries the red
+/* Combat animations run on the artwork, which already carries the red
  * facing flip. They must use the independent translate/scale properties so
  * the mirror is not replaced. */
-const silhouetteAnimations = css.match(/\.unit\.(?:blue|red)\.attacking \.unit-silhouette\s*\{[^}]*\}/g) || [];
-assert(silhouetteAnimations.length === 2, "attack animations target the unit silhouette");
+const silhouetteAnimations = css.match(/\.unit\.(?:blue|red)\.attacking \.unit-art\s*\{[^}]*\}/g) || [];
+assert(silhouetteAnimations.length === 2, "attack animations target the unit artwork");
 for (const rule of silhouetteAnimations) {
   assert(!/animation:[^;]*\b(move-slide|attack-lunge)\b[^;]*\btransform/.test(rule),
-    "attack animations do not animate `transform` on the silhouette");
+    "attack animations do not animate `transform` on the artwork");
 }
 assert(!/@keyframes\s+move-slide/.test(css), "the dead move-slide keyframe is gone");
 assert(!/var\(--dx/.test(css) && !/var\(--dy/.test(css), "no dead custom-property move offsets remain");
