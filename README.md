@@ -10,7 +10,7 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
-## v1.3.0 — what is in this release
+## v1.4.0 — what is in this release
 
 | Area | Summary |
 | --- | --- |

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.3.0 — CHOOSE THE GROUND, SET THE DIFFICULTY, EARN THE XP
+   myHeroDuelArena v1.4.0 — CHOOSE THE GROUND, SET THE DIFFICULTY, EARN THE XP
    ==========================================================================
 
    SECTION GUIDE
@@ -450,6 +450,10 @@ const XP_VICTORY_BONUS = 50;
  * never rewarded, because the target was already dead before the extra
  * landed. */
 const XP_PER_DAMAGE = 5;
+
+/* Battle resolution */
+const BATTLE_ROUND_LIMIT = 30;
+
 
 /* Progression is stored under a namespaced key. */
 const STORAGE_KEY = "myHeroDuelArena.championProfile.v1";
@@ -3281,3 +3285,7 @@ if (typeof window !== "undefined") {
     runTurnInstantForTeam
   };
 }
+
+/* Battle mode */
+let battleMode = 'player';
+let spectatorActive = false;

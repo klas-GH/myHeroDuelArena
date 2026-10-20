@@ -1,4 +1,4 @@
-/* BALANCE HARNESS — myHeroDuelArena v1.3.0
+/* BALANCE HARNESS — myHeroDuelArena v1.4.0
  * Run: node balance.js [options]
  *
  * Fights battles with the real engine, headless and without a browser, and
@@ -47,7 +47,7 @@ function parseArgs(argv) {
     jitter: 2,
     difficulty: null,
     maps: null,
-    maxRounds: 40,
+    maxRounds: 30,
     timeoutMs: 5000,
     out: null,
     quiet: false,
