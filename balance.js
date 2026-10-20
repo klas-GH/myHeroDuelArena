@@ -1,4 +1,4 @@
-/* BALANCE HARNESS — myHeroDuelArena v1.7.0
+/* BALANCE HARNESS — myHeroDuelArena v1.7.1
  * Run: node balance.js [options]
  *
  * Fights battles with the real engine, headless and without a browser, and
@@ -113,8 +113,11 @@ function playBattle(config) {
     api.runTurnInstantForTeam(TEAM_BLUE);
     if (api.checkBattleEnd()) { ended = true; break; }
 
-    /* The enemy turn is resolved in one step as well. */
-    api.runEnemyTurnInstant();
+    /* The turn is ended the way the player ends it: the answer that
+     * follows and the round that closes with it are resolved in one step.
+     * The lead alternates from round to round, so the crimson legion opens
+     * every other round and this call is what plays that opening. */
+    api.endPlayerTurnInstant();
     if (api.checkBattleEnd()) { ended = true; break; }
 
     rounds++;
@@ -317,7 +320,7 @@ function run(options) {
 function printReport(report) {
   console.log(`\n=== Balance report — ${report.engine} ===`);
   console.log(`seeds ${report.options.seeds} (from ${report.options.seedStart})`
-    + ` · variance ${report.options.variance} · jitter ${report.options.jitter}`);
+    + ` Â· variance ${report.options.variance} Â· jitter ${report.options.jitter}`);
 
   if (report.determinism.reproducibleChecked > 0) {
     console.log(`seed reproducibility: ${report.determinism.reproducibleIdentical}`

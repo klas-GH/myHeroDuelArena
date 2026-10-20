@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.7.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.7.1 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.7.0";
+const APP_VERSION = "v1.7.1";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -78,9 +78,10 @@ const STATE_ENDED = "ended";
  * covers anything from a bow.
  *
  * `range` is the reach of the unit's own weapon: the blade reach of a
- * ground unit, the shot reach of a shooter.
+ * ground unit. A shooter has no blade reach at all, because its bow covers
+ * the whole field.
  *
- * `shot` is a second reach for a unit that carries a bow. The champion
+ * `shot` is the second weapon of a unit that carries a bow. The champion
  * fights with its own weapon at close range and can loose an arrow at a
  * longer distance, but the arrow carries less force than a blow.
  */
@@ -90,7 +91,7 @@ const UNIT_STATS = {
   ballista: { hp: 45, atk: 18, def: 3,  move: 1, range: 4, melee: false, special: null },
   chevalier:{ hp: 55, atk: 16, def: 5,  move: 3, range: 2, melee: true,  special: null },
   champion: { hp: 90, atk: 20, def: 8,  move: 2, range: 2, melee: true,  special: "rally",
-              shot: { atk: 16, range: 3 } }
+              shot: { atk: 16 } }
 };
 
 /* 1.4 CHAMPION ABILITY SET — every champion owns the same three abilities. */
@@ -189,10 +190,10 @@ const MAP_REGISTRY = [
     name: "The Broken Pass",
     tagline: "A fallen wall splits the field. Only the ridges lead through.",
     terrain: [
-      "GGGRGGRGGG",
-      "GGGBBBBGGG",
-      "GGRHHHHRGG",
-      "GGGRGGRGGG"
+      "GFGGBBGGFG",
+      "GGGGBBGGGG",
+      "GGHHHHHHGG",
+      "GFGGRRGGFG"
     ]
   },
   {
@@ -200,10 +201,10 @@ const MAP_REGISTRY = [
     name: "The High Ground",
     tagline: "A raised plateau in the centre. Whoever holds it shoots free.",
     terrain: [
-      "GFFRBBRFFG",
-      "GGHHHHHHGG",
-      "GGHHHHHHGG",
-      "GFFRBBRFFG"
+      "GRFGBBGFRG",
+      "GGGGHHGGGG",
+      "GGGGHHGGGG",
+      "GRFGBBGFRG"
     ]
   }
 ];
@@ -497,7 +498,8 @@ const AI_TUNING = {
   },
   finishBonus: 12,            /* score for hitting an already wounded unit*/
   actNowBonus: 3,             /* small bias for striking without moving  */
-  retaliationWeight: 0.35,    /* penalty for trading blows               */
+  retaliationWeight: 0.12,    /* penalty for trading blows               */
+  retaliationAnswers: 2,      /* how many answers a blow is weighed with  */
   advanceWeight: 4,           /* score per column advanced toward the foe*/
   coverWeight: 3,             /* score per point of terrain cover        */
   elevationWeight: 7,         /* score for a ranged unit on high ground  */
@@ -748,6 +750,7 @@ const $abilityActions = document.getElementById("ability-actions");
 
 const $blueUnits = document.getElementById("blue-units");
 const $redUnits = document.getElementById("red-units");
+const $overlayLayer = document.getElementById("overlay-layer");
 const $moveIndicators = document.getElementById("move-indicators");
 const $attackIndicators = document.getElementById("attack-indicators");
 const $battlefield = document.getElementById("battlefield");
@@ -974,7 +977,7 @@ function createUnit(id, team, type) {
      * two columns but it is still one unit: one health pool, one turn, one
      * selection state and one logical cell. */
     footprint: type === "champion" ? 2 : 1,
-    shot: stats.shot ? { atk: stats.shot.atk, range: stats.shot.range } : null,
+    shot: stats.shot ? { atk: stats.shot.atk } : null,
     special: stats.special,
     abilities: type === "champion" ? CHAMPION_ABILITIES.slice() : [],
     alive: true,
@@ -992,13 +995,15 @@ function createUnit(id, team, type) {
 }
 
 /* 8.1 INITIAL FORMATION
- * Each army occupies TWO columns. Blue holds columns 1-2, red columns 7-8,
- * leaving columns 3-6 as neutral ground between the two lines. Columns 0 and
- * 9 stay empty, so the two blocks never touch the edge of the field.
+ * Each army occupies TWO columns. Blue holds columns 2-3, red columns 6-7,
+ * leaving columns 4-5 as neutral ground between the two lines. Columns 0-1
+ * and 8-9 stay empty, so the two blocks never touch the edge of the field
+ * and the two armies face each other across a short stretch of ground
+ * instead of an empty board.
  *
  * The formation is built in two ranks:
- *   col 1  the rear rank: the champion, two archers and the ballista
- *   col 2  the front rank: two foot soldiers and the chevalier
+ *   col 2  the rear rank: the champion, two archers and the ballista
+ *   col 3  the front rank: two foot soldiers and the chevalier
  *
  * Seven fighters per side: two archers, a ballista, two foot soldiers, a
  * chevalier and the champion. Every slot sits on passable ground on both
@@ -1011,13 +1016,13 @@ function createUnit(id, team, type) {
  * of the army without becoming a second unit.
  */
 const BLUE_FORMATION = [
-  { type: "champion",  col: 1, row: 3 },
-  { type: "archer",    col: 1, row: 2 },
-  { type: "ballista",  col: 1, row: 1 },
-  { type: "archer",    col: 1, row: 0 },
-  { type: "footman",   col: 2, row: 2 },
-  { type: "footman",   col: 2, row: 1 },
-  { type: "chevalier", col: 2, row: 0 }
+  { type: "champion",  col: 2, row: 3 },
+  { type: "archer",    col: 2, row: 2 },
+  { type: "ballista",  col: 2, row: 1 },
+  { type: "archer",    col: 2, row: 0 },
+  { type: "footman",   col: 3, row: 2 },
+  { type: "footman",   col: 3, row: 1 },
+  { type: "chevalier", col: 3, row: 0 }
 ];
 
 const RED_FORMATION = BLUE_FORMATION.map(slot => ({
@@ -1043,6 +1048,9 @@ const units = new Map();
 const blueUnitIds = [];
 const redUnitIds = [];
 const unitElements = new Map();
+/* The names and the health bars of the troops, in the layer above the
+ * pictures. */
+const unitOverlays = new Map();
 
 function initArmies() {
   units.clear();
@@ -1186,9 +1194,11 @@ function expireTemporaryEffects() {
 function renderArmies() {
   $blueUnits.innerHTML = "";
   $redUnits.innerHTML = "";
+  if ($overlayLayer) $overlayLayer.innerHTML = "";
   $moveIndicators.innerHTML = "";
   $attackIndicators.innerHTML = "";
   unitElements.clear();
+  unitOverlays.clear();
 
   renderArmy(TEAM_BLUE, $blueUnits, blueUnitIds);
   renderArmy(TEAM_RED, $redUnits, redUnitIds);
@@ -1230,6 +1240,18 @@ function renderUnit(unit) {
 
   art.append(symbol, image);
 
+  const ring = document.createElement("div");
+  ring.className = "selection-ring";
+
+  element.append(art, ring);
+
+  /* The name and the health bar live in their own layer above the troops.
+   * A large picture covers the fighter behind it, and the numbers of that
+   * fighter must still be readable. */
+  const overlay = document.createElement("div");
+  overlay.className = `unit-overlay ${unit.type} ${unit.team}`;
+  overlay.dataset.id = unit.id;
+
   const label = document.createElement("div");
   label.className = "unit-label";
   label.textContent = unit.name.charAt(0);
@@ -1240,10 +1262,10 @@ function renderUnit(unit) {
   healthFill.className = "health-fill";
   healthWrap.appendChild(healthFill);
 
-  const ring = document.createElement("div");
-  ring.className = "selection-ring";
+  overlay.append(label, healthWrap);
+  if ($overlayLayer) $overlayLayer.appendChild(overlay);
+  unitOverlays.set(unit.id, overlay);
 
-  element.append(art, label, healthWrap, ring);
   updateUnitHealthBar(element, unit);
   positionUnit(element, unit);
 
@@ -1296,6 +1318,24 @@ function positionUnit(element, unit) {
   const shift = (span - 1) * 0.5 * (100 / GRID_COLS) * (unit.footprintDir || 1);
   element.style.left = `${colPercent(unit.col) + shift}%`;
   element.style.top = `${rowPercent(unit.row)}%`;
+  /* The lane nearest to the viewer is drawn last, so a tall picture leans
+   * over the fighter behind it instead of hiding behind it. */
+  element.style.zIndex = String(GRID_ROWS - unit.row);
+  /* A picture is wider than the cell it stands on, so a fighter in the
+   * first or the last column would hang over the edge of the field. The
+   * picture is nudged back inside, so the army never leaves the ground it
+   * fights on. The champion is drawn across two whole columns, so it never
+   * overhangs at all. */
+  const edge = unit.type === "champion"
+    ? 0
+    : (unit.col === 0 ? 2 : (unit.col === GRID_COLS - 1 ? -2 : 0));
+  element.style.setProperty("--art-shift", `${edge}cqw`);
+  /* The name and the health bar follow the troop. */
+  const overlay = unitOverlays.get(unit.id);
+  if (overlay) {
+    overlay.style.left = `${colPercent(unit.col) + shift}%`;
+    overlay.style.top = `${rowPercent(unit.row)}%`;
+  }
   /* The drawn cell is written into the markup as well, so the picture can
    * be checked against the cell it claims to stand on. */
   element.dataset.col = String(unit.col);
@@ -1304,7 +1344,10 @@ function positionUnit(element, unit) {
 }
 
 function updateUnitHealthBar(element, unit) {
-  const fill = element.querySelector(".health-fill");
+  const overlay = unitOverlays.get(unit.id);
+  const fill = overlay
+    ? overlay.querySelector(".health-fill")
+    : element.querySelector(".health-fill");
   if (!fill) return;
   const pct = Math.max(0, Math.min(100, Math.round((unit.hp / unit.maxHp) * 100)));
   fill.style.width = `${pct}%`;
@@ -1373,10 +1416,10 @@ function selectUnit(id) {
   $selectionInfo.classList.remove("hidden");
   $selectedName.textContent = unit.displayName;
   const reach = unit.melee
-    ? `MELEE ${getMeleeReach(unit)}`
-    : `RANGE ${getRangedReach(unit)}`;
+    ? `MELEE ${formatReach(getMeleeReach(unit))}`
+    : `RANGE ${formatReach(getRangedReach(unit))}`;
   $selectedStats.textContent = `ATK ${unit.atk} | DEF ${unit.def} | ${reach}` +
-    (unit.shot ? ` | BOW ${unit.shot.atk}/${unit.shot.range}` : "");
+    (unit.shot ? ` | BOW ${unit.shot.atk} ATK Â· FIELD` : "");
   $selectedHealth.style.width = "100%";
 
   const hints = [];
@@ -1387,7 +1430,7 @@ function selectUnit(id) {
     if (ready.length > 0) hints.push(`${ready.length} ability ready`);
     if (!hints.length) hints.push("No actions available");
   }
-  $actionHints.textContent = hints.join(" · ");
+  $actionHints.textContent = hints.join(" Â· ");
 
   if (unit.team === TEAM_BLUE && currentTurn === "player") {
     showMoveIndicators(unit);
@@ -1565,22 +1608,27 @@ function hasLineOfSight(from, to, range) {
  * different laws on the field.
  *
  *   RANGED — the archer's bow, the ballista's bolt and the champion's own
- *     bow. A ranged weapon reaches ANY enemy inside its range: the front
- *     line of the other army never covers a target from a bow, and a shot
- *     may pass over the fighters standing in front of it. Only the terrain
- *     can stop a shot.
+ *     bow. A shot reaches EVERY living enemy on the field. Distance does not
+ *     shorten it, a rank of fighters does not stop it, and neither does a
+ *     forest or a rock formation. The only thing that can spoil a shot is
+ *     the target being dead, gone or friendly. The number printed on the
+ *     card is the weapon's own reach; the field does not enforce it.
  *
  *   MELEE — the footman's sword, the chevalier's lance and the champion's
  *     own weapon. A blade only cuts FORWARD, it reaches at most
- *     MELEE_REACH columns into the other army, and it never cuts through a
- *     living shield: the defender that stands in front of a target, or
- *     diagonally in front of it, covers it. Break the front rank and the
- *     rank behind it opens up.
+ *     MELEE_REACH columns into the other army, and it needs a way in. The
+ *     rank in front of a target no longer covers it, but a rank that closes
+ *     every lane still holds: a fighter that cannot reach the target cannot
+ *     cut it down. A gap in the front rank is a door into the second rank.
  *
  * The champion owns both weapons, so it swings a blade up close and looses
- * an arrow at a distance.
+ * an arrow at everything else.
  */
 const MELEE_REACH = 2;
+
+/* A bow covers the whole field. The number is kept as a named constant so
+ * that the rule is stated once and read everywhere. */
+const RANGED_REACH = Infinity;
 
 /* Which way a team faces. Blue marches to the right, red to the left. */
 function advanceSign(team) {
@@ -1588,69 +1636,103 @@ function advanceSign(team) {
 }
 
 /* The reach of a unit's own weapon at arm's length. Ground units have one,
- * shooters have none. */
+ * shooters have none, and no blade ever reaches further than MELEE_REACH. */
 function getMeleeReach(unit) {
   if (!unit || !unit.melee) return 0;
-  return unit.range || 0;
+  return Math.min(unit.range || 0, MELEE_REACH);
 }
 
-/* The reach of a unit's shot. Only shooters and the champion's bow have one. */
+/* The reach of a shot. Since v1.7.1 a bow covers the whole field, so this
+ * is RANGED_REACH for every shooter and 0 for a fighter that fights with
+ * its own hands. The nominal reach of a weapon is still in UNIT_STATS and
+ * is printed on the card, but it never refuses a shot. */
 function getRangedReach(unit) {
   if (!unit) return 0;
-  if (unit.shot) return unit.shot.range;
-  if (unit.melee) return 0;
-  return unit.range || 0;
+  if (unit.melee && !unit.shot) return 0;
+  return RANGED_REACH;
+}
+
+/* How a reach is written on the card. */
+function formatReach(reach) {
+  if (reach === null || reach === undefined) return "--";
+  if (!isFinite(reach)) return "FIELD";
+  return String(reach);
 }
 
 /* The weapon a unit would use against a target: the blade up close, the bow
  * at a distance. Returns null when the target is out of reach entirely. */
 function getStrikeKind(attacker, attackerPos, targetPos) {
   if (!attacker) return null;
-  const dist = fieldDistance(attackerPos, targetPos);
-  const melee = getMeleeReach(attacker);
-  if (melee > 0 && dist <= melee) return "melee";
-  const ranged = getRangedReach(attacker);
-  if (ranged > 0 && dist <= ranged) return "ranged";
+  if (attacker.melee && meleeStrikeAllowed(attacker, attackerPos, targetPos)) return "melee";
+  if (getRangedReach(attacker) > 0) return "ranged";
   return null;
 }
 
-/* The screen in front of a target: the defenders standing directly in front
- * of it, or diagonally in front of it, cover it from a blade. A bow does not
- * care about the screen at all. */
-function isShielded(targetPos, defenderTeam, attackerTeam) {
-  const dir = -advanceSign(attackerTeam);
-  for (const dr of [-1, 0, 1]) {
-    if (isOccupiedByTeam(targetPos.col + dir, targetPos.row + dr, defenderTeam)) return true;
-  }
-  return false;
+/* The rows a fighter can use on its way to a target that stands two columns
+ * away. A blade moves one column and at most one row at a time, so the
+ * fighter in front can be straight ahead or one row to the side, as long as
+ * the second step still reaches the target. */
+function meleeApproachRows(attackerRow, targetRow) {
+  const low = Math.max(attackerRow - 1, targetRow - 1);
+  const high = Math.min(attackerRow + 1, targetRow + 1);
+  const rows = [];
+  for (let r = low; r <= high; r++) rows.push(r);
+  return rows;
 }
 
-/* A blade only cuts forward, only into the front two ranks of the other
- * army, and only where the rank in front has a gap. */
-function meleeStrikeAllowed(attacker, attackerPos, targetPos, defenderTeam) {
-  const forward = advanceSign(attacker.team);
-  /* Never strike backwards: a fighter cannot turn its back on the enemy. */
-  if ((targetPos.col - attackerPos.col) * forward < 0) return false;
-  if (fieldDistance(attackerPos, targetPos) > getMeleeReach(attacker)) return false;
-  const team = defenderTeam || (attacker.team === TEAM_BLUE ? TEAM_RED : TEAM_BLUE);
-  if (isShielded(targetPos, team, attacker.team)) return false;
+/* Whether the rank in front of a target covers it from the attacker.
+ *
+ * The answer is "yes" only when EVERY lane the attacker could walk is held
+ * by a fighter of the other army. One open lane is a door, and one door is
+ * enough. A target that stands in the front rank has nothing in front of
+ * it and is never covered. */
+function isShielded(attackerPos, targetPos, defenderTeam, attackerTeam) {
+  if (!attackerPos || !targetPos) return false;
+  if (!Number.isFinite(attackerPos.col) || !Number.isFinite(attackerPos.row)) return false;
+  if (!Number.isFinite(targetPos.col) || !Number.isFinite(targetPos.row)) return false;
+  const team = attackerTeam || (defenderTeam === TEAM_BLUE ? TEAM_RED : TEAM_BLUE);
+  const forward = advanceSign(team);
+  const step = (targetPos.col - attackerPos.col) * forward;
+  /* Beside the attacker, behind it, or in the front rank: there is no rank
+   * in between that could cover anything. */
+  if (step <= 1) return false;
+  const rows = meleeApproachRows(attackerPos.row, targetPos.row);
+  if (rows.length === 0) return false;
+  /* The walk is bounded by the field, so the loop can never run away. */
+  const lastCol = targetPos.col;
+  for (let col = attackerPos.col + forward; col !== lastCol; col += forward) {
+    if (col < 0 || col >= GRID_COLS) return false;
+    for (const row of rows) {
+      if (!isOccupiedByTeam(col, row, defenderTeam)) return false;
+    }
+  }
   return true;
 }
 
-/* Reach and line of sight in one answer. A blow at arm's length is never
- * blocked by terrain, an arrow or a bolt always is. */
+/* A blade only cuts forward, only into the front two ranks of the other
+ * army, and only where the fighter can get to the target. */
+function meleeStrikeAllowed(attacker, attackerPos, targetPos, defenderTeam) {
+  if (!attacker || !attacker.melee) return false;
+  const forward = advanceSign(attacker.team);
+  const step = (targetPos.col - attackerPos.col) * forward;
+  /* Never strike backwards: a fighter cannot turn its back on the enemy. */
+  if (step < 0) return false;
+  if (step > getMeleeReach(attacker)) return false;
+  if (fieldDistance(attackerPos, targetPos) > getMeleeReach(attacker)) return false;
+  const team = defenderTeam || (attacker.team === TEAM_BLUE ? TEAM_RED : TEAM_BLUE);
+  return !isShielded(attackerPos, targetPos, team, attacker.team);
+}
+
+/* Reach in one answer. A shot reaches the whole field; a blow has to get
+ * there on its own feet. */
 function hasReach(attacker, attackerPos, targetPos, defenderTeam) {
   const kind = getStrikeKind(attacker, attackerPos, targetPos);
-  if (kind === "ranged") {
-    return hasLineOfSight(attackerPos, targetPos, getRangedReach(attacker));
-  }
-  if (kind === "melee") {
-    return meleeStrikeAllowed(attacker, attackerPos, targetPos, defenderTeam);
-  }
+  if (kind === "ranged") return true;
+  if (kind === "melee") return meleeStrikeAllowed(attacker, attackerPos, targetPos, defenderTeam);
   return false;
 }
 
-/* The same answer without the line of sight, used when the AI asks what a
+/* The same answer without the target's team, used when the AI asks what a
  * unit could reach rather than what it may shoot at. */
 function canReach(attacker, attackerPos, targetPos, defenderTeam) {
   const kind = getStrikeKind(attacker, attackerPos, targetPos);
@@ -1682,6 +1764,8 @@ function canAttack(attacker, target) {
   if (!attacker || !target) return false;
   if (!attacker.alive || attacker.defeated) return false;
   if (!target.alive || target.defeated) return false;
+  /* A fighter that is not on the field is not a target. */
+  if (!units.has(target.id)) return false;
   if (attacker.team === target.team) return false;
   if (attacker.hasAttacked) return false;
   if (!hasReach(attacker, attacker, target)) return false;
@@ -1784,6 +1868,8 @@ function applyDamage(targetId, amount, options) {
       el.classList.add("defeated");
       el.style.pointerEvents = "none";
     }
+    const overlay = unitOverlays.get(target.id);
+    if (overlay) overlay.classList.add("defeated");
     /* The reward is keyed by the battle, so it can only ever be paid once.
      * Only the crimson legion pays out: losing one of your own fighters is
      * a loss, never an income. */
@@ -2247,6 +2333,15 @@ function resetAbilityUses() {
 function endPlayerTurn() {
   if (currentTurn !== "player") return;
 
+  if (roundLeader() === TEAM_RED) {
+    /* The crimson legion opened this round and the azure legion has
+     * answered, so the round is over. */
+    clearSelection();
+    if (closeRound()) return;
+    startNextRound();
+    return;
+  }
+
   currentTurn = "enemy";
   updateTurnBanner();
   $endTurnButton.disabled = true;
@@ -2281,25 +2376,50 @@ function targetValue(unit) {
   return AI_TUNING.targetValue[unit.type] !== undefined ? AI_TUNING.targetValue[unit.type] : 6;
 }
 
-/* How much damage a unit standing on a cell would take. */
-function estimateIncomingDamage(col, row, team, defenderDef) {
-  let total = 0;
+/* Every blow that a fighter standing on a cell would earn back, one entry
+ * per enemy that can reach the cell. */
+function incomingAnswers(col, row, team, defenderDef) {
+  const answers = [];
   for (const [, enemy] of units) {
     if (!enemy.alive || enemy.defeated || enemy.team === team) continue;
     if (!canReach(enemy, enemy, { col, row })) continue;
     const weight = getRangedReach(enemy) > 1 ? 1 : 0.7;
     const attack = attackValue(enemy, enemy, { col, row }) + getUnitAtkBonus(enemy);
-    total += weight * Math.max(1, attack - Math.floor(defenderDef / 2));
+    answers.push(weight * Math.max(1, attack - Math.floor(defenderDef / 2)));
   }
+  return answers;
+}
+
+/* How much damage a unit standing on a cell would take. */
+function estimateIncomingDamage(col, row, team, defenderDef) {
+  let total = 0;
+  for (const answer of incomingAnswers(col, row, team, defenderDef)) total += answer;
   return total;
 }
 
-/* Whether a unit is soft: a shooter that cannot fight back at arm's length,
- * the champion, or a fighter that is already badly hurt. */
+/* The answer a blow would earn back.
+ *
+ * Since v1.7.1 a bow covers the whole field, so every enemy can answer
+ * every blow. Counting all of them would make the whole army stand still:
+ * the answer would always be worth more than the blow. A fighter is
+ * answered by the one or two enemies that can reach it, not by the whole
+ * enemy army, so only the strongest answers are counted.
+ */
+function estimateRetaliation(col, row, team, defenderDef) {
+  const answers = incomingAnswers(col, row, team, defenderDef);
+  answers.sort((a, b) => b - a);
+  let total = 0;
+  const counted = Math.min(answers.length, AI_TUNING.retaliationAnswers);
+  for (let i = 0; i < counted; i++) total += answers[i];
+  return total;
+}
+
+/* Whether a unit is soft: the champion, or a fighter that is already badly
+ * hurt. A shooter is no longer soft: since v1.7.1 its bow reaches the whole
+ * field, so it answers back from anywhere. */
 function isVulnerableUnit(unit) {
   if (!unit || !unit.alive || unit.defeated) return false;
   if (unit.type === "champion") return true;
-  if (getRangedReach(unit) > 1) return true;
   return unit.hp <= unit.maxHp * 0.5;
 }
 
@@ -2357,7 +2477,7 @@ function evaluateAttackAction(attacker, target, attackerPos) {
   }
 
   /* 7. Trading blows is a real cost. */
-  const retaliation = estimateIncomingDamage(pos.col, pos.row, attacker.team, attacker.def);
+  const retaliation = estimateRetaliation(pos.col, pos.row, attacker.team, attacker.def);
   score -= retaliation * AI_TUNING.retaliationWeight * profile.caution;
 
   /* 8. Survival. The blow the target lands back decides whether the
@@ -2801,6 +2921,51 @@ function performAiAbility(unit, ability, target) {
   }, aiTiming().ability);
 }
 
+/* 21.2 THE LEAD ALTERNATES
+ *
+ * Since v1.7.1 a bow covers the whole field, so the legion that acts first
+ * in a round gets a free round of shooting before the other army can
+ * answer. The order of play would then decide the battle and not the
+ * armies, which is why the lead alternates: the azure legion opens the
+ * first round, the crimson legion opens the second, and so on. Neither
+ * side keeps the first move, and the fight is settled by the legions
+ * themselves.
+ *
+ * The round that is being fought right now decides who opens it. A round
+ * is closed when the legion that answered has finished its turn.
+ */
+function roundLeader() {
+  return roundNumber % 2 === 1 ? TEAM_BLUE : TEAM_RED;
+}
+
+/* Hands the field to the azure legion. */
+function beginPlayerTurn() {
+  currentTurn = "player";
+  gameState = STATE_PLAYER_SELECTING;
+  $endTurnButton.disabled = false;
+  $endTurnButton.classList.remove("hidden");
+  logEvent("Your turn!", "system");
+}
+
+/* Hands the field to the crimson legion. */
+function beginEnemyTurn(message) {
+  currentTurn = "enemy";
+  gameState = STATE_ENEMY_TURN;
+  $endTurnButton.disabled = true;
+  $endTurnButton.classList.add("hidden");
+  if (message) logEvent(message, "ai");
+  runEnemyTurn();
+}
+
+/* Opens the round that follows the one that has just been closed. */
+function startNextRound() {
+  if (roundLeader() === TEAM_RED) {
+    beginEnemyTurn("The crimson legion opens the round.");
+    return;
+  }
+  beginPlayerTurn();
+}
+
 function finishEnemyTurn() {
   const finishedTeam = aiTurnTeam;
   aiTurnTeam = null;
@@ -2814,24 +2979,33 @@ function finishEnemyTurn() {
     /* The instant driver steers the show itself, so it closes the rounds. */
     if (!spectatorAutoAdvance) return;
 
-    if (finishedTeam === TEAM_BLUE) {
-      spectatorTurnTeam = TEAM_RED;
-      later(() => runSpectatorTurn(TEAM_RED), aiTiming().gap);
+    const leader = roundLeader();
+    const trailer = leader === TEAM_BLUE ? TEAM_RED : TEAM_BLUE;
+    if (finishedTeam === trailer) {
+      /* The legion that answered is done: the round is over. */
+      if (closeRound()) return;
+      const next = roundLeader();
+      spectatorTurnTeam = next;
+      later(() => runSpectatorTurn(next), aiTiming().gap);
       return;
     }
-    if (closeRound()) return;
-    spectatorTurnTeam = TEAM_BLUE;
-    later(() => runSpectatorTurn(TEAM_BLUE), aiTiming().gap);
+    /* The legion that opened the round is done: the other one answers. */
+    spectatorTurnTeam = trailer;
+    later(() => runSpectatorTurn(trailer), aiTiming().gap);
     return;
   }
 
-  currentTurn = "player";
-  gameState = STATE_PLAYER_SELECTING;
-  $endTurnButton.disabled = false;
-  $endTurnButton.classList.remove("hidden");
+  if (roundLeader() === TEAM_RED) {
+    /* The crimson legion opened this round, so the azure legion answers
+     * and the round is closed when it does. */
+    beginPlayerTurn();
+    return;
+  }
 
+  /* The azure legion opened this round and the crimson legion has
+   * answered, so the round is over. */
   if (closeRound()) return;
-  logEvent("Your turn!", "system");
+  startNextRound();
 }
 
 /* Closes the round: the counter moves on, the flags are reset and the
@@ -3251,7 +3425,7 @@ function renderBattleReport(outcome) {
   if ($reportBreakdown) {
     $reportBreakdown.textContent = battleLedger.spectator
       ? "Spectator mode — no rewards are paid."
-      : `Damage ${battleLedger.xp.damage} XP  ·  Kills ${battleLedger.xp.kill} XP  ·  Victory ${battleLedger.xp.victory} XP`;
+      : `Damage ${battleLedger.xp.damage} XP  Â·  Kills ${battleLedger.xp.kill} XP  Â·  Victory ${battleLedger.xp.victory} XP`;
   }
   if ($reportLevel) {
     $reportLevel.textContent = battleLedger.spectator
@@ -3336,7 +3510,7 @@ function updateBattleStatus() {
       const head = parts.length
         ? `${unit.displayName} — ${parts.join(", ")}`
         : `${unit.displayName} — no actions left`;
-      $status.textContent = `${head} · ${describeTerrain(unit.col, unit.row)}`;
+      $status.textContent = `${head} Â· ${describeTerrain(unit.col, unit.row)}`;
       return;
     }
   }
@@ -3387,7 +3561,7 @@ function updateProgressionUI() {
   $progPoints.textContent = String(progression.abilityPoints);
 
   if (!storageAvailable) {
-    $progXpText.textContent += " · SESSION ONLY";
+    $progXpText.textContent += " Â· SESSION ONLY";
   }
 }
 
@@ -3408,8 +3582,8 @@ function updateChampionPanel() {
   $champLevel.textContent = `LEVEL ${progression.level}`;
   const bonus = getLevelBonuses(progression.level);
   $champStats.textContent =
-    `HP ${champion.hp}/${champion.maxHp} · ATK ${champion.atk} · DEF ${champion.def}` +
-    (champion.shot ? ` · BOW ${champion.shot.atk}/${champion.shot.range}` : "") +
+    `HP ${champion.hp}/${champion.maxHp} Â· ATK ${champion.atk} Â· DEF ${champion.def}` +
+    (champion.shot ? ` Â· BOW ${champion.shot.atk} ATK Â· FIELD` : "") +
     (bonus.hp || bonus.atk || bonus.def ? ` (base +${bonus.hp} HP +${bonus.atk} ATK +${bonus.def} DEF)` : "");
 
   renderAbilityList(champion);
@@ -3673,10 +3847,12 @@ function onUnitClick(id) {
     onAttackClick(selectedUnitId, id);
   } else {
     const dist = fieldDistance(attacker, unit);
-    if (dist > attacker.range) {
-      logEvent(`${unit.displayName} is out of range (${dist} > ${attacker.range}).`, "system");
+    if (attacker.melee && dist > getMeleeReach(attacker)) {
+      logEvent(`${unit.displayName} is out of reach (${dist} > ${getMeleeReach(attacker)}).`, "system");
+    } else if (attacker.melee) {
+      logEvent(`No way in to ${unit.displayName} — every lane is closed.`, "system");
     } else {
-      logEvent(`The shot is blocked — ${describeTerrain(attacker.col, attacker.row)}.`, "system");
+      logEvent("That target cannot be struck.", "system");
     }
   }
 }
@@ -3707,10 +3883,11 @@ function onAttackClick(attackerId, targetId) {
   if (!attacker || !target) return;
 
   if (!canAttack(attacker, target)) {
-    if (fieldDistance(attacker, target) > attacker.range) {
+    const reach = getMeleeReach(attacker);
+    if (reach > 0 && fieldDistance(attacker, target) > reach) {
       logEvent("Cannot attack — target out of range.", "system");
     } else {
-      logEvent("The shot is blocked by the terrain.", "system");
+      logEvent("The blow cannot get there — the rank in front closes the way.", "system");
     }
     return;
   }
@@ -3919,15 +4096,25 @@ if (typeof window !== "undefined") {
     getUnitDefBonus,
     expireTemporaryEffects,
 
-    /* strike classes */
+    /* strike classes
+     *
+     * Since v1.7.1 a bow reaches every living enemy on the field, so
+     * getRangedReach reports RANGED_REACH for a shooter and 0 for a fighter
+     * that fights with its own hands. isShielded answers the new question:
+     * it is TRUE when every lane the attacker could walk is held by the other
+     * army, which is the only thing that still keeps a blade from a target.
+     */
     getMeleeReach,
     getRangedReach,
     getStrikeKind,
     meleeStrikeAllowed,
+    meleeApproachRows,
     isShielded,
     isOccupiedByTeam,
     advanceSign,
+    formatReach,
     MELEE_REACH,
+    RANGED_REACH,
 
     /* abilities */
     isAbilityUnlocked,
@@ -3961,6 +4148,7 @@ if (typeof window !== "undefined") {
     evaluateMoveAction,
     bestAttackFrom,
     tacticalDepth,
+    roundLeader,
     targetDanger,
     isVulnerableUnit,
     TACTICAL_DEPTH,
@@ -4009,6 +4197,19 @@ if (typeof window !== "undefined") {
       }
     },
 
+    /* Ends the azure legion's turn and resolves whatever follows it: the
+     * crimson legion's answer, and the round that closes with it. The
+     * suites use it to play a battle through to its end. */
+    endPlayerTurnInstant: () => {
+      const previous = instantTimers;
+      instantTimers = true;
+      try {
+        endPlayerTurn();
+      } finally {
+        instantTimers = previous;
+      }
+    },
+
     /* Plays a whole spectator battle in one step, without the animation
      * delays. The suites use it to watch a full AI against AI fight. */
     runSpectatorBattleInstant: () => {
@@ -4026,11 +4227,14 @@ if (typeof window !== "undefined") {
           if (!team) break;
           runSpectatorTurn(team);
           if (gameState === STATE_ENDED) break;
-          if (team === TEAM_BLUE) {
-            spectatorTurnTeam = TEAM_RED;
-          } else {
+          const leader = roundLeader();
+          const trailer = leader === TEAM_BLUE ? TEAM_RED : TEAM_BLUE;
+          if (team === trailer) {
+            /* The legion that answered is done: the round is over. */
             if (closeRound()) break;
-            spectatorTurnTeam = TEAM_BLUE;
+            spectatorTurnTeam = roundLeader();
+          } else {
+            spectatorTurnTeam = trailer;
           }
         }
       } finally {

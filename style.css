@@ -54,21 +54,39 @@ body {
   color: #d0d3b9;
 }
 
-/* 3. LANDSCAPE & BACKGROUND */
+/* 3. LANDSCAPE & BACKGROUND
+ *
+ * The scene is read from the top down: a shallow band of sky, the fortress
+ * on the horizon, the rolling ground, and the field itself, which takes the
+ * largest share of the height. The field top is a single number so that the
+ * ground, the markers and the troops always start on the same line.
+ */
 .landscape {
   position: relative;
   isolation: isolate;
   flex: 1;
-  min-height: 560px;
+  min-height: 460px;
   overflow: hidden;
   background: linear-gradient(
     to bottom,
     #5c9ed1 0%,
-    #a8d4df 30%,
-    #cfe0b3 52%,
-    #6c984c 68%,
+    #a8d4df 22%,
+    #cfe0b3 38%,
+    #6c984c 52%,
     #355a2c 100%
   );
+}
+
+/* Where the battlefield grid starts, as a share of the landscape. */
+:root {
+  --field-top: 30%;
+  /* The troop pictures. The height is the size of the figure; the width is
+   * how far a picture may reach sideways, so that a troop never covers the
+   * whole column next to it. */
+  --art-h: 34cqh;
+  --art-w: 14cqw;
+  --champ-art-h: 40cqh;
+  --champ-art-w: 20cqw;
 }
 
 /* 3.1 SKY & ATMOSPHERE */
@@ -77,7 +95,7 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 34%;
+  height: 26%;
   background: linear-gradient(
     to bottom,
     #7ec0ee 0%,
@@ -89,10 +107,10 @@ body {
 
 .sun {
   position: absolute;
-  top: 8%;
+  top: 5%;
   right: 14%;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: #fff0b1;
   box-shadow: 0 0 30px rgba(255, 240, 177, 0.6);
@@ -131,24 +149,29 @@ body {
 }
 
 .cloud-one {
-  top: 10%;
+  top: 6%;
   left: 8%;
 }
 
 .cloud-two {
-  top: 22%;
+  top: 14%;
   right: 14%;
   transform: scale(0.75);
 }
 
-/* 3.2 CASTLE & STRONGHOLD (background layer, behind armies) */
+/* 3.2 CASTLE & STRONGHOLD (background layer, behind armies)
+ *
+ * The fortress is a shallow panoramic banner: a long curtain wall with two
+ * towers and a central keep, drawn along the horizon. It frames the scene
+ * without taking the room the battlefield needs.
+ */
 .mountains {
   position: absolute;
   z-index: 0;
-  top: 26%;
+  top: 9%;
   left: -12%;
   width: 124%;
-  height: 22%;
+  height: 18%;
   background: #779b8a;
   clip-path: polygon(
     0 82%, 14% 32%, 26% 68%, 40% 10%,
@@ -160,21 +183,22 @@ body {
 .castle {
   position: absolute;
   z-index: 1;
-  top: 20%;
+  top: 3.5%;
   left: 50%;
-  width: min(300px, 76%);
-  height: 140px;
+  width: min(760px, 94%);
+  height: 48px;
   transform: translateX(-50%);
-  filter: drop-shadow(0 6px 3px rgba(35, 53, 34, 0.55));
+  filter: drop-shadow(0 5px 3px rgba(35, 53, 34, 0.5));
 }
 
+/* The long wall of the fortress. */
 .castle-wall {
   position: absolute;
-  left: 14%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  width: 72%;
-  height: 70px;
-  border: 3px solid #6e6b60;
+  height: 26px;
+  border: 2px solid #6e6b60;
   background:
     repeating-linear-gradient(
       0deg,
@@ -190,56 +214,94 @@ body {
 
 .battlements {
   position: absolute;
-  left: -3px;
-  top: -17px;
-  width: calc(100% + 6px);
-  height: 16px;
+  left: -2px;
+  top: -8px;
+  width: calc(100% + 4px);
+  height: 8px;
   background: repeating-linear-gradient(
     90deg,
-    #aaa590 0 16px,
-    transparent 16px 24px
+    #aaa590 0 10px,
+    transparent 10px 16px
   );
+}
+
+/* The keep in the middle of the wall. */
+.keep {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 9%;
+  height: 30px;
+  transform: translateX(-50%);
+  border: 2px solid #6b6b61;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      #9a988a 0 12px,
+      #686a61 13px 15px
+    );
+}
+
+.keep-roof {
+  position: absolute;
+  left: -18%;
+  top: -11px;
+  width: 136%;
+  height: 11px;
+  background: #6e4c3a;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.keep-banner {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 5px;
+  height: 16px;
+  transform: translateX(-50%);
+  background: #8e2f28;
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
 }
 
 .tower {
   position: absolute;
-  bottom: 20px;
-  width: 24%;
-  height: 100px;
-  border: 3px solid #6b6b61;
+  bottom: 14px;
+  width: 7%;
+  height: 34px;
+  border: 2px solid #6b6b61;
   background: repeating-linear-gradient(
     0deg,
-    #999789 0 17px,
-    #686a61 18px 20px
+    #999789 0 12px,
+    #686a61 13px 15px
   );
 }
 
 .tower-left {
-  left: 5%;
+  left: 3%;
 }
 
 .tower-right {
-  right: 5%;
+  right: 3%;
 }
 
 .roof {
   position: absolute;
-  left: -10%;
-  top: -26px;
-  width: 120%;
-  height: 26px;
+  left: -14%;
+  top: -12px;
+  width: 128%;
+  height: 12px;
   background: #6e4c3a;
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
 .window {
   position: absolute;
-  top: 30px;
+  top: 8px;
   left: 50%;
-  width: 9px;
-  height: 18px;
+  width: 6px;
+  height: 11px;
   transform: translateX(-50%);
-  border-radius: 8px 8px 0 0;
+  border-radius: 5px 5px 0 0;
   background: #333c3a;
 }
 
@@ -247,42 +309,42 @@ body {
   position: absolute;
   left: 50%;
   bottom: 0;
-  width: 30px;
-  height: 46px;
+  width: 16px;
+  height: 20px;
   transform: translateX(-50%);
-  border: 3px solid #554333;
-  border-radius: 14px 14px 0 0;
+  border: 2px solid #554333;
+  border-radius: 8px 8px 0 0;
   background: repeating-linear-gradient(
     90deg,
-    #604831 0 6px,
-    #94704b 7px 9px
+    #604831 0 4px,
+    #94704b 5px 6px
   );
 }
 
 .wall-window {
   position: absolute;
-  top: 20px;
-  width: 8px;
-  height: 16px;
+  top: 6px;
+  width: 5px;
+  height: 9px;
   background: #39403b;
 }
 
-.window-left {
-  left: 20%;
+.wall-window-left {
+  left: 16%;
 }
 
-.window-right {
-  right: 20%;
+.wall-window-right {
+  right: 16%;
 }
 
 /* 3.3 BATTLEFIELD GROUND */
 .ground-hill {
   position: absolute;
   z-index: 0;
-  top: 46%;
+  top: 24%;
   left: -18%;
   width: 136%;
-  height: 24%;
+  height: 26%;
   border-radius: 50% 50% 0 0;
   background: linear-gradient(#719c4d, #527b37);
 }
@@ -290,7 +352,7 @@ body {
 .grass {
   position: absolute;
   z-index: 1;
-  top: 58%;
+  top: 40%;
   bottom: 0;
   width: 100%;
   background:
@@ -302,16 +364,17 @@ body {
     linear-gradient(#527d38, #263f27);
 }
 
+/* The duel is fought in the middle of the field. */
 .battle-label {
   position: absolute;
   z-index: 2;
-  top: 40%;
+  top: 27%;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
   text-align: center;
   color: #fff0c4;
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 3px;
   text-shadow: 0 2px 3px #263f27;
 }
@@ -320,7 +383,7 @@ body {
   position: absolute;
   z-index: 2;
   left: 50%;
-  top: 54%;
+  top: 40%;
   bottom: 0;
   width: 1px;
   background: rgba(232, 213, 161, 0.18);
@@ -333,21 +396,22 @@ body {
  */
 .army {
   position: absolute;
-  top: 40%;
-  width: 50%;
+  top: 30.5%;
+  width: 15%;
   height: 16px;
   display: flex;
-  justify-content: center;
   z-index: 3;
   pointer-events: none;
 }
 
 .army-blue {
-  left: 0;
+  left: 1%;
+  justify-content: flex-start;
 }
 
 .army-red {
-  right: 0;
+  right: 1%;
+  justify-content: flex-end;
 }
 
 .army-name {
@@ -378,8 +442,8 @@ body {
  */
 .units-layer {
   position: absolute;
-  top: 46%;
-  bottom: 8px;
+  top: var(--field-top);
+  bottom: 6px;
   left: 0;
   width: 100%;
   pointer-events: none;
@@ -398,8 +462,8 @@ body {
 /* 4.2 MARKER LAYERS */
 .marker-layer {
   position: absolute;
-  top: 46%;
-  bottom: 8px;
+  top: var(--field-top);
+  bottom: 6px;
   left: 0;
   width: 100%;
   pointer-events: none;
@@ -416,8 +480,8 @@ body {
  */
 .terrain-layer {
   position: absolute;
-  top: 46%;
-  bottom: 8px;
+  top: var(--field-top);
+  bottom: 6px;
   left: 0;
   width: 100%;
   pointer-events: none;
@@ -550,10 +614,11 @@ body {
  * screen, so the whole army keeps its proportions on a phone as well as on
  * a desktop.
  *
- * The art box is the bottom of the row: the troops stand on the bottom edge
- * of their cell and lean forward into it. The champion is the exception —
- * its picture is taller and fills its cell from the ground line to the top
- * of it, which is what makes it the centrepiece of the army.
+ * The picture is taller than the cell it stands on: a troop rises out of
+ * its own square and leans over the lane behind it, which is what makes the
+ * army read as a mass of fighters instead of a row of tokens. The picture
+ * is wider than its cell as well, but never so wide that it swallows the
+ * column next to it.
  */
 .unit {
   position: absolute;
@@ -570,10 +635,11 @@ body {
 /* The art box carries the picture and everything that moves with it. */
 .unit-art {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 50%;
   bottom: 0;
-  height: 21cqh;
+  width: var(--art-w);
+  height: var(--art-h);
+  margin-left: calc(var(--art-w) / -2 + var(--art-shift, 0cqw));
   pointer-events: none;
 }
 
@@ -587,7 +653,47 @@ body {
  * troop standing behind, and it would be cut off by the edge of the field
  * when the champion stood in the front lane. */
 .unit.champion .unit-art {
+  width: var(--champ-art-w);
+  height: var(--champ-art-h);
+  margin-left: calc(var(--champ-art-w) / -2 + var(--art-shift, 0cqw));
+}
+
+/* 4.4 OVERLAY LAYER
+ *
+ * The name and the health bar of a troop are drawn above every picture, so
+ * that a large figure never hides the numbers of the fighter behind it.
+ */
+.overlay-layer {
+  position: absolute;
+  top: var(--field-top);
+  bottom: 6px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 4;
+  /* The layer measures itself the same way the troops do, so that a name
+   * and a health bar keep the size of the field they belong to. */
+  container-type: size;
+  container-name: field;
+}
+
+.unit-overlay {
+  position: absolute;
+  width: 10%;
   height: 25cqh;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: left 0.35s ease, top 0.35s ease;
+  --own-art-h: var(--art-h);
+}
+
+.unit-overlay.champion {
+  width: 20%;
+  --own-art-h: var(--champ-art-h);
+}
+
+.unit-overlay.defeated {
+  opacity: 0.35;
 }
 
 /* 5.0 DAMAGE NUMBERS — the number of a blow, shown on the field
@@ -679,7 +785,7 @@ body {
 .unit-label {
   position: absolute;
   left: 50%;
-  bottom: -5px;
+  top: calc(-1 * (var(--own-art-h) - 25cqh) - 19px);
   transform: translateX(-50%);
   font-family: Arial, sans-serif;
   font-size: clamp(7px, 1.8vw, 10px);
@@ -688,11 +794,12 @@ body {
   line-height: 1;
   pointer-events: none;
   opacity: 0.92;
+  text-shadow: 0 1px 3px #17251c, 0 0 5px rgba(0, 0, 0, 0.8);
 }
 
 .unit-health {
   position: absolute;
-  top: -2cqh;
+  top: calc(-1 * (var(--own-art-h) - 25cqh) - 7px);
   left: 50%;
   transform: translateX(-50%);
   width: 62%;
@@ -700,12 +807,13 @@ body {
   background: rgba(0, 0, 0, 0.5);
   border-radius: 2px;
   overflow: hidden;
-  opacity: 0.75;
+  opacity: 0.85;
   pointer-events: none;
+  border: 1px solid rgba(0, 0, 0, 0.45);
 }
 
-.unit.champion .unit-health {
-  width: 31%;
+.unit-overlay.champion .unit-health {
+  width: 40%;
   height: 6px;
 }
 
@@ -746,20 +854,20 @@ body {
   color: #ffc4ad;
 }
 
-.unit.blue .health-fill {
+.unit-overlay.blue .health-fill {
   background: #60a5fa;
 }
 
-.unit.red .health-fill {
+.unit-overlay.red .health-fill {
   background: #f87171;
 }
 
-.unit.champion .unit-label {
+.unit-overlay.champion .unit-label {
   font-size: clamp(8px, 2vw, 11px);
   color: #e9c66c;
 }
 
-.unit.champion .health-fill {
+.unit-overlay.champion .health-fill {
   height: 6px;
 }
 
@@ -817,18 +925,18 @@ body {
 }
 
 /* 8.8 PROGRESSION STRIP
- * Always visible: level, experience, unspent ability points and the reset.
+ * A compact cell of the control bar: level, experience, unspent ability
+ * points and the reset.
  */
 .progression-strip {
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 100%;
-  max-width: 380px;
-  padding: 4px 6px;
+  padding: 3px 7px;
   border: 1px solid rgba(233, 198, 108, 0.25);
-  border-radius: 6px;
+  border-radius: 5px;
   background: rgba(18, 34, 26, 0.5);
+  white-space: nowrap;
 }
 
 /* A spectator battle pays nothing, so the progression strip steps back and
@@ -854,8 +962,8 @@ body {
 }
 
 .prog-xp-block {
-  flex: 1;
-  min-width: 0;
+  width: 88px;
+  flex: 0 0 auto;
 }
 
 .prog-xp-bar {
@@ -898,18 +1006,21 @@ body {
 
 /* 8.9 CHAMPION PANEL
  * Shown only while the player's champion is selected, so the battlefield
- * keeps as much room as possible on a phone.
+ * keeps as much room as possible on a phone. Inside the control bar it is a
+ * single row of ability chips.
  */
 .champion-panel {
-  width: 100%;
-  max-width: 380px;
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 7px 9px;
-  border: 1px solid rgba(233, 198, 108, 0.35);
-  border-radius: 8px;
-  background: rgba(18, 34, 26, 0.6);
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 8px;
+  border: 1px solid rgba(233, 198, 108, 0.3);
+  border-radius: 6px;
+  background: rgba(18, 34, 26, 0.5);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .champion-panel.hidden {
@@ -918,47 +1029,52 @@ body {
 
 .champ-head {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .champ-title {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: bold;
   letter-spacing: 1.5px;
   color: #e9c66c;
+  white-space: nowrap;
 }
 
 .champ-level {
   font-size: 8px;
   letter-spacing: 1px;
   color: #aab7a3;
+  white-space: nowrap;
 }
 
 .champ-stats {
-  font-size: 8px;
+  font-size: 7px;
   color: #aab7a3;
   line-height: 1.3;
+  white-space: nowrap;
 }
 
 .ability-list {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 4px;
+  min-width: 0;
 }
 
 .ability-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto auto;
   grid-template-areas:
     "name button"
-    "desc button"
     "state button";
   align-items: center;
-  gap: 1px 8px;
-  padding: 4px 6px;
+  gap: 0 6px;
+  padding: 3px 5px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 5px;
+  border-radius: 4px;
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -972,16 +1088,16 @@ body {
 
 .ability-name {
   grid-area: name;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: bold;
   color: #fff4d0;
+  white-space: nowrap;
 }
 
+/* The full description of an ability lives in the tooltip of its row: the
+ * control bar has no room for a paragraph. */
 .ability-desc {
-  grid-area: desc;
-  font-size: 7px;
-  color: #aab7a3;
-  line-height: 1.3;
+  display: none;
 }
 
 .ability-state {
@@ -989,6 +1105,7 @@ body {
   font-size: 7px;
   letter-spacing: 0.5px;
   color: #e9c66c;
+  white-space: nowrap;
 }
 
 .ability-row.locked .ability-state {
@@ -1045,36 +1162,89 @@ body {
   display: none;
 }
 
-/* 8.11 COMBAT UI (BOTTOM PANEL) */
+/* 8.11 COMBAT UI (BOTTOM PANEL)
+ *
+ * One compact control bar. The battlefield is the main thing on the screen,
+ * so everything the player has to read or press lives in a single strip
+ * along the bottom edge: the turn, the selected unit, the champion's
+ * abilities, the progression, the log and the actions.
+ */
 .bottom-panel {
   z-index: 5;
-  min-height: 150px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  gap: 10px;
-  padding: 14px 12px;
+  gap: 4px;
+  padding: 7px 10px 8px;
   background: linear-gradient(#293c30, #111c16);
   border-top: 2px solid #806b3e;
 }
 
+.hud-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  max-width: 1240px;
+}
+
+.hud-cell {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.hud-turn {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-width: 140px;
+  max-width: 220px;
+}
+
+.hud-selection {
+  flex: 1 1 200px;
+}
+
+.hud-abilities {
+  flex: 1 1 240px;
+}
+
+.hud-progression {
+  flex: 0 0 auto;
+}
+
+.hud-log {
+  flex: 0 1 240px;
+}
+
+.hud-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+  gap: 6px;
+}
+
 #status {
-  font-size: 11px;
-  letter-spacing: 2px;
-  text-align: center;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-align: left;
   color: #e9c66c;
-  min-height: 14px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 8.1 TURN BANNER */
 .turn-banner {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 16px;
-  border-radius: 6px;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 5px;
   background: rgba(233, 198, 108, 0.12);
   border: 1px solid rgba(233, 198, 108, 0.3);
 }
@@ -1084,9 +1254,9 @@ body {
 }
 
 #turn-text {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: bold;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   color: #e9c66c;
 }
 
@@ -1099,15 +1269,14 @@ body {
 /* 8.2 COMBAT LOG */
 .combat-log {
   width: 100%;
-  max-width: 380px;
-  max-height: 48px;
+  max-height: 42px;
   overflow-y: auto;
   font-family: Arial, sans-serif;
   font-size: 8px;
   line-height: 1.3;
   color: #aab7a3;
-  text-align: center;
-  padding: 4px 8px;
+  text-align: left;
+  padding: 3px 7px;
   background: rgba(0, 0, 0, 0.25);
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1116,6 +1285,9 @@ body {
 .combat-log .log-entry {
   display: block;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .combat-log .log-entry.player {
@@ -1136,12 +1308,13 @@ body {
   border-radius: 6px;
   background: linear-gradient(#b9944b, #75552a);
   color: #fff4d0;
-  padding: 12px 28px;
+  padding: 8px 16px;
   font-family: Georgia, serif;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: bold;
   letter-spacing: 1px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 #start-button:active {
@@ -1171,12 +1344,13 @@ body {
   border-radius: 6px;
   background: rgba(41, 60, 48, 0.75);
   color: #d9e2c9;
-  padding: 7px 18px;
+  padding: 7px 12px;
   font-family: Georgia, serif;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: bold;
   letter-spacing: 1px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .spectate-button:active {
@@ -1196,31 +1370,41 @@ body {
 /* 8.4 SELECTION INFO */
 .selection-info {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid rgba(233, 198, 108, 0.35);
-  border-radius: 8px;
-  background: rgba(18, 34, 26, 0.55);
+  gap: 9px;
+  padding: 4px 9px;
+  border: 1px solid rgba(233, 198, 108, 0.3);
+  border-radius: 6px;
+  background: rgba(18, 34, 26, 0.5);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .selection-info.hidden {
   display: none;
 }
 
+.sel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 .sel-label {
-  font-size: 8px;
+  font-size: 7px;
   letter-spacing: 1.5px;
   color: #aab7a3;
   text-transform: uppercase;
 }
 
 .sel-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   letter-spacing: 0.5px;
   color: #fff4d0;
+  white-space: nowrap;
 }
 
 .sel-stats {
@@ -1228,10 +1412,12 @@ body {
   letter-spacing: 0.5px;
   color: #aab7a3;
   line-height: 1.3;
+  white-space: nowrap;
 }
 
 .health-bar-wrap {
-  width: 110px;
+  width: 84px;
+  flex: 0 0 auto;
 }
 
 .health-bar-wrap .health-bar {
@@ -1247,14 +1433,12 @@ body {
   font-size: 7px;
   letter-spacing: 0.5px;
   color: #aab7a3;
-  text-align: center;
   line-height: 1.3;
-  max-width: 140px;
+  white-space: nowrap;
 }
 
 /* 8.5 ABILITY BUTTON */
 .ability-wrap {
-  width: 100%;
   display: flex;
   justify-content: center;
 }
@@ -1268,9 +1452,9 @@ body {
   border-radius: 6px;
   background: linear-gradient(#b9944b, #75552a);
   color: #fff4d0;
-  padding: 10px 22px;
+  padding: 8px 16px;
   font-family: Georgia, serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
   letter-spacing: 1px;
   cursor: pointer;
@@ -1291,12 +1475,13 @@ body {
   border-radius: 6px;
   background: linear-gradient(#c94a3f, #7a2d2a);
   color: #fff4d0;
-  padding: 12px 28px;
+  padding: 8px 18px;
   font-family: Georgia, serif;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: bold;
   letter-spacing: 1px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .end-turn-button:active {
@@ -1309,12 +1494,12 @@ body {
 
 /* 8.7 BATTLE RESULT */
 .battle-result {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: bold;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-align: center;
   color: #e9c66c;
-  min-height: 18px;
+  min-height: 0;
 }
 
 .battle-result.hidden {
@@ -1331,12 +1516,6 @@ body {
 
 .battle-result.draw {
   color: #d0d3b9;
-}
-
-.footer-note {
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: #aab7a3;
 }
 
 /* 9. ANIMATIONS */
@@ -1544,33 +1723,67 @@ body {
 }
 
 /* 10. RESPONSIVE LAYOUT */
+
+/* On a narrow screen the control bar folds into a few short rows. Every
+ * button keeps its full size: a bar of tiny buttons would be unreadable. */
+@media (max-width: 760px) {
+  .hud-bar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    column-gap: 6px;
+  }
+
+  .hud-turn {
+    order: 1;
+    flex: 1 1 40%;
+    min-width: 0;
+  }
+
+  .hud-actions {
+    order: 2;
+    margin-left: auto;
+    flex: 1 1 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .hud-selection {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .hud-abilities {
+    order: 4;
+    flex: 1 1 100%;
+  }
+
+  .hud-progression {
+    order: 5;
+    flex: 0 0 auto;
+  }
+
+  .hud-log {
+    order: 6;
+    flex: 1 1 90px;
+  }
+
+  .combat-log {
+    max-height: 30px;
+  }
+}
+
 @media (max-height: 680px) {
   .landscape {
     min-height: 430px;
   }
 
-  .castle {
-    transform: translateX(-50%) scale(0.85);
-    transform-origin: top center;
-    top: 16%;
-  }
-
   .bottom-panel {
-    min-height: 120px;
-    padding: 10px 10px;
+    padding: 5px 8px 6px;
   }
 
   .combat-log {
-    max-height: 36px;
-  }
-
-  .ability-desc {
-    display: none;
-  }
-
-  .champion-panel {
-    padding: 5px 7px;
-    gap: 3px;
+    max-height: 24px;
   }
 }
 

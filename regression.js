@@ -114,12 +114,12 @@ section("3. Initial positions");
   const blue = blueUnits(api);
   const red = redUnits(api);
 
-  assert(blue.every(u => u.col <= 2), "blue units start on the left third of the grid");
-  assert(red.every(u => u.col >= 7), "red units start on the right third of the grid");
+  assert(blue.every(u => u.col >= 1 && u.col <= 3), "blue units start on the left third of the grid");
+  assert(red.every(u => u.col >= 6 && u.col <= 8), "red units start on the right third of the grid");
   assert(blue.every(b => red.every(r => b.col < r.col)), "blue starts left of red");
   assert(red.every(r => blue.every(b => r.col > b.col)), "red starts right of blue");
-  assert(Math.min(...red.map(u => u.col)) - Math.max(...blue.map(u => u.col)) - 1 === 4,
-    "neutral gap of four columns separates the armies");
+  assert(Math.min(...red.map(u => u.col)) - Math.max(...blue.map(u => u.col)) - 1 === 2,
+    "neutral gap of two columns separates the armies");
   assert(blue.every(u => u.row >= 0 && u.row < api.GRID_ROWS), "blue rows in bounds");
   assert(red.every(u => u.row >= 0 && u.row < api.GRID_ROWS), "red rows in bounds");
   assert(blue.every(u => api.isTerrainPassable(u.col, u.row)), "every blue slot is passable ground");
@@ -139,21 +139,21 @@ section("3. Initial positions");
 
   const archers = blue.filter(u => u.type === "archer");
   assert(archers.every(a => a.col === champ.col), "the archers stand in the rear column");
-  assert(champ.col === 1, "champion holds the rear position with rally");
+  assert(champ.col === 2, "champion holds the rear position with rally");
   assert(champ.footprint === 2, "the champion is drawn across two columns");
   assert(blue.filter(u => u.type === "champion").length === 1, "the champion is one unit, not two");
 
   const chevaliers = blue.filter(u => u.type === "chevalier");
-  assert(chevaliers.every(c => c.col === 2), "the chevalier fights in the front rank");
+  assert(chevaliers.every(c => c.col === 3), "the chevalier fights in the front rank");
   const ballistas = blue.filter(u => u.type === "ballista");
-  assert(ballistas.every(b => b.col === 1), "the ballista stands in the rear column");
+  assert(ballistas.every(b => b.col === 2), "the ballista stands in the rear column");
 
   const redChamp = unitByType(api, TEAM_RED, "champion");
   assert(redChamp.col === api.GRID_COLS - 1 - champ.col, "red formation mirrors blue formation");
   assert(redChamp.row === champ.row, "the champions face each other across the field");
-  assert(red.filter(u => u.type === "chevalier").every(c => c.col === api.GRID_COLS - 1 - 2),
+  assert(red.filter(u => u.type === "chevalier").every(c => c.col === api.GRID_COLS - 1 - 3),
     "the red chevalier holds the red front rank");
-  assert(red.filter(u => u.type === "ballista").every(b => b.col === api.GRID_COLS - 1 - 1),
+  assert(red.filter(u => u.type === "ballista").every(b => b.col === api.GRID_COLS - 1 - 2),
     "the red ballista stands in the red rear column");
 }
 
@@ -199,31 +199,31 @@ section("5.1. A diagonal step may not slip past a corner");
 
 {
   const { api } = newGame();
-  /* The boulder at (0,0) and the forest at (1,0) sit side by side, so a
-   * diagonal step from (0,1) to (1,0) is a straight line. The blocked pair
-   * is built on an empty board instead. */
+  /* The blocked pair is built on an empty board instead. Columns 4 and 5 are
+   * the neutral ground between the two lines, so nothing stands there. */
   const footman = unitByType(api, TEAM_BLUE, "footman");
-  footman.col = 5;
+  footman.col = 4;
   footman.row = 2;
 
   const cells = api.getReachableCells(footman);
-  const diagonal = cells.find(c => c.col === 6 && c.row === 1);
+  const diagonal = cells.find(c => c.col === 5 && c.row === 1);
   assert(!!diagonal, "an open diagonal step is allowed");
 
-  /* Block both cells that a diagonal step would slip between. */
+  /* Block both cells that a diagonal step would slip between: (4,1) and
+   * (5,2). */
   const blockerA = redUnits(api)[0];
   const blockerB = redUnits(api)[1];
-  blockerA.col = 6; blockerA.row = 2;
-  blockerB.col = 5; blockerB.row = 1;
+  blockerA.col = 4; blockerA.row = 1;
+  blockerB.col = 5; blockerB.row = 2;
 
   const blocked = api.getReachableCells(footman);
-  assert(!blocked.some(c => c.col === 6 && c.row === 1),
+  assert(!blocked.some(c => c.col === 5 && c.row === 1),
     "a diagonal step between two blocked cells is refused");
 
   /* With only one of the two cells blocked the step is open again. */
   blockerB.col = 0; blockerB.row = 0;
   const reopened = api.getReachableCells(footman);
-  assert(reopened.some(c => c.col === 6 && c.row === 1),
+  assert(reopened.some(c => c.col === 5 && c.row === 1),
     "a diagonal step with one open side is allowed");
 }
 
@@ -278,6 +278,16 @@ section("8. Attack range");
   assert(!api.canAttack(footman, redFoot), "footman cannot attack a distant footman");
   assert(api.getValidTargets(archer).some(t => t.id === redArcher.id) === false || true, "target list is evaluated");
   assert(archer.range > footman.range, "ranged unit outranges the melee unit");
+
+  /* A bow covers the whole field: the archer shoots the far corner of the
+   * field without moving a step. */
+  assert(api.getRangedReach(archer) === api.RANGED_REACH, "a bow reaches the whole field");
+  assert(api.getRangedReach(footman) === 0, "a fighter that fights with its own hands has no bow");
+  archer.col = 0; archer.row = 0;
+  redFoot.col = api.GRID_COLS - 1; redFoot.row = api.GRID_ROWS - 1;
+  assert(api.canAttack(archer, redFoot), "the archer shoots an enemy in the far corner of the field");
+  assert(api.getValidTargets(archer).some(t => t.id === redFoot.id),
+    "the far corner is offered as a legal target");
 }
 
 /* 8.1 MELEE REACHES DIAGONALLY AND TWO COLUMNS FORWARD */
@@ -302,9 +312,10 @@ section("8.1. Melee reaches diagonally and two columns forward");
 
 /* 8.2 THE FRONT LINE: WHO A BLADE MAY AND MAY NOT REACH
  *
- * A bow reaches any target inside its range: the front line of the other
- * army never covers anything from a shot. A blade only cuts forward, and it
- * never cuts through a living shield.
+ * A bow reaches every enemy on the field: neither the front line of the
+ * other army nor the ground between the armies turns a shot aside. A blade
+ * only cuts forward, and it only cuts a target it can walk up to: the rank
+ * in front has to close every lane before it holds.
  */
 
 section("8.2. The front line");
@@ -312,36 +323,272 @@ section("8.2. The front line");
 {
   const { api } = newGame();
 
-  /* A shooter reaches any enemy in range, even one that stands behind the
-   * front line of the other army. */
-  const archer = unitByType(api, TEAM_BLUE, "archer");
-  const shielded = unitByType(api, TEAM_RED, "archer");
+  const blueFoot = unitByType(api, TEAM_BLUE, "footman");
+  const blueArcher = unitByType(api, TEAM_BLUE, "archer");
   const redFoot = unitByType(api, TEAM_RED, "footman");
+  const redArcher = unitByType(api, TEAM_RED, "archer");
+  const redChevalier = unitByType(api, TEAM_RED, "chevalier");
+  const redChamp = unitByType(api, TEAM_RED, "champion");
 
-  shielded.col = archer.col + 2;
-  shielded.row = archer.row;
-  redFoot.col = shielded.col - 1;
-  redFoot.row = shielded.row;
-  assert(api.isShielded(shielded, TEAM_RED, TEAM_BLUE), "the foot soldier covers the archer behind it");
-  assert(api.canAttack(archer, shielded), "a bow reaches a target that is covered by the front line");
+  /* Only the fighters under test stand on the field, so nothing else can
+   * open or close a lane by accident. */
+  const keep = new Set([blueFoot.id, blueArcher.id, redFoot.id, redArcher.id,
+    redChevalier.id, redChamp.id]);
+  for (const u of api.getUnits()) {
+    if (keep.has(u.id)) continue;
+    u.alive = false;
+    u.defeated = true;
+  }
 
-  /* A blade cannot reach through that same cover. */
-  const footman = unitByType(api, TEAM_BLUE, "footman");
-  footman.col = shielded.col - 2;
-  footman.row = shielded.row;
-  assert(!api.canAttack(footman, shielded), "a blade cannot cut through a living shield");
+  /* The blue line stands on the left, the crimson line on the right. */
+  blueFoot.col = 2; blueFoot.row = 1;
+  blueArcher.col = 1; blueArcher.row = 1;
+  redFoot.col = 4; redFoot.row = 1;
+  redArcher.col = 3; redArcher.row = 0;
+  redChevalier.col = 3; redChevalier.row = 2;
 
-  /* With the cover gone, the same blade reaches the target. */
-  redFoot.alive = false;
-  redFoot.defeated = true;
-  assert(!api.isShielded(shielded, TEAM_RED, TEAM_BLUE), "the cover is gone with the foot soldier");
-  assert(api.canAttack(footman, shielded), "a blade reaches the rank behind once the front is broken");
+  /* A bow reaches every enemy on the field, the front rank and the rank
+   * behind it alike. */
+  assert(api.canAttack(blueArcher, redFoot), "a bow reaches the front rank of the other army");
+  assert(api.canAttack(blueArcher, redArcher), "a bow reaches a fighter that stands behind the front line");
+  assert(api.canAttack(blueArcher, redFoot) && api.canAttack(blueArcher, redArcher),
+    "the front line of the other army never covers anyone from a shot");
+
+  /* A blade reaches the enemy in front of it: the lane at (3,1) is open. */
+  assert(api.canAttack(blueFoot, redFoot), "a blade reaches the enemy in front of it");
+
+  /* The lane is closed: a rank that holds every row in front of the target
+   * turns the blow aside. */
+  redChamp.col = 3; redChamp.row = 1;
+  assert(api.isShielded(blueFoot, redFoot, TEAM_RED, TEAM_BLUE),
+    "a rank that closes every lane covers the target behind it");
+  assert(!api.canAttack(blueFoot, redFoot), "a blade cannot cut through a closed rank");
+
+  /* One open lane is a door, and one door is enough. */
+  redChamp.alive = false;
+  redChamp.defeated = true;
+  assert(!api.isShielded(blueFoot, redFoot, TEAM_RED, TEAM_BLUE),
+    "the cover is gone with the fighter that closed the lane");
+  assert(api.canAttack(blueFoot, redFoot), "a blade reaches the rank behind once a lane opens");
 
   /* A blade never strikes backwards. */
-  const rear = unitByType(api, TEAM_RED, "footman");
-  rear.col = footman.col - 1;
-  rear.row = footman.row;
-  assert(!api.canAttack(footman, rear), "a blade never strikes backwards");
+  redFoot.col = 1; redFoot.row = 1;
+  assert(!api.canAttack(blueFoot, redFoot), "a blade never strikes backwards");
+
+  /* A blade never strikes further than its own reach. */
+  redFoot.col = 5; redFoot.row = 1;
+  assert(!api.canAttack(blueFoot, redFoot), "a blade does not reach three columns forward");
+}
+
+/* 8.3 A BOW REACHES EVERY ENEMY ON THE FIELD
+ *
+ * A shot is not stopped by distance, by the rank in front of the target or
+ * by the ground it crosses. Only a dead, friendly or imaginary target is
+ * out of reach.
+ */
+
+section("8.3. A bow reaches every enemy on the field");
+
+{
+  const { api } = newGame();
+  const archer = unitByType(api, TEAM_BLUE, "archer");
+  const ballista = unitByType(api, TEAM_BLUE, "ballista");
+  const champion = unitByType(api, TEAM_BLUE, "champion");
+  const enemies = redUnits(api);
+  const target = enemies[0];
+
+  /* Every row of the field. */
+  for (let row = 0; row < api.GRID_ROWS; row++) {
+    target.col = 7;
+    target.row = row;
+    archer.col = 0;
+    archer.row = 0;
+    assert(api.canAttack(archer, target), `the archer reaches an enemy in row ${row}`);
+  }
+
+  /* Every column of the field. */
+  for (let col = 0; col < api.GRID_COLS; col++) {
+    target.col = col;
+    target.row = 1;
+    archer.col = 0;
+    archer.row = 3;
+    assert(api.canAttack(archer, target), `the archer reaches an enemy in column ${col}`);
+  }
+
+  /* Far beyond the old reach of three cells. */
+  target.col = api.GRID_COLS - 1;
+  target.row = 0;
+  archer.col = 0;
+  archer.row = 0;
+  assert(api.fieldDistance(archer, target) > 3, "the target lies beyond the old range of the bow");
+  assert(api.canAttack(archer, target), "the bow still reaches the far corner of the field");
+
+  /* A shot passes over a friend in the way. */
+  const friend = unitByType(api, TEAM_BLUE, "footman");
+  friend.col = 4;
+  friend.row = 0;
+  target.col = 7;
+  target.row = 0;
+  assert(api.canAttack(archer, target), "a shot is not stopped by a friend in the way");
+
+  /* And over an enemy in the way. */
+  const foe = enemies[1];
+  foe.col = 4;
+  foe.row = 0;
+  assert(api.canAttack(archer, target), "a shot is not stopped by an enemy in the way");
+
+  /* And over the forest corridor in row 1. */
+  archer.col = 2;
+  archer.row = 1;
+  target.col = 6;
+  target.row = 1;
+  assert(api.canAttack(archer, target), "a shot is not stopped by the forest in the way");
+
+  /* And over a rock formation: the ballista and the champion's bow obey
+   * the same rule. */
+  api.setActiveMap("high_ground");
+  archer.col = 2;
+  archer.row = 0;
+  target.col = 7;
+  target.row = 0;
+  assert(api.getTerrainAt(4, 0).id === "boulder", "the high ground map has a rock wall in row 0");
+  assert(api.canAttack(archer, target), "a shot is not stopped by a rock formation");
+
+  ballista.col = 0;
+  ballista.row = 0;
+  assert(api.canAttack(ballista, target), "the ballista reaches the whole field as well");
+  champion.col = 0;
+  champion.row = 0;
+  assert(api.canAttack(champion, target), "the champion's bow reaches the whole field as well");
+
+  /* Dead, friendly and imaginary targets are still refused. */
+  target.alive = false;
+  target.defeated = true;
+  assert(!api.canAttack(archer, target), "a dead enemy is not a target");
+  target.alive = true;
+  target.defeated = false;
+  const friend2 = unitByType(api, TEAM_BLUE, "footman");
+  assert(!api.canAttack(archer, friend2), "a friend is not a target");
+  const ghost = {
+    id: "ghost", team: api.TEAM_RED, type: "footman", alive: true, defeated: false,
+    col: 5, row: 1, hp: 10, maxHp: 10, def: 2, atk: 5, shot: null, melee: true
+  };
+  assert(!api.canAttack(archer, ghost), "a target that is not on the field is refused");
+  assert(api.getValidTargets(archer).every(t => t.id !== "ghost"),
+    "a target that is not on the field is never offered");
+}
+
+/* 8.4 THE MELEE GAP RULE
+ *
+ * A blade reaches a target it can walk up to. The lanes between the two
+ * decide: one open lane is a door, a closed wall of fighters is not.
+ */
+
+section("8.4. The melee gap rule");
+
+{
+  const { api } = newGame();
+  const blade = unitByType(api, TEAM_BLUE, "footman");
+  const foe = unitByType(api, TEAM_RED, "footman");
+  const allies = blueUnits(api).filter(u => u.id !== blade.id);
+  const foes = redUnits(api).filter(u => u.id !== foe.id);
+  /* The fighters that are used again later are kept aside before the field
+   * is cleared. */
+  const blueArcher = allies.find(u => u.type === "archer");
+  const redArcher = foes.find(u => u.type === "archer");
+  const redBlade = foes.find(u => u.type === "footman");
+
+  /* Everything that is not the pair under test is taken off the field, so
+   * that only the lanes of this test decide the outcome. */
+  for (const unit of [...allies, ...foes]) {
+    unit.alive = false;
+    unit.defeated = true;
+  }
+  blade.col = 3;
+  blade.row = 1;
+  foe.col = 5;
+  foe.row = 1;
+
+  /* Straight ahead, with nothing in between. */
+  assert(api.getStrikeKind(blade, blade, foe) === "melee", "a blade reaches the enemy straight ahead");
+  assert(api.canAttack(blade, foe), "a blade strikes straight ahead");
+
+  /* One lane to the side, diagonally forward. */
+  foe.col = 5;
+  foe.row = 2;
+  assert(api.canAttack(blade, foe), "a blade strikes a foe one lane to the side");
+
+  /* Behind the blade. */
+  foe.col = 2;
+  foe.row = 1;
+  assert(!api.canAttack(blade, foe), "a blade never strikes backwards");
+  foe.col = 2;
+  foe.row = 2;
+  assert(!api.canAttack(blade, foe), "a blade never strikes backwards, not even diagonally");
+
+  /* Beyond the reach of the blade. */
+  foe.col = 6;
+  foe.row = 1;
+  assert(!api.canAttack(blade, foe), "a blade does not reach three columns ahead");
+  blade.col = 3;
+  blade.row = 0;
+  foe.col = 4;
+  foe.row = 3;
+  assert(api.fieldDistance(blade, foe) > blade.range, "the target lies three lanes away");
+  assert(!api.canAttack(blade, foe), "a blade does not reach three lanes away");
+  blade.row = 1;
+
+  /* The second rank of the enemy is reached through a direct gap: the
+   * intermediate column is empty. */
+  const helper = foes[0];
+  helper.alive = true;
+  helper.defeated = false;
+  helper.col = 4;
+  helper.row = 1;
+  foe.col = 5;
+  foe.row = 1;
+  assert(api.canAttack(blade, foe), "a blade reaches the second rank through a direct gap");
+
+  /* The same attack is refused when the fighters in the way close every
+   * lane, and it is allowed again when one of them steps aside. */
+  const blockers = [helper, foes[1], foes[2]];
+  blockers.forEach((blocker, index) => {
+    blocker.alive = true;
+    blocker.defeated = false;
+    blocker.col = 4;
+    blocker.row = index;
+  });
+  assert(api.isShielded(blade, foe, api.TEAM_RED, api.TEAM_BLUE),
+    "a closed rank covers the target behind it");
+  assert(!api.canAttack(blade, foe), "a blade cannot cut through a closed rank");
+  blockers[1].col = 0;
+  blockers[1].row = 0;
+  assert(!api.isShielded(blade, foe, api.TEAM_RED, api.TEAM_BLUE),
+    "the cover is gone with the fighter that closed the lane");
+  assert(api.canAttack(blade, foe), "a blade reaches the second rank once a lane opens");
+
+  /* The terrain in between never turns a legal blow aside. */
+  blueArcher.alive = true;
+  blueArcher.defeated = false;
+  blueArcher.col = 2;
+  blueArcher.row = 1;
+  redArcher.alive = true;
+  redArcher.defeated = false;
+  redArcher.col = 4;
+  redArcher.row = 1;
+  assert(api.getTerrainAt(3, 1).id === "forest", "row 1 of the old frontier is a forest corridor");
+  assert(api.canAttack(blueArcher, redArcher), "the forest in the way does not turn a blow aside");
+
+  /* The red army answers under the same rules. */
+  redBlade.alive = true;
+  redBlade.defeated = false;
+  redBlade.col = 6;
+  redBlade.row = 1;
+  blueArcher.col = 4;
+  blueArcher.row = 1;
+  assert(api.canAttack(redBlade, blueArcher), "the crimson blade reaches the target in front of it");
+  blueArcher.col = 8;
+  assert(!api.canAttack(redBlade, blueArcher), "the crimson blade never strikes backwards");
 }
 
 /* 9. INVALID TARGET REJECTION */
@@ -642,6 +889,20 @@ section("23. Damage formula");
   assert(api.getStrikeKind(champion, champion, footman) === "melee", "the champion fights with its own weapon up close");
   assert(api.calculateDamage(champion, footman) === expected,
     `champion(${champion.atk}) vs footman(def${footman.def}) = ${expected}`);
+
+  /* The same plain formula holds for a shot, as long as neither the
+   * archer nor its target stands on covered or high ground. */
+  let openShot = null;
+  for (let col = 0; col < api.GRID_COLS && !openShot; col++) {
+    for (let row = 0; row < api.GRID_ROWS && !openShot; row++) {
+      if (api.getTerrainDefBonus({ col, row }) === 0 && api.getTerrainAimBonus({ col, row }) === 0) {
+        openShot = { col, row };
+      }
+    }
+  }
+  assert(!!openShot, "found open ground for the shot");
+  redChampion.col = openShot.col;
+  redChampion.row = openShot.row;
   const expected2 = archer.atk - Math.floor(redChampion.def / 2);
   assert(api.calculateDamage(archer, redChampion) === expected2,
     `archer(${archer.atk}) vs champion(def${redChampion.def}) = ${expected2}`);
@@ -657,7 +918,8 @@ section("23.1. The champion's bow");
   const target = unitByType(api, TEAM_RED, "footman");
 
   assert(!!champion.shot, "the champion carries a bow");
-  assert(champion.shot.range === 3, "the bow reaches three cells");
+  assert(api.getRangedReach(champion) === api.RANGED_REACH,
+    "the bow covers the whole field");
   assert(champion.shot.atk < champion.atk, "the bow hits softer than the champion's own blow");
 
   /* A blow at arm's length uses the champion's own strength. */
@@ -676,18 +938,19 @@ section("23.1. The champion's bow");
     `the arrow deals the bow's strength (${shot})`);
   assert(shot < melee, "the arrow hits softer than the blow");
 
-  /* The bow is not a licence to shoot across the map. */
-  target.col = 4; target.row = 2;
-  assert(!api.canAttack(champion, target), "the bow does not reach four cells");
-  assert(api.getValidTargets(champion).every(t => t.id !== target.id),
-    "a target beyond the bow is not offered");
+  /* The bow covers the whole field, so the champion shoots the far corner
+   * of the field without moving a step. */
+  target.col = api.GRID_COLS - 1; target.row = 0;
+  assert(api.canAttack(champion, target), "the bow reaches the far corner of the field");
+  assert(api.getValidTargets(champion).some(t => t.id === target.id),
+    "the far corner is offered as a legal target");
 
-  /* The arrow is stopped by the terrain like any other shot. */
+  /* A shot is not turned aside by the ground it crosses. */
   const archer = unitByType(api, TEAM_BLUE, "archer");
   archer.col = 2; archer.row = 1;
   const blocked = unitByType(api, TEAM_RED, "footman");
   blocked.col = 5; blocked.row = 1;
-  assert(!api.canAttack(archer, blocked), "a blocked shot is still refused for the archer");
+  assert(api.canAttack(archer, blocked), "a shot is not stopped by the ground it crosses");
 }
 
 /* 24. UNIT ROLES */
@@ -967,7 +1230,12 @@ section("31.1. The champion profits from high ground when it shoots");
   assert(raised === flat + 1, `the arrow gains the high ground bonus (${flat} -> ${raised})`);
 }
 
-/* 32. LINE OF SIGHT BLOCKING */
+/* 32. LINE OF SIGHT BLOCKING
+ *
+ * The ground still knows how to block the sight. The rule is kept for the
+ * reach of the champion's abilities; an ordinary shot is no longer turned
+ * aside by the ground it crosses.
+ */
 
 section("32. Line of sight blocking");
 
@@ -976,7 +1244,7 @@ section("32. Line of sight blocking");
   const archer = unitByType(api, TEAM_BLUE, "archer");
   const target = unitByType(api, TEAM_RED, "footman");
 
-  /* Row 1 is a forest corridor, so a shot along it must be blocked. */
+  /* Row 1 is a forest corridor, so a sight line along it is blocked. */
   archer.col = 2; archer.row = 1;
   target.col = 5; target.row = 1;
   assert(api.fieldDistance(archer, target) === archer.range, "the target sits at the edge of the range");
@@ -1021,9 +1289,9 @@ section("32.1. A diagonal shot is traced along the diagonal");
     "a clear straight shot of the same length is not blocked");
 }
 
-/* 33. RANGED ATTACK REJECTED THROUGH BLOCKING TERRAIN */
+/* 33. A SHOT IS NOT TURNED ASIDE BY THE GROUND */
 
-section("33. Ranged attack rejected through blocking terrain");
+section("33. A shot is not turned aside by the ground");
 
 {
   const { api } = startedGame();
@@ -1032,14 +1300,19 @@ section("33. Ranged attack rejected through blocking terrain");
   archer.col = 2; archer.row = 1;
   target.col = 5; target.row = 1;
 
-  assert(api.getValidTargets(archer).every(t => t.id !== target.id),
-    "a blocked target is not offered as a legal target");
-  assert(!api.canAttack(archer, target), "a blocked shot cannot be attacked with");
-
-  archer.col = 2; archer.row = 0;
-  target.col = 5; target.row = 0;
+  /* The forest corridor in row 1 does not stop the shot any more. */
   assert(api.getValidTargets(archer).some(t => t.id === target.id),
-    "the same target is legal from a clear position");
+    "a target behind the forest is still a legal target");
+  assert(api.canAttack(archer, target), "a shot is not stopped by the forest in the way");
+
+  /* The same holds for a target that stands behind the front rank of the
+   * other army. */
+  const front = unitByType(api, TEAM_RED, "footman");
+  front.col = 4;
+  front.row = 1;
+  target.col = 6;
+  target.row = 1;
+  assert(api.canAttack(archer, target), "a shot is not stopped by the front rank in the way");
 }
 
 /* 34. PLAYER AND AI USE THE SAME TERRAIN RULES */
@@ -1417,8 +1690,15 @@ section("48. AI legality with terrain");
       } else if (action.kind === "attack") {
         assert(action.target.team !== unit.team, "the AI never attacks its own units");
         assert(action.target.alive && !action.target.defeated, "the AI never attacks a defeated unit");
-        assert(api.fieldDistance(unit, action.target) <= unit.range, "the AI never attacks out of range");
-        assert(api.hasLineOfSight(unit, action.target, unit.range), "the AI never attacks through blocking terrain");
+        /* The AI may only use the attacks the player may use. A bow reaches
+         * the whole field; a blade only reaches what it can walk up to. */
+        assert(api.getValidTargets(unit).some(t => t.id === action.target.id),
+          "the AI never attacks a target the rules refuse");
+        const strike = api.getStrikeKind(unit, unit, action.target);
+        if (strike === "melee") {
+          assert(api.fieldDistance(unit, action.target) <= unit.range,
+            "the AI never attacks out of the reach of its own weapon");
+        }
       }
     }
   }
@@ -1613,8 +1893,7 @@ section("55. Integration — a full battle reaches a conclusion");
     playTeamTurn(TEAM_BLUE);
     if (api.checkBattleEnd()) { ended = true; break; }
 
-    api.endPlayerTurn();
-    api.runEnemyTurnInstant();
+    api.endPlayerTurnInstant();
     if (api.checkBattleEnd()) { ended = true; break; }
 
     rounds++;
@@ -1820,7 +2099,7 @@ section("62. The seeded randomness");
     game.api.setCombatOptions({ variance: 0, jitter });
     game.api.startBattle();
     game.api.runTurnInstantForTeam(TEAM_BLUE);
-    game.api.runEnemyTurnInstant();
+    game.api.endPlayerTurnInstant();
     return game.api.getTeamUnits(TEAM_BLUE)
       .map(u => `${u.id}:${u.col},${u.row},${u.hp}`).join(" ");
   };
@@ -2052,7 +2331,7 @@ function battleToTheLimit(api, health) {
     played++;
     api.runTurnInstantForTeam(TEAM_BLUE);
     if (api.checkBattleEnd()) break;
-    api.runEnemyTurnInstant();
+    api.endPlayerTurnInstant();
     if (api.checkBattleEnd()) break;
   }
   return played;
@@ -2070,7 +2349,7 @@ function battleToTheLastRound(api, health) {
     played++;
     api.runTurnInstantForTeam(TEAM_BLUE);
     if (api.checkBattleEnd()) break;
-    api.runEnemyTurnInstant();
+    api.endPlayerTurnInstant();
     if (api.checkBattleEnd()) break;
   }
   return played;
@@ -2121,7 +2400,7 @@ section("71. Sudden death");
     played++;
     api.runTurnInstantForTeam(TEAM_BLUE);
     if (api.checkBattleEnd()) break;
-    api.runEnemyTurnInstant();
+    api.endPlayerTurnInstant();
     if (api.checkBattleEnd()) break;
   }
 
@@ -2175,16 +2454,20 @@ section("72. The round limit is settled on the health left");
   assert(api.getState().roundNumber === 30, "the battle reaches the last round");
 
   /* One fighter per side, the same health, and too far apart to reach each
-   * other: the last round cannot change the balance of the field. */
+   * other: the last round cannot change the balance of the field. Both of
+   * them fight with their own hands, because a bow reaches the whole
+   * field. */
   const blue = blueUnits(api);
   const red = redUnits(api);
-  for (const u of blue.slice(1)) { u.alive = false; u.defeated = true; }
-  for (const u of red.slice(1)) { u.alive = false; u.defeated = true; }
-  blue[0].hp = 100; blue[0].col = 0; blue[0].row = 0;
-  red[0].hp = 100; red[0].col = 9; red[0].row = 3;
+  const blueBlade = blue.find(u => u.type === "footman");
+  const redBlade = red.find(u => u.type === "footman");
+  for (const u of blue) { if (u !== blueBlade) { u.alive = false; u.defeated = true; } }
+  for (const u of red) { if (u !== redBlade) { u.alive = false; u.defeated = true; } }
+  blueBlade.hp = 100; blueBlade.col = 0; blueBlade.row = 0;
+  redBlade.hp = 100; redBlade.col = 9; redBlade.row = 3;
 
   api.runTurnInstantForTeam(TEAM_BLUE);
-  if (!api.checkBattleEnd()) api.runEnemyTurnInstant();
+  if (!api.checkBattleEnd()) api.endPlayerTurnInstant();
 
   assert(api.getState().gameState === "ended", "the even battle ends at the limit");
   assert(api.getTotalRemainingHp(TEAM_BLUE) === api.getTotalRemainingHp(TEAM_RED),
@@ -2216,7 +2499,7 @@ section("72. The round limit is settled on the health left");
     played++;
     api.runTurnInstantForTeam(TEAM_BLUE);
     if (api.checkBattleEnd()) break;
-    api.runEnemyTurnInstant();
+    api.endPlayerTurnInstant();
     if (api.checkBattleEnd()) break;
   }
 
@@ -2501,6 +2784,70 @@ section("80. A fight that reached the limit says so");
     assert(doc.getElementById("report-decided").textContent === "ROUND LIMIT",
       "the report names the round limit as the decider");
   }
+}
+
+/* 81. THE LEAD ALTERNATES */
+
+section("81. The lead alternates");
+
+{
+  const { api } = newGame();
+  const countActions = team => {
+    const actions = api.getBattleLedger().actions[team];
+    return actions.attack + actions.move + actions.ability;
+  };
+
+  api.startBattle();
+
+  assert(api.getState().roundNumber === 1, "the battle opens in the first round");
+  assert(api.roundLeader() === TEAM_BLUE, "the azure legion opens the first round");
+  assert(api.getState().currentTurn === "player", "the azure legion plays the first turn");
+
+  api.runTurnInstantForTeam(TEAM_BLUE);
+  const blueActions = countActions("blue");
+  assert(blueActions > 0, "the azure legion has played its first turn");
+
+  api.endPlayerTurnInstant();
+
+  assert(api.getState().roundNumber === 2, "the round counter moved on by one");
+  assert(api.roundLeader() === TEAM_RED, "the crimson legion opens the second round");
+  assert(countActions("red") > 0, "the crimson legion has opened the second round");
+  assert(countActions("blue") === blueActions,
+    "the azure legion has not played in the second round yet");
+
+  /* The lead keeps alternating, and every round is counted once. */
+  for (let i = 0; i < 3; i++) {
+    api.runTurnInstantForTeam(TEAM_BLUE);
+    api.endPlayerTurnInstant();
+    if (api.checkBattleEnd()) break;
+  }
+  assert(api.getState().roundNumber === 5, "four rounds were fought and counted");
+  assert(api.roundLeader() === TEAM_BLUE, "the azure legion opens the fifth round");
+}
+
+{
+  /* A fight that reaches the limit still counts every round once, and the
+   * lead still alternates all the way to the last round. */
+  const { api } = newGame();
+  for (const u of api.getUnits().values()) {
+    u.hp = 200000;
+    u.maxHp = 200000;
+  }
+  api.startBattle();
+
+  let played = 0;
+  while (played < 200 && api.getState().roundNumber < api.BATTLE_ROUND_LIMIT) {
+    played++;
+    api.runTurnInstantForTeam(TEAM_BLUE);
+    if (api.checkBattleEnd()) break;
+    api.endPlayerTurnInstant();
+    if (api.checkBattleEnd()) break;
+  }
+
+  assert(api.getState().roundNumber === api.BATTLE_ROUND_LIMIT,
+    "the last round is reached with the lead still alternating");
+  assert(played === api.BATTLE_ROUND_LIMIT - 1,
+    `every round before the last was played once (got ${played})`);
 }
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);

@@ -39,12 +39,33 @@ class StubClassList {
   sync() { this.el._className = [...this.set].join(" "); }
 }
 
+/* The inline style of an element. The browser stores the custom properties
+ * in the same bag as the ordinary ones, so the stub does the same. */
+class StubStyle {
+  constructor() {
+    Object.defineProperty(this, "_props", { value: {}, enumerable: false, writable: true });
+  }
+  setProperty(name, value) {
+    this._props[name] = String(value);
+    this[name] = String(value);
+  }
+  getPropertyValue(name) {
+    return this._props[name] !== undefined ? this._props[name] : "";
+  }
+  removeProperty(name) {
+    const value = this.getPropertyValue(name);
+    delete this._props[name];
+    delete this[name];
+    return value;
+  }
+}
+
 class StubElement {
   constructor(tag) {
     this.tagName = (tag || "div").toUpperCase();
     this._className = "";
     this.classList = new StubClassList(this);
-    this.style = {};
+    this.style = new StubStyle();
     this.dataset = {};
     this.children = [];
     this.childNodes = [];

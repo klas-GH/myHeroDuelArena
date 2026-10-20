@@ -1,4 +1,4 @@
-/* DOM SMOKE TEST — myHeroDuelArena v1.7.0
+/* DOM SMOKE TEST — myHeroDuelArena v1.7.1
  * Run: node smoke_quick.js
  *
  * Verifies the real game.js against a minimal DOM stub: every element id
@@ -115,8 +115,16 @@ if (loaded.error === null) {
   const everyUnitHasSvg = blue.children.every(c => c.querySelector(".unit-silhouette"));
   assert(everyUnitHasSvg, "every unit element contains a silhouette");
 
-  const everyUnitHasHealth = blue.children.every(c => c.querySelector(".unit-health"));
-  assert(everyUnitHasHealth, "every unit element contains a health bar");
+  /* The name and the health bar live in the overlay layer above the
+   * pictures, so that a large figure never hides them. */
+  const overlay = doc.getElementById("overlay-layer");
+  assert(!!overlay, "the overlay layer exists");
+  const overlayIds = new Set([...overlay.children].map(c => c.dataset.id));
+  assert(overlayIds.size === 14, "every unit has an overlay above the pictures");
+  const everyOverlayHasHealth = [...overlay.children].every(c => c.querySelector(".unit-health"));
+  assert(everyOverlayHasHealth, "every unit overlay contains a health bar");
+  const everyOverlayHasName = [...overlay.children].every(c => c.querySelector(".unit-label"));
+  assert(everyOverlayHasName, "every unit overlay contains a name");
 
   const positions = blue.children.map(c => c.style.left);
   assert(positions.every(p => typeof p === "string" && p.endsWith("%")), "units are positioned with percentage coordinates");

@@ -5,7 +5,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#17251c">
-  <title>myHeroDuelArena v1.7.0</title>
+  <title>myHeroDuelArena v1.7.1</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
@@ -15,7 +15,7 @@
 
     <header class="topbar">
       <div class="game-title">MY HERO DUEL ARENA</div>
-      <div class="version">v1.7.0 — SEVEN TROOPS, LARGE ARTWORK &amp; THE FRONT LINE</div>
+      <div class="version">v1.7.1 — FIELD-WIDE BOWS, FORWARD BLADES &amp; THE PANORAMIC CASTLE</div>
     </header>
 
     <section id="setup-panel" class="setup-panel" aria-label="Battlefield and difficulty selection">
@@ -45,7 +45,17 @@
 
       <div class="mountains"></div>
 
-      <div class="castle">
+      <div class="castle" aria-hidden="true">
+        <div class="castle-wall">
+          <div class="battlements"></div>
+          <div class="wall-window wall-window-left"></div>
+          <div class="wall-window wall-window-right"></div>
+          <div class="gate"></div>
+        </div>
+        <div class="keep">
+          <div class="keep-roof"></div>
+          <div class="keep-banner"></div>
+        </div>
         <div class="tower tower-left">
           <div class="roof"></div>
           <div class="window"></div>
@@ -53,12 +63,6 @@
         <div class="tower tower-right">
           <div class="roof"></div>
           <div class="window"></div>
-        </div>
-        <div class="castle-wall">
-          <div class="battlements"></div>
-          <div class="gate"></div>
-          <div class="wall-window window-left"></div>
-          <div class="wall-window window-right"></div>
         </div>
       </div>
 
@@ -80,6 +84,8 @@
       <div class="units-layer" id="blue-units"></div>
       <div class="units-layer" id="red-units"></div>
 
+      <div class="overlay-layer" id="overlay-layer"></div>
+
       <div class="marker-layer" id="move-indicators"></div>
       <div class="marker-layer" id="attack-indicators"></div>
       <div class="center-line"></div>
@@ -87,55 +93,6 @@
       <div id="level-up-banner" class="level-up-banner hidden">
         <span id="level-up-text">CHAMPION LEVEL 2</span>
       </div>
-    </section>
-
-    <footer class="bottom-panel">
-      <div id="turn-banner" class="turn-banner hidden">
-        <span id="turn-text">PLAYER TURN</span>
-        <span id="round-text">ROUND 1</span>
-      </div>
-
-      <div id="progression-strip" class="progression-strip">
-        <div class="prog-level-badge">LV <span id="prog-level">1</span></div>
-        <div class="prog-xp-block">
-          <div class="prog-xp-bar"><div id="prog-xp-fill" class="prog-xp-fill"></div></div>
-          <div id="prog-xp-text" class="prog-xp-text">0 / 100 XP</div>
-        </div>
-        <div class="prog-points-badge">AP <span id="prog-points">1</span></div>
-        <button id="reset-progress-button" class="reset-progress-button" type="button">RESET</button>
-      </div>
-
-      <div id="status">THE ARMIES AWAIT YOUR COMMAND</div>
-      <div id="combat-log" class="combat-log"></div>
-      <button id="start-button">ENTER THE ARENA</button>
-      <button id="spectate-button" class="spectate-button" type="button"
-              title="Watch the AI fight the AI. A spectator battle pays no rewards.">SPECTATE — AI vs AI</button>
-
-      <div id="selection-info" class="selection-info hidden">
-        <div class="sel-label">SELECTED</div>
-        <div id="selected-name" class="sel-name">--</div>
-        <div id="selected-stats" class="sel-stats"></div>
-        <div class="health-bar-wrap">
-          <div class="health-bar"><div id="selected-health" class="health-fill"></div></div>
-        </div>
-        <div id="action-hints" class="action-hints"></div>
-      </div>
-
-      <div id="ability-button-wrap" class="ability-wrap hidden">
-        <div id="ability-actions" class="ability-actions"></div>
-      </div>
-
-      <div id="champion-panel" class="champion-panel hidden">
-        <div class="champ-head">
-          <span class="champ-title">AZURE CHAMPION</span>
-          <span id="champ-level" class="champ-level">LEVEL 1</span>
-        </div>
-        <div id="champ-stats" class="champ-stats"></div>
-        <div id="ability-list" class="ability-list"></div>
-      </div>
-
-      <button id="end-turn-button" class="end-turn-button hidden">END TURN</button>
-      <div id="battle-result" class="battle-result hidden"></div>
 
       <div id="battle-report" class="battle-report hidden">
         <div class="report-head">
@@ -185,8 +142,72 @@
         <div id="report-breakdown" class="report-breakdown"></div>
         <div id="report-level" class="report-level"></div>
       </div>
+    </section>
 
-      <div class="footer-note">A DUEL FOR HONOR AND GLORY</div>
+    <footer class="bottom-panel">
+      <div class="hud-bar">
+        <div class="hud-cell hud-turn">
+          <div id="turn-banner" class="turn-banner hidden">
+            <span id="turn-text">PLAYER TURN</span>
+            <span id="round-text">ROUND 1</span>
+          </div>
+          <div id="status">THE ARMIES AWAIT YOUR COMMAND</div>
+        </div>
+
+        <div class="hud-cell hud-selection">
+          <div id="selection-info" class="selection-info hidden">
+            <div class="sel-head">
+              <span class="sel-label">SELECTED</span>
+              <span id="selected-name" class="sel-name">--</span>
+            </div>
+            <div id="selected-stats" class="sel-stats"></div>
+            <div class="health-bar-wrap">
+              <div class="health-bar"><div id="selected-health" class="health-fill"></div></div>
+            </div>
+            <div id="action-hints" class="action-hints"></div>
+          </div>
+        </div>
+
+        <div class="hud-cell hud-abilities">
+          <div id="ability-button-wrap" class="ability-wrap hidden">
+            <div id="ability-actions" class="ability-actions"></div>
+          </div>
+
+          <div id="champion-panel" class="champion-panel hidden">
+            <div class="champ-head">
+              <span class="champ-title">AZURE CHAMPION</span>
+              <span id="champ-level" class="champ-level">LEVEL 1</span>
+            </div>
+            <div id="champ-stats" class="champ-stats"></div>
+            <div id="ability-list" class="ability-list"></div>
+          </div>
+        </div>
+
+        <div class="hud-cell hud-progression">
+          <div id="progression-strip" class="progression-strip">
+            <div class="prog-level-badge">LV <span id="prog-level">1</span></div>
+            <div class="prog-xp-block">
+              <div class="prog-xp-bar"><div id="prog-xp-fill" class="prog-xp-fill"></div></div>
+              <div id="prog-xp-text" class="prog-xp-text">0 / 100 XP</div>
+            </div>
+            <div class="prog-points-badge">AP <span id="prog-points">1</span></div>
+            <button id="reset-progress-button" class="reset-progress-button" type="button">RESET</button>
+          </div>
+        </div>
+
+        <div class="hud-cell hud-log">
+          <div id="combat-log" class="combat-log"></div>
+        </div>
+
+        <div class="hud-cell hud-actions">
+          <button id="start-button">ENTER THE ARENA</button>
+          <button id="spectate-button" class="spectate-button" type="button"
+                  title="Watch the AI fight the AI. A spectator battle pays no rewards.">SPECTATE — AI vs AI</button>
+          <button id="end-turn-button" class="end-turn-button hidden">END TURN</button>
+        </div>
+      </div>
+
+      <div id="battle-result" class="battle-result hidden"></div>
     </footer>
 
   </main>

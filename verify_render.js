@@ -1,4 +1,4 @@
-/* RENDER VERIFICATION — myHeroDuelArena v1.7.0
+/* RENDER VERIFICATION — myHeroDuelArena v1.7.1
  * Run: node verify_render.js
  *
  * Drives the real page in headless Edge via the DevTools protocol and checks
@@ -416,19 +416,23 @@ async function main() {
           if (overlaps) labelClash++;
         }
 
-        /* The name and the health bar are drawn over the troop, so they
-         * have to stay on the field as well. */
-        for (const part of [u.querySelector('.unit-label'), u.querySelector('.unit-health')]) {
-          if (!part) { overlaysOutside++; continue; }
-          const p = part.getBoundingClientRect();
-          if (p.top < fr.top - 1 || p.bottom > fr.bottom + 1) overlaysOutside++;
-        }
-
+        /* The name and the health bar are drawn over the troop, in the
+         * overlay layer, so they have to stay on the field as well. */
         const layer = u.closest('.units-layer');
         const lr = layer.getBoundingClientRect();
         const centre = r.top + r.height / 2;
         const key = Math.round(((centre - lr.top) / lr.height) * 4);
         rows.set(key, (rows.get(key) || 0) + 1);
+      }
+
+      /* The name and the health bar of every troop live in the overlay
+       * layer above the pictures, and they have to stay on the field. */
+      for (const o of document.querySelectorAll('.unit-overlay')) {
+        for (const part of [o.querySelector('.unit-label'), o.querySelector('.unit-health')]) {
+          if (!part) { overlaysOutside++; continue; }
+          const p = part.getBoundingClientRect();
+          if (p.top < fr.top - 1 || p.bottom > fr.bottom + 1) overlaysOutside++;
+        }
       }
       return {
         rowKeys: [...rows.keys()].sort((a,b)=>a-b),
@@ -721,13 +725,13 @@ async function main() {
         shot,
         melee,
         bowAtk: champ.shot ? champ.shot.atk : null,
-        bowRange: champ.shot ? champ.shot.range : null,
+        bowRange: api.getRangedReach(champ) === api.RANGED_REACH ? 'field' : 'short',
         panel: document.getElementById('champ-stats').textContent,
         selected: document.getElementById('selected-stats').textContent
       };
     })()`);
 
-    assert(weapons.bowRange === 3, `the champion carries a bow that reaches ${weapons.bowRange} cells`);
+    assert(weapons.bowRange === 'field', `the champion carries a bow that covers the ${weapons.bowRange}`);
     assert(weapons.canShoot === true, "the champion can loose an arrow at three cells");
     assert(weapons.shot < weapons.melee, `the arrow hits softer than the blow (${weapons.shot} < ${weapons.melee})`);
     assert(/BOW/.test(weapons.panel), `the champion panel shows the bow (${weapons.panel})`);
@@ -847,6 +851,26 @@ async function main() {
             const top = bottom - h;
             return left >= fr.left - 1 && right <= fr.right + 1 && top >= fr.top - 1 && bottom <= fr.bottom + 1;
           }),
+          /* The same check, but it names the pictures that stepped out. */
+          pictureOffenders: units.map(u => {
+            const img = u.querySelector('.unit-image');
+            const r = img.getBoundingClientRect();
+            const scale = Math.min(r.width / (img.naturalWidth || 1), r.height / (img.naturalHeight || 1));
+            const w = (img.naturalWidth || 1) * scale;
+            const h = (img.naturalHeight || 1) * scale;
+            const left = r.left + (r.width - w) / 2;
+            const right = left + w;
+            const bottom = r.bottom;
+            const top = bottom - h;
+            const over = {
+              left: +(fr.left - left).toFixed(1),
+              right: +(right - fr.right).toFixed(1),
+              top: +(fr.top - top).toFixed(1),
+              bottom: +(bottom - fr.bottom).toFixed(1)
+            };
+            if (over.left <= 1 && over.right <= 1 && over.top <= 1 && over.bottom <= 1) return null;
+            return { id: u.id, cls: u.className, over };
+          }).filter(Boolean),
           field: { left: fr.left, right: fr.right, top: fr.top, bottom: fr.bottom, width: fr.width, height: fr.height },
           smallestUnit: Math.min(...units.map(u => {
             const s = u.querySelector('.unit-art').getBoundingClientRect();
@@ -861,14 +885,21 @@ async function main() {
              * measurement is read against the field itself. */
             return c.getBoundingClientRect().width / layer.getBoundingClientRect().width;
           })(),
-          overlaysInsideField: units.every(u => {
-            for (const part of [u.querySelector('.unit-label'), u.querySelector('.unit-health')]) {
-              if (!part) continue;
-              const p = part.getBoundingClientRect();
-              if (p.top < fr.top - 1 || p.bottom > fr.bottom + 1) return false;
-            }
-            return true;
-          }),
+          overlaysInsideField: (() => {
+            /* The name and the health bar of a troop are drawn in the
+             * overlay layer above the pictures, so they are measured
+             * there. */
+            const overlays = [...document.querySelectorAll('.unit-overlay')];
+            if (!overlays.length) return false;
+            return overlays.every(o => {
+              for (const part of [o.querySelector('.unit-label'), o.querySelector('.unit-health')]) {
+                if (!part) continue;
+                const p = part.getBoundingClientRect();
+                if (p.top < fr.top - 1 || p.bottom > fr.bottom + 1) return false;
+              }
+              return true;
+            });
+          })(),
           panelHeight: pr.height,
           panelRight: pr.right,
           cards
@@ -877,7 +908,8 @@ async function main() {
 
       assert(layout.unitCount === 14, `[${vp.name}] all units are rendered (${layout.unitCount})`);
       assert(layout.unitsInsideField === true, `[${vp.name}] every unit keeps its anchor on the battlefield`);
-      assert(layout.picturesInsideField === true, `[${vp.name}] every troop picture stays inside the battlefield`);
+      assert(layout.picturesInsideField === true,
+        `[${vp.name}] every troop picture stays inside the battlefield (${JSON.stringify(layout.pictureOffenders)})`);
       assert(layout.docScrollWidth <= layout.docClientWidth + 1,
         `[${vp.name}] the page does not scroll sideways (${layout.docScrollWidth} > ${layout.docClientWidth})`);
       assert(layout.controls.filter(c => c.visible).every(c => c.right <= layout.docClientWidth + 1),

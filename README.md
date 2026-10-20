@@ -12,6 +12,116 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.7.1 — the battlefield, the reach of the weapons and the lead
+
+| Area | Summary |
+| --- | --- |
+| The castle | The header is a shallow panorama now: a wide castle banner, up to 760 pixels across and 48 pixels tall, with the two towers, the wall and the gate, painted over a sky that fades into the landscape below. |
+| The command bar | The strip along the bottom of the screen was rebuilt. The turn, the actions, the selection, the abilities, the champion and the log each sit in their own cell, and on a narrow screen the cells fold into short rows instead of squeezing the buttons. |
+| The pictures are bigger | Every troop is drawn about three times as large as in v1.6.0, measured against the battlefield rather than against the screen, so the army keeps its proportions on a phone. The champion is drawn a fifth larger than the rank. |
+| The champion | The champion is a fantasy knight now: a sword in his hand, a bow on his back, a tabard over the armour and a heraldic cloak behind him. The azure knight and the crimson knight are two different pictures, not one picture in two colours. |
+| The atmosphere | The field is a landscape now. The ground fades from a warm horizon to a dark foreground, and the ground behind the castle carries the same light. |
+| A bow covers the field | A bow no longer asks how far away the enemy is, what stands in the way, or which rank the enemy is in. It lands on any living enemy on the field. |
+| A blade cuts forward | A blade still only cuts forward and never backwards, but the rank in front only turns a blow aside when it closes every lane. One open lane is a way in. |
+| The lead alternates | The azure legion opens the first round, the crimson legion opens the second, and so on. A bow that covers the whole field would otherwise hand the side that acts first a free round of shooting, and the order of play would decide the battle instead of the armies. |
+| The lines meet sooner | Both armies now stand one column closer to each other, so the fight starts before the armies have finished marching. |
+
+### The panorama and the command bar
+
+The castle is no longer a picture in the corner of a header: it is a shallow
+panorama that stretches across the top of the page, with the sky fading down
+into the battlefield. The ground of the battlefield is a landscape of its own
+now — a warm horizon at the back, a dark foreground at the front — and the
+two pictures are lit from the same side, so the page reads as one scene.
+
+The command bar was rebuilt for the same reason. The old strip squeezed the
+turn, the buttons, the selection, the abilities and the log into one line, and
+on a phone the buttons became unreadable. Every part of it now has its own
+cell, the cells wrap into short rows on a narrow screen, and the buttons keep
+their full size at every width.
+
+### The bow and the blade
+
+The two weapons were kept apart in v1.7.0, and in v1.7.1 the gap between them
+grew:
+
+- **A bow** covers the whole field. It does not ask how far away the enemy is,
+  it does not ask what stands in the way, and it does not ask which rank the
+  enemy is in. Every living enemy on the field is a legal target, and the
+  front rank of the other army protects nothing from an arrow.
+- **A blade** only cuts forward, two cells, and never backwards. The rank in
+  front of the target turns the blow aside only when it closes every lane
+  between the attacker and the target. One open lane is a way in, so a gap in
+  a line is a real opening — and a line that stays closed is a real wall.
+
+Both armies obey the same two rules, and the AI plays by them too.
+
+### The lead alternates
+
+A bow that covers the whole field changes one thing that the game cannot
+afford to leave alone: the side that acts first in a round gets a free round of
+shooting, and with seven fighters on each side that is enough to decide the
+battle before the other army has moved. Measured against the shipped rules,
+the side that opened a round won 90 % of the battles and the side that
+answered won 10 % — a fight decided by the order of play rather than by the
+armies.
+
+So the lead alternates. The azure legion opens the first round, the crimson
+legion opens the second, the azure legion opens the third, and so on to the
+last round. A round is closed when the legion that answered has finished its
+turn, so every round is one move for each side, whoever opened it. The
+spectator show follows the same rule, so the show is as even as the fight.
+
+### The measured balance
+
+`node balance.js --seeds=40` (40 seeds per configuration, damage scatter 0.08,
+AI noise 2), 480 battles, engine v1.7.1:
+
+| Difficulty | Battlefield | Enemy wins | Win rate | Rounds | Damage | XP |
+| --- | --- | --- | --- | --- | --- | --- |
+| Easy | Old Frontier | 1 / 40 | 3 % | 10.6 | 389 | 359 |
+| Easy | Forest March | 1 / 40 | 3 % | 11.0 | 387 | 358 |
+| Easy | Broken Pass | 6 / 40 | 15 % | 10.8 | 384 | 339 |
+| Easy | High Ground | 2 / 40 | 5 % | 9.2 | 388 | 355 |
+| Normal | Old Frontier | 22 / 40 | 55 % | 12.3 | 359 | 272 |
+| Normal | Forest March | 32 / 40 | 80 % | 11.9 | 338 | 227 |
+| Normal | Broken Pass | 21 / 40 | 53 % | 11.5 | 363 | 280 |
+| Normal | High Ground | 22 / 40 | 55 % | 10.9 | 354 | 269 |
+| Hard | Old Frontier | 40 / 40 | 100 % | 9.5 | 283 | 172 |
+| Hard | Forest March | 38 / 40 | 95 % | 9.3 | 275 | 173 |
+| Hard | Broken Pass | 22 / 40 | 55 % | 9.4 | 348 | 264 |
+| Hard | High Ground | 29 / 40 | 73 % | 10.0 | 338 | 235 |
+
+The same seeds, the same maps and the same harness against the two releases
+before it:
+
+| Difficulty | v1.6.0 enemy wins | v1.7.0 enemy wins | v1.7.1 enemy wins | Change |
+| --- | --- | --- | --- | --- |
+| Easy | 6.3 % | 16.3 % | 6.3 % | −10.0 points |
+| Normal | 51.3 % | 62.3 % | 60.6 % | −1.7 points |
+| Hard | 90.0 % | 98.3 % | 80.6 % | −17.7 points |
+| All | 49.2 % | 59.0 % | 49.2 % | −9.8 points |
+
+What the numbers say:
+
+- The ladder is back where it belongs. Normal is a real fight at 61 % enemy
+  wins, Easy is a walkover at 6 % and Hard is a hard fight at 81 % — and Hard
+  is no longer a wall, which is what v1.7.0's 98 % had become.
+- The rules of v1.7.1 are the reason. A bow that covers the whole field is
+  worth a great deal to the side that moves first, and the alternating lead
+  takes that bonus back. The overall rate lands on 49.2 %, the same figure
+  v1.6.0 measured.
+- The AI had to learn the new rules as well. With a bow that answers from
+  anywhere, the old trade-off turned every archer into a statue: the answer
+  to a shot was worth more than the shot, so the archers stood still and let
+  the fight be decided by the blades. A blow is now weighed against the two
+  strongest answers it would earn, which is what a fighter actually faces.
+- The Broken Pass is still the hardest ground for the azure legion, and on
+  Hard it is the only field the enemy does not take every time.
+- The deterministic run (`node balance.js --deterministic --seeds=20`, 240
+  battles) gives the crimson legion 50 % of the battles, and the average
+  battle lasts 10.9 rounds.
+
 ## v1.7.0 — the seven troops and the front line
 
 | Area | Summary |
@@ -224,6 +334,9 @@ no randomness.
 
 ### Measured results
 
+The current measurement is the v1.7.1 one, in the v1.7.1 section above. The
+numbers below are the v1.7.0 measurement, kept as the history of the ladder.
+
 `node balance.js --seeds=40` (40 seeds per configuration, damage scatter 0.08,
 AI noise 2), 480 battles, engine v1.7.0:
 
@@ -355,8 +468,8 @@ and a gap in a wall is a real gap.
 ## The rules
 
 **The field** is 10 columns × 4 rows. Column 0 is the far left, row 0 is the
-lowest row on screen. Blue deploys in columns 1 and 2, red deploys in columns
-7 and 8, and the columns between them are neutral ground.
+lowest row on screen. Blue deploys in columns 2 and 3, red deploys in columns
+6 and 7, and the columns between them are neutral ground.
 
 **The armies** are seven fighters: a champion, two archers, a ballista, two
 foot soldiers and a chevalier. The front rank — the foot soldiers and the
@@ -367,20 +480,22 @@ mirrored around the centre line so neither side gets better ground.
 
 **A turn** gives every living unit one move and one attack, in any order.
 Ending the turn hands the field to the AI, which plays its whole turn and
-returns control.
+returns control. The lead alternates from round to round: the azure legion
+opens the first round, the crimson legion opens the second, and a round is
+closed when the legion that answered has finished its turn.
 
 **Distance** is octagonal. The longest axis decides, so a cell one column
 and one row away is one step away. Movement, melee reach, weapon range and
 ability radii all use that one rule.
 
 **Attacks** come in two kinds. A bow — the archer's, the ballista's and the
-champion's — reaches as far as its range says and lands on any enemy inside
-it, as long as nothing that blocks sight stands in the way; forest and rock
-formations block it, so a unit standing in cover has to be flanked. A blade —
-the foot soldier's, the chevalier's and the champion's — only cuts forward, it
-reaches two cells, it never cuts backwards, and it cannot cut through the rank
-in front: a defender standing directly or diagonally in front of the target
-turns the blow aside. A bow is never turned aside by the front rank.
+champion's — covers the whole field: it lands on any living enemy on the
+field, and neither the distance, nor the ground in between, nor the rank the
+enemy stands in, nor the rank that stands in front of it turns the shot
+aside. A blade — the foot soldier's, the chevalier's and the champion's —
+only cuts forward, it reaches two cells, it never cuts backwards, and the
+rank in front of the target only turns the blow aside when it closes every
+lane between the two: one open lane is a way in.
 
 **The pictures** on the field are the troops themselves: every fighter is
 drawn as a large picture in the colour of its army. The picture always stands
@@ -464,5 +579,5 @@ synthetic DOM events skip the hit test, and that is exactly how the selection
 bug of v1.2.0 survived the earlier suites.
 
 The suites expose their results as `=== Results: N passed, M failed ===` and
-exit with a non-zero status when something fails. The current counts are 618
-rule assertions, 168 DOM assertions and 171 render assertions.
+exit with a non-zero status when something fails. The current counts are 784
+rule assertions, 171 DOM assertions and 170 render assertions.

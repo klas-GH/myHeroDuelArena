@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the large fantasy troop artwork for myHeroDuelArena v1.7.0.
+"""Generate the large fantasy troop artwork for myHeroDuelArena v1.7.1.
 
 The battlefield used to show small icon-like silhouettes. This script draws
 the five troop types of the game as large, readable illustrations in the
@@ -262,6 +262,48 @@ def draw_shield_kite(sheet, team, cx, top, width, height):
                outline=OUTLINE, ow=3)
 
 
+def draw_greave(sheet, x, y_top, y_bottom, width=34, lean=0.0):
+    """An armoured lower leg: a knee cop, a greave and a sabaton."""
+    half = width / 2
+    bottom = y_bottom + lean
+    sheet.poly([
+        (x - half, y_top), (x + half, y_top),
+        (x + half - 4 + lean, bottom - 22), (x + half - 6 + lean, bottom),
+        (x - half + 6 + lean, bottom), (x - half + 4 + lean, bottom - 22),
+    ], STEEL, STEEL_LO, ow=5)
+    # the knee cop
+    sheet.oval([x - half - 3, y_top - 13, x + half + 3, y_top + 13], STEEL_HI, STEEL, ow=4)
+    # the sabaton, pointed towards the enemy
+    sheet.poly([
+        (x - half + 5 + lean, bottom - 11), (x + half - 4 + lean, bottom - 11),
+        (x + half + 5 + lean, bottom + 5), (x - half - 7 + lean, bottom + 5),
+    ], LEATHER, LEATHER_LO, ow=4)
+
+
+def draw_gauntlet(sheet, cx, cy, r=15):
+    """A closed, articulated gauntlet."""
+    sheet.oval([cx - r, cy - r, cx + r, cy + r], STEEL_HI, STEEL_LO, ow=4)
+    sheet.raw(lambda d, s: d.ellipse(
+        [v * s for v in (cx - r * 0.5, cy - r * 0.15, cx + r * 0.55, cy + r * 0.6)],
+        fill=(126, 138, 154, 255)))
+
+
+def draw_bow(sheet, gx, gy, height, curve=32, string=(240, 236, 220)):
+    """A bow held at the grip (gx, gy). The stave bulges towards the enemy
+    and the string is the straight line behind it."""
+    sx = gx - curve
+    half = height / 2
+    sheet.line([
+        (sx, gy - half), (gx, gy - half * 0.42),
+        (gx, gy + half * 0.42), (sx, gy + half),
+    ], WOOD_HI, 9, outline=OUTLINE, ow=4)
+    sheet.line([(sx, gy - half), (sx, gy + half)], string, 3)
+    # the grip in the middle of the stave
+    sheet.poly([
+        (gx - 8, gy - 15), (gx + 8, gy - 15), (gx + 8, gy + 15), (gx - 8, gy + 15),
+    ], LEATHER, LEATHER_LO, ow=3)
+
+
 def draw_sword(sheet, x, y, length, width=14, angle=0.0, gold=True):
     """A sword pointing up, its grip at (x, y)."""
 
@@ -491,60 +533,100 @@ def draw_chevalier(team):
 
 
 def draw_champion(team):
+    """The azure champion: a full armoured knight.
+
+    A great helm with a faceplate and a crest, broad pauldrons, a strong
+    breastplate under a heraldic tabard, articulated gauntlets, armoured
+    legs, a greatsword in the right hand and a bow in the left. The stance
+    is open and confident, the way a champion waits for the charge.
+    """
     size = CHAMPION_SIZE
     factor = size / BASE
     sheet = Sheet((size * SS, size * SS), scale=SS * factor)
 
-    # the cape, the one great sweep of colour behind the hero
-    sheet.poly([
-        (168, 150), (344, 150), (372, 300), (352, 432),
-        (300, 412), (256, 438), (212, 410), (156, 430), (140, 296),
-    ], TEAMS[team]["cloth"][0], TEAMS[team]["cloth_lo"], ow=6)
-    sheet.poly([
-        (186, 166), (326, 166), (346, 296), (330, 408),
-        (292, 392), (256, 414), (218, 390), (176, 406), (162, 292),
-    ], TEAMS[team]["cloth"][0], TEAMS[team]["cloth"][1], outline=None, ow=0)
+    cloth = TEAMS[team]["cloth"][0]
+    cloth_mid = TEAMS[team]["cloth"][1]
+    cloth_lo = TEAMS[team]["cloth_lo"]
 
-    # the legs
-    draw_legs(sheet, hips=(256, 318), spread=34, length=126)
+    # the ground the knight stands on
+    sheet.shadow([150, 442, 366, 500])
 
-    # the plate armour
+    # --- the cape, the one great sweep of colour behind the hero
     sheet.poly([
-        (198, 186), (314, 186), (308, 258), (300, 320), (212, 320), (204, 258),
+        (176, 122), (296, 108), (348, 188), (372, 316), (352, 452),
+        (296, 426), (232, 458), (154, 430), (130, 300), (142, 198),
+    ], cloth, cloth_lo, ow=6)
+    sheet.poly([
+        (198, 140), (290, 128), (332, 202), (350, 320), (332, 430),
+        (294, 408), (232, 438), (176, 414), (154, 296), (164, 204),
+    ], cloth, cloth_mid, outline=None, ow=0)
+
+    # --- the legs: the back leg is planted, the front one steps forward
+    draw_greave(sheet, 214, 300, 464, 36, lean=-6)
+    draw_greave(sheet, 290, 300, 470, 38, lean=8)
+
+    # --- the faulds, the skirt of plates over the hips
+    sheet.poly([
+        (196, 288), (312, 288), (304, 344), (256, 362), (204, 344),
+    ], STEEL, STEEL_LO, ow=5)
+    sheet.poly([
+        (206, 300), (302, 300), (296, 340), (256, 354), (212, 340),
+    ], STEEL_HI, STEEL, outline=None, ow=0)
+
+    # --- the cuirass
+    sheet.poly([
+        (198, 178), (314, 178), (306, 252), (296, 302), (214, 302), (206, 252),
     ], STEEL_HI, STEEL_LO, ow=6)
-    sheet.poly([(222, 196), (290, 196), (286, 314), (226, 314)],
-               (206, 216, 230), (146, 158, 176), outline=None, ow=0)
-    sheet.poly([(206, 296), (306, 296), (304, 324), (208, 324)],
-               LEATHER_HI, LEATHER_LO, ow=5)
-    sheet.oval([240, 298, 272, 326], GOLD_HI, GOLD_LO, ow=4)
+    # the raised ridge of the breastplate
+    sheet.poly([(248, 182), (266, 182), (270, 298), (244, 298)],
+               (214, 224, 238), (146, 158, 176), outline=None, ow=0)
 
-    draw_pauldron(sheet, 200, 194, 32)
-    draw_pauldron(sheet, 312, 194, 32)
-    sheet.oval([186, 178, 216, 208], GOLD_HI, GOLD_LO, ow=3)
-    sheet.oval([296, 178, 326, 208], GOLD_HI, GOLD_LO, ow=3)
+    # --- the tabard of the army's colour, with the emblem of the house
+    sheet.poly([(228, 194), (284, 194), (292, 356), (220, 356)], cloth, cloth_lo, ow=4)
+    sheet.poly([(234, 202), (278, 202), (285, 348), (227, 348)], cloth, cloth_mid,
+               outline=None, ow=0)
+    sheet.poly([(256, 232), (276, 272), (256, 312), (236, 272)], GOLD_HI, GOLD_LO, ow=4)
 
-    # the arms
-    sheet.poly([(184, 210), (212, 224), (192, 300), (164, 292)], STEEL, STEEL_LO, ow=5)
-    sheet.poly([(300, 210), (328, 226), (340, 300), (312, 308)], STEEL, STEEL_LO, ow=5)
+    # the belt and its buckle
+    sheet.poly([(206, 288), (306, 288), (304, 312), (208, 312)], LEATHER, LEATHER_LO, ow=5)
+    sheet.oval([244, 290, 268, 312], GOLD_HI, GOLD_LO, ow=4)
 
-    # the great helm with its golden crest
-    sheet.oval([214, 84, 298, 168], STEEL_HI, STEEL_LO, ow=6)
+    # --- the pauldrons: broad, layered, the mark of a knight
+    draw_pauldron(sheet, 194, 182, 36)
+    draw_pauldron(sheet, 316, 182, 36)
+    sheet.oval([164, 192, 212, 230], STEEL, STEEL_LO, ow=4)
+    sheet.oval([300, 192, 348, 230], STEEL, STEEL_LO, ow=4)
+
+    # --- the arms
+    sheet.poly([(304, 194), (332, 206), (372, 280), (348, 300)], STEEL, STEEL_LO, ow=5)
+    sheet.poly([(198, 194), (174, 208), (154, 286), (178, 300)], STEEL, STEEL_LO, ow=5)
+
+    # --- the gorget between the helm and the collar
+    sheet.poly([(228, 158), (284, 158), (292, 182), (220, 182)], STEEL, STEEL_LO, ow=4)
+
+    # --- the great helm with its faceplate
+    sheet.oval([212, 66, 300, 166], STEEL_HI, STEEL_LO, ow=6)
     sheet.raw(lambda d, s: d.ellipse(
-        [v * s for v in (222, 118, 290, 136)], fill=(24, 20, 22, 255)))
-    sheet.poly([(248, 112), (264, 112), (262, 164), (250, 164)], STEEL_HI, STEEL, ow=3)
-    sheet.poly([(240, 88), (272, 88), (280, 44), (258, 26), (234, 48)],
-               TEAMS[team]["cloth"][0], TEAMS[team]["cloth_lo"], ow=5)
-    sheet.oval([236, 96, 276, 118], GOLD_HI, GOLD_LO, ow=4)
+        [v * s for v in (222, 100, 290, 120)], fill=(24, 20, 22, 255)))
+    sheet.poly([(248, 96), (264, 96), (262, 152), (250, 152)], STEEL_HI, STEEL, ow=3)
+    # the brow band in gold
+    sheet.poly([(214, 82), (298, 82), (298, 94), (214, 94)], GOLD_HI, GOLD_LO, ow=3)
 
-    # the tower shield with the emblem of the army
-    sheet.poly([(96, 190), (200, 190), (200, 396), (96, 396)], STEEL_HI, STEEL, ow=6)
-    sheet.poly([(108, 202), (188, 202), (188, 384), (108, 384)],
-               TEAMS[team]["cloth"][0], TEAMS[team]["cloth"][1], ow=4)
-    sheet.poly([(148, 218), (168, 262), (148, 306), (128, 262)], GOLD_HI, GOLD_LO, ow=4)
-    sheet.poly([(112, 196), (184, 196), (184, 208), (112, 208)], GOLD_HI, GOLD_LO, ow=3)
+    # --- the crest: a plume of the army's colour, streaming behind
+    sheet.poly([
+        (240, 70), (272, 70), (288, 26), (262, 8), (234, 30),
+    ], cloth, cloth_lo, ow=5)
+    sheet.poly([
+        (226, 66), (252, 70), (218, 32), (178, 18), (188, 48),
+    ], cloth_mid, cloth_lo, ow=4)
 
-    # the greatsword
-    draw_sword(sheet, 344, 318, 214, width=20, angle=0.12, gold=True)
+    # --- the hands
+    draw_gauntlet(sheet, 360, 294, 16)
+    draw_gauntlet(sheet, 168, 300, 15)
+
+    # --- the weapons: a greatsword in the right hand, a bow in the left
+    draw_sword(sheet, 362, 300, 236, width=22, angle=0.26, gold=True)
+    draw_bow(sheet, 168, 300, 200, curve=34)
 
     return sheet.copy().resize((size, size), Image.LANCZOS)
 
@@ -558,11 +640,31 @@ BUILDERS = {
 }
 
 
+def trim_to_figure(image, margin=2):
+    """Cut the transparent margin around the painted figure away.
+
+    A troop picture is drawn into a square canvas, but the figure only
+    fills part of it. The empty margin would be scaled along with the
+    figure, so the picture is cut down to the figure itself: on the
+    battlefield the troop then uses the whole of its box.
+    """
+    box = image.split()[3].getbbox()
+    if not box:
+        return image
+    left, top, right, bottom = box
+    left = max(0, left - margin)
+    top = max(0, top - margin)
+    right = min(image.width, right + margin)
+    bottom = min(image.height, bottom + margin)
+    return image.crop((left, top, right, bottom))
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     for name, builder in BUILDERS.items():
         for team in ("blue", "red"):
             image = builder(team)
+            image = trim_to_figure(image)
             path = os.path.join(OUT_DIR, f"{name}-{team}.png")
             image.save(path, "PNG", optimize=True)
             print(f"wrote {os.path.relpath(path, ROOT)} ({image.width}x{image.height})")
