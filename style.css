@@ -554,6 +554,50 @@ body {
   transition: left 0.35s ease, top 0.35s ease, opacity 0.3s ease;
 }
 
+/* 5.0 DAMAGE NUMBERS — the number of a blow, shown on the field
+ *
+ * The number sits over the unit that was hit, so the player can read a
+ * fight without following the log. It is decoration only: it never changes
+ * a rule, and it takes itself away when the animation is over.
+ */
+.damage-pop {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1;
+  color: #ffe9a8;
+  text-shadow: 0 1px 2px #17251c, 0 0 6px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+  z-index: 4;
+  white-space: nowrap;
+  animation: damage-pop 0.9s ease-out forwards;
+}
+
+/* A blow that fells the unit is written larger and in the colour of the
+ * falling legion, so a kill reads at a glance. */
+.damage-pop-kill {
+  font-size: 16px;
+  color: #ffb3a0;
+}
+
+@keyframes damage-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.75);
+  }
+  18% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px) scale(1);
+  }
+}
+
 .unit-silhouette {
   width: 30px;
   height: 30px;
@@ -1413,6 +1457,12 @@ body {
     transition: none !important;
   }
 
+  /* The number of a blow is still shown, but it does not fly around: it
+   * stands still and is taken away by the same timer as before. */
+  .damage-pop {
+    animation: none !important;
+  }
+
   .unit.selected .selection-ring {
     opacity: 1;
   }
@@ -1760,6 +1810,18 @@ body {
   letter-spacing: 1px;
   color: #9fb08a;
 }
+
+/* Whether the fight was a player battle or a watched one. The word is
+ * written out, so the mode never depends on colour alone. */
+.report-mode {
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 1px 5px;
+  border: 1px solid rgba(159, 176, 138, 0.45);
+  border-radius: 3px;
+  color: #9fb08a;
+}
+
 
 .report-grid {
   display: grid;

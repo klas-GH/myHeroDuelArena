@@ -5,7 +5,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#17251c">
-  <title>myHeroDuelArena v1.5.0</title>
+  <title>myHeroDuelArena v1.6.0</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
@@ -15,7 +15,7 @@
 
     <header class="topbar">
       <div class="game-title">MY HERO DUEL ARENA</div>
-      <div class="version">v1.5.0 — SPECTATOR &amp; SUDDEN DEATH</div>
+      <div class="version">v1.6.0 — TACTICAL DEPTH &amp; DAMAGE NUMBERS</div>
     </header>
 
     <section id="setup-panel" class="setup-panel" aria-label="Battlefield and difficulty selection">
@@ -142,6 +142,7 @@
           <span id="report-outcome" class="report-outcome">VICTORY</span>
           <span id="report-map" class="report-map">The Old Frontier</span>
           <span id="report-difficulty" class="report-difficulty">Normal</span>
+          <span id="report-mode" class="report-mode">PLAYER</span>
         </div>
         <div class="report-grid">
           <div class="report-cell">
@@ -167,6 +168,18 @@
           <div class="report-cell">
             <span class="report-label">XP EARNED</span>
             <span id="report-xp" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">SURVIVORS</span>
+            <span id="report-survivors" class="report-value">0 / 0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">HEALTH LEFT</span>
+            <span id="report-health" class="report-value">0 / 0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">DECIDED BY</span>
+            <span id="report-decided" class="report-value">ELIMINATION</span>
           </div>
         </div>
         <div id="report-breakdown" class="report-breakdown"></div>

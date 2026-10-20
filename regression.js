@@ -1,4 +1,4 @@
-/* REGRESSION TEST SUITE - myHeroDuelArena v1.5.0
+/* REGRESSION TEST SUITE - myHeroDuelArena v1.6.0
  * Run: node regression.js
  *
  * Validates the real game rules. The engine is loaded from game.js through
@@ -9,7 +9,8 @@
  *
  * Covers the v1.0.1 rules, the v1.1.0 tactical turn system, the v1.2.0
  * terrain, progression, ability and AI systems, the v1.4.0 battlefield
- * selector and the v1.5.0 round limit, sudden death and spectator mode.
+ * selector, the v1.5.0 round limit, sudden death and spectator mode and
+ * the v1.6.0 tactical depth, damage numbers and battle report.
  */
 
 "use strict";
@@ -2257,6 +2258,156 @@ section("76. Ordinary battles are left alone");
   api.runEnemyTurnInstant();
   assert(api.getState().roundNumber === 2, "the round counter moves on with the rounds");
   assert(api.isSuddenDeath() === false, "sudden death is still far away");
+}
+
+/* 77. THE TACTICAL DEPTH */
+
+section("77. The tactical depth");
+
+{
+  const { api } = newGame();
+  const depth = api.TACTICAL_DEPTH;
+
+  assert(depth && depth.easy && depth.normal && depth.hard, "every difficulty has a depth of its own");
+
+  const knobs = ["elimination", "danger", "survival", "waste", "position"];
+  assert(knobs.every(k => typeof depth.normal[k] === "number"), "the depth is made of plain numbers");
+  assert(knobs.every(k => depth.easy[k] === 0),
+    "easy listens to none of the questions, so it plays the plain game of earlier versions");
+
+  /* The player is never handed a sharper opponent than the azure legion
+   * plays with, and the difficulty only ever moves the crimson legion. */
+  api.setDifficulty("easy");
+  assert(api.tacticalDepth(TEAM_BLUE).survival === depth.normal.survival,
+    "the azure legion always plays by the normal depth");
+  assert(api.tacticalDepth(TEAM_RED).survival === depth.easy.survival,
+    "the crimson legion plays by the depth of the difficulty");
+  api.setDifficulty("hard");
+  assert(api.tacticalDepth(TEAM_RED).survival === depth.hard.survival,
+    "hard listens harder than normal");
+  api.setDifficulty("normal");
+
+  /* A spectator show is a display, not a challenge: both armies fight by
+   * the same depth, so neither side is handed the harder opponent. */
+  const show = newGame();
+  show.api.startSpectatorBattle();
+  assert(show.api.tacticalDepth(TEAM_RED).survival === depth.normal.survival,
+    "a spectator show gives both armies the same depth");
+}
+
+/* 78. THE DEPTH CHANGES THE DECISION, NOT THE RULES */
+
+section("78. The depth changes the decision, not the rules");
+
+{
+  /* The same board, the same blow, two depths: a blow that ends a unit is
+   * worth more to a sharp legion, and a blow it cannot survive is worth
+   * less. The damage itself never changes. */
+  const { api } = newGame();
+  api.startBattle();
+
+  const red = unitByType(api, TEAM_RED, "footman");
+  const blue = unitByType(api, TEAM_BLUE, "footman");
+  red.col = 5; red.row = 1;
+  blue.col = 4; blue.row = 1;
+
+  const plain = Object.assign({}, api.TACTICAL_DEPTH.normal);
+  api.TACTICAL_DEPTH.normal = { elimination: 0, danger: 0, survival: 0, waste: 0, position: 0 };
+
+  blue.hp = blue.maxHp;
+  const weakBlow = api.evaluateAttackAction(red, blue);
+  blue.hp = 5;
+  const killingBlow = api.evaluateAttackAction(red, blue);
+  const damageBefore = api.calculateDamage(red, blue);
+
+  api.TACTICAL_DEPTH.normal = plain;
+  blue.hp = 5;
+  const killingBlowSharp = api.evaluateAttackAction(red, blue);
+  const damageAfter = api.calculateDamage(red, blue);
+
+  assert(damageBefore === damageAfter, "the depth never changes the damage of a blow");
+  assert(killingBlowSharp > killingBlow,
+    "a sharp legion values a blow that ends a unit more than a plain one does");
+
+  /* A trade the attacker cannot survive is a bad trade, and a sharp legion
+   * knows it. */
+  const doomed = unitByType(api, TEAM_BLUE, "champion");
+  doomed.col = 4; doomed.row = 1;
+  red.hp = 4;
+  doomed.hp = doomed.maxHp;
+
+  api.TACTICAL_DEPTH.normal = { elimination: 0, danger: 0, survival: 0, waste: 0, position: 0 };
+  const plainTrade = api.evaluateAttackAction(red, doomed);
+  api.TACTICAL_DEPTH.normal = plain;
+  const sharpTrade = api.evaluateAttackAction(red, doomed);
+
+  assert(sharpTrade < plainTrade, "a sharp legion refuses a trade that would kill it");
+
+  /* The same board always yields the same plan, so a battle is repeatable. */
+  const first = api.chooseEnemyAction(red);
+  const second = api.chooseEnemyAction(red);
+  assert(first && second && first.kind === second.kind
+    && (first.target ? first.target.id : "") === (second.target ? second.target.id : ""),
+    "the same board always yields the same plan");
+}
+
+/* 79. THE REPORT READS THE LEDGER */
+
+section("79. The report reads the ledger");
+
+{
+  const { api, doc } = newGame();
+  api.startBattle();
+
+  /* A real turn, so the ledger has real actions to count. */
+  api.runEnemyTurnInstant();
+
+  for (const u of redUnits(api)) {
+    if (!u.defeated) api.applyDamage(u.id, 9999, { countDamage: true, team: TEAM_BLUE });
+  }
+  api.checkBattleEnd();
+
+  const ledger = api.getBattleLedger();
+  assert(doc.getElementById("report-survivors").textContent ===
+    `${ledger.survivors.blue.units} / ${ledger.survivors.red.units}`,
+    "the report shows how many units were left standing");
+  assert(doc.getElementById("report-health").textContent ===
+    `${ledger.survivors.blue.hp} / ${ledger.survivors.red.hp}`,
+    "the report shows the health that was left");
+  assert(doc.getElementById("report-decided").textContent === "ELIMINATION",
+    "the report names what settled the fight");
+  assert(doc.getElementById("report-mode").textContent === "PLAYER",
+    "the report says that this was a player battle");
+  assert(ledger.ending === "elimination", "the ledger records how the fight ended");
+  assert(ledger.actions.blue.attack + ledger.actions.red.attack +
+    ledger.actions.blue.move + ledger.actions.red.move +
+    ledger.actions.blue.ability + ledger.actions.red.ability > 0,
+    "the ledger counts the actions that were carried out");
+}
+
+/* 80. A FIGHT THAT REACHED THE LIMIT SAYS SO */
+
+section("80. A fight that reached the limit says so");
+
+{
+  const { api, doc } = newGame();
+  api.startBattle();
+
+  /* Drive the battle to the round limit without a single elimination. */
+  for (let i = 0; i < api.BATTLE_ROUND_LIMIT && !api.checkBattleEnd(); i++) {
+    api.runTurnInstantForTeam(TEAM_BLUE);
+    if (api.checkBattleEnd()) break;
+    api.runEnemyTurnInstant();
+  }
+
+  const ledger = api.getBattleLedger();
+  assert(ledger.ending === "round_limit" || ledger.ending === "elimination",
+    "the ledger records how the fight really ended");
+
+  if (ledger.ending === "round_limit") {
+    assert(doc.getElementById("report-decided").textContent === "ROUND LIMIT",
+      "the report names the round limit as the decider");
+  }
 }
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);

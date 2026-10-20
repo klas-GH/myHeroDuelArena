@@ -1,4 +1,4 @@
-/* DOM SMOKE TEST — myHeroDuelArena v1.5.0
+/* DOM SMOKE TEST — myHeroDuelArena v1.6.0
  * Run: node smoke_quick.js
  *
  * Verifies the real game.js against a minimal DOM stub: every element id
@@ -618,6 +618,33 @@ console.log("\n16. Runtime — the round limit");
     "the banner follows the rounds");
 
   api.resetBattle();
+}
+
+/* --- TEST 17: the number of a blow is shown on the field --- */
+
+console.log("\n17. Runtime — the number of a blow");
+
+{
+  api.resetBattle();
+  api.startBattle();
+
+  const victim = api.getTeamUnits("red").find(u => u.type === "footman");
+  const redLayer = doc.getElementById("red-units");
+  const victimElement = redLayer.children.find(c => c.dataset.id === victim.id);
+  assert(victimElement !== undefined, "the unit that is hit has an element on the field");
+
+  api.applyDamage(victim.id, 7, { countDamage: true, team: "blue" });
+
+  const pop = victimElement.querySelector(".damage-pop");
+  assert(pop !== null, "a blow shows its number over the unit it hit");
+  assert(pop && pop.textContent === "7", "the number is the damage that was dealt");
+  assert(pop && pop.classList.contains("damage-pop-kill") === false,
+    "an ordinary blow is not written as a kill");
+
+  /* The last blow of a unit is written as a kill. */
+  api.applyDamage(victim.id, 9999, { countDamage: true, team: "blue" });
+  const killPop = victimElement.querySelector(".damage-pop-kill");
+  assert(killPop !== null, "a blow that fells a unit says so");
 }
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);

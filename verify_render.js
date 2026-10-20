@@ -1,4 +1,4 @@
-/* RENDER VERIFICATION — myHeroDuelArena v1.5.0
+/* RENDER VERIFICATION — myHeroDuelArena v1.6.0
  * Run: node verify_render.js
  *
  * Drives the real page in headless Edge via the DevTools protocol and checks

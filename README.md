@@ -2,8 +2,9 @@
 
 A browser tactics duel. Two legions fight over a shared 10 × 4 field. The blue
 legion is yours; the crimson legion is played by a deterministic tactical AI
-that scores every legal action and takes the best one. You can also hand both
-legions to the AI and watch the fight.
+that scores every legal action and takes the best one, and that weighs five
+extra tactical questions harder the further you turn up the difficulty. You can
+also hand both legions to the AI and watch the fight.
 
 No build step, no dependencies, no network calls — `index.html` is the app.
 
@@ -11,16 +12,19 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
-## v1.5.0 — what is in this release
+## v1.6.0 — what is in this release
 
 | Area | Summary |
 | --- | --- |
+| The tactical depth | The crimson legion now asks five extra questions before it moves: does this blow end the unit, does the target threaten the army, would the trade kill me, was this step a waste, and does the next cell set up a kill. A difficulty decides how loudly the legion listens to each answer, so the rules of a fight never change — only the decisions do. |
+| Damage numbers | Every blow writes its number over the unit it hit, so a fight can be read without following the log. The number is decoration: it never touches a rule, the ledger or the rewards. |
+| A report that reads the ledger | The report now also names how many units were left standing, how much health was left, what settled the fight and whether it was a player battle or a watched one. Every number is read from the ledger of actions that really happened. |
 | Spectator mode | The `SPECTATE — AI vs AI` control puts both legions on the field and hands them to the same tactical AI that plays the crimson legion. The player only watches: no experience, no rewards, no level, no change to the saved profile and nothing written to storage. |
 | The round limit | No battle is ever fought for longer than 30 rounds. The counter stops there, and the battle is settled. |
 | Sudden death | The 30th round is fought in sudden death: every blow counts for 1.5× more, for both armies alike, so a fight that reached the limit still ends in a decision. |
 | How a battle at the limit is settled | Elimination comes first: a wiped out army loses, whatever the health says. If both armies are still standing, the one with more health left wins, and an even field is a draw. |
 | Four battlefields | The ground is chosen before the fight. The Old Frontier, The Forest March, The Broken Pass and The High Ground are all handcrafted, all mirror symmetric, and all hold both armies. Each card shows a picture of its own terrain. |
-| Difficulty | Easy, Normal and Hard. The difficulty never touches the rules: it changes how the crimson legion thinks — how eagerly it closes, how much it fears a trade, how hard it hunts your champion and how much it leans on its abilities. The azure legion is never handicapped. |
+| Difficulty | Easy, Normal and Hard. The difficulty never touches the rules: it changes how the crimson legion thinks — how eagerly it closes, how much it fears a trade, how hard it hunts your champion, how much it leans on its abilities, and how sharply it weighs the five tactical questions above. The azure legion is never handicapped. |
 | Damage-based experience | One point of experience for every five points of damage your legion actually lands. Damage that overshoots a dying target is not rewarded, because the target was already dead before the extra landed. |
 | Post-battle report | Every battle ends with a report: rounds, damage dealt and taken, enemies felled, friends lost, and the exact experience that was paid out, broken down. |
 | Balance harness | `balance.js` fights battles headlessly, with a seed, and reports what actually happened: win rates, round counts, damage and experience per configuration, as JSON. |
@@ -102,9 +106,45 @@ and never about who gets the better ground:
 
 | Setting | What the crimson legion does |
 | --- | --- |
-| Easy | It hesitates, it under-reads the field, it rarely presses home and its blows land 2 points softer. |
-| Normal | It fights the way it always has. Every weight is exactly one, so the default game is unchanged. |
-| Hard | It reads the field, it pushes hard, it is less afraid of trading blows, it hunts your champion, it spends its abilities well and its blows land 2 points harder. |
+| Easy | It hesitates, it under-reads the field, it rarely presses home, its blows land 2 points softer and it listens to none of the five tactical questions. |
+| Normal | It fights the way it always has, with every weight at one, and it listens to the five tactical questions with a light hand. |
+| Hard | It reads the field, it pushes hard, it is less afraid of trading blows, it hunts your champion, it spends its abilities well, its blows land 2 points harder and it listens to the five tactical questions with a heavy hand. |
+
+### The tactical depth
+
+The AI scores every legal action and takes the best one. In v1.6.0 the score
+asks five extra questions, and a difficulty decides how loudly the legion
+listens to each answer:
+
+| Question | What it adds |
+| --- | --- |
+| `elimination` | A blow that ends a unit is worth more than a blow that only wounds one. |
+| `danger` | A unit that can reach your soft units is worth more than a unit that cannot reach anything. |
+| `survival` | A trade the attacker cannot survive is a bad trade. |
+| `waste` | Walking when a blow was already available is a wasted step. |
+| `position` | A cell from which the next blow would end a unit is worth more than a cell that only looks closer. |
+
+The weights are measured, not guessed. Every one of them was chosen with the
+balance harness, fighting the same reference opponent over four battlefields
+and forty seeds a map:
+
+| Difficulty | `elimination` | `danger` | `survival` | `waste` | `position` | Enemy wins |
+| --- | --- | --- | --- | --- | --- | --- |
+| Easy | 0 | 0 | 0 | 0 | 0 | 6 % |
+| Normal | 0.35 | 0.2 | 0.35 | 0.35 | 0.2 | 51 % |
+| Hard | 0.45 | 0.4 | 0.4 | 0.45 | 0.35 | 90 % |
+
+The weights change decisions and nothing else. The damage of a blow, the
+movement, the line of sight and the abilities are the same at every
+difficulty — only the legion's mind is different. The azure legion always
+plays by the normal weights, so the difficulty never handicaps the player,
+and a spectator show gives both armies the same weights, so the show stays an
+even fight.
+
+The numbers in the last column are the enemy win rate against the reference
+opponent over 480 battles. The same weights at full strength won 60 % of
+Normal and 98 % of Hard battles: a stronger legion is a better legion, but a
+legion that wins every battle is not a difficulty, it is a wall.
 
 ### The balance harness
 
@@ -128,53 +168,72 @@ no randomness.
 
 ### Measured results
 
-`node balance.js --seeds=20` (20 seeds per configuration, damage scatter 0.08,
-AI noise 2), 240 battles, engine v1.5.0:
+`node balance.js --seeds=40` (40 seeds per configuration, damage scatter 0.08,
+AI noise 2), 480 battles, engine v1.6.0:
 
 | Difficulty | Battlefield | Enemy wins | Win rate | Rounds | Damage | XP |
 | --- | --- | --- | --- | --- | --- | --- |
-| Easy | Old Frontier | 0 / 20 | 0 % | 12.3 | 490 | 448 |
-| Easy | Forest March | 0 / 20 | 0 % | 11.7 | 490 | 448 |
-| Easy | Broken Pass | 4 / 20 | 20 % | 20.5 | 459 | 403 |
-| Easy | High Ground | 1 / 20 | 5 % | 16.6 | 468 | 423 |
-| Normal | Old Frontier | 5 / 20 | 25 % | 11.7 | 443 | 383 |
-| Normal | Forest March | 9 / 20 | 45 % | 11.8 | 437 | 352 |
-| Normal | Broken Pass | 13 / 20 | 65 % | 18.2 | 408 | 333 |
-| Normal | High Ground | 12 / 20 | 60 % | 14.3 | 435 | 339 |
-| Hard | Old Frontier | 20 / 20 | 100 % | 7.0 | 236 | 134 |
-| Hard | Forest March | 19 / 20 | 95 % | 7.1 | 215 | 132 |
-| Hard | Broken Pass | 15 / 20 | 75 % | 14.0 | 382 | 302 |
-| Hard | High Ground | 18 / 20 | 90 % | 9.6 | 350 | 224 |
+| Easy | Old Frontier | 0 / 40 | 0 % | 11.7 | 490 | 448 |
+| Easy | Forest March | 0 / 40 | 0 % | 11.5 | 490 | 448 |
+| Easy | Broken Pass | 7 / 40 | 18 % | 19.2 | 471 | 421 |
+| Easy | High Ground | 3 / 40 | 8 % | 15.4 | 473 | 426 |
+| Normal | Old Frontier | 9 / 40 | 23 % | 13.1 | 468 | 410 |
+| Normal | Forest March | 23 / 40 | 58 % | 11.5 | 421 | 329 |
+| Normal | Broken Pass | 23 / 40 | 58 % | 19.4 | 437 | 368 |
+| Normal | High Ground | 27 / 40 | 68 % | 13.2 | 395 | 293 |
+| Hard | Old Frontier | 40 / 40 | 100 % | 7.3 | 222 | 131 |
+| Hard | Forest March | 40 / 40 | 100 % | 6.8 | 188 | 112 |
+| Hard | Broken Pass | 31 / 40 | 78 % | 14.1 | 374 | 299 |
+| Hard | High Ground | 33 / 40 | 83 % | 9.8 | 358 | 242 |
 
 What the numbers say:
 
-- The gradient works. The crimson legion wins 0 % to 20 % of its Easy
-  battles, 25 % to 65 % of its Normal ones and 75 % to 100 % of its Hard
-  ones. The overall enemy win rate across all 240 battles is 48 %.
-- On Normal the enemy is roughly even with the reference opponent (49 % on
-  average), which is the point: Normal is meant to be a fair fight for a
-  player who is better than the plain AI.
+- The gradient works. The crimson legion wins 6 % of its Easy battles, 51 %
+  of its Normal ones and 90 % of its Hard ones. The overall enemy win rate
+  across all 480 battles is 49 %, and the reference opponent wins 51 %.
+- On Normal the enemy is an even opponent, which is the point: Normal is
+  meant to be a fair fight for a player who is better than the plain AI.
 - The Broken Pass is the hardest ground for the azure legion, at every
   difficulty. It splits the army and the fight takes about six rounds longer
   than on open ground.
 - The Old Frontier and the Forest March are the gentlest: the enemy needs
   Easy to lose them.
-- Experience per battle sits between 130 and 450 depending on how the battle
+- Experience per battle sits between 110 and 450 depending on how the battle
   went. With the level thresholds at 100 / 250 / 450 / 700, a good battle
-  earns a level and a bad one does not. The damage reward is a quarter of
-  the total on a long battle and a third of it on a quick one.
-- The round limit changed two of the 240 battles and nothing else. Two Easy
-  battles (Broken Pass and High Ground, seed 2) used to run past the
-  harness's own 30 round budget and were never settled; they now reach the
-  engine's limit, are decided on the health left and pay their rewards.
-  Both were won by the azure legion, so the win counts are unchanged, while
-  the average experience of those two configurations rose (395 → 403 and
-  418 → 423) and the average round count fell (21.0 → 20.5 and 17.1 → 16.6).
+  earns a level and a bad one does not.
 
-`node balance.js --deterministic --seeds=20` (no scatter, no AI noise, the
-shipped rules) plays the same 240 battles: the seed changes nothing (0 of 12
-configurations changed with the seed), every battle is decided by elimination
-before the limit, and the overall enemy win rate is 33 %.
+#### The same measurement against v1.5.0
+
+The identical seeds, the identical maps, the identical harness, 480 battles a
+side:
+
+| Difficulty | v1.5.0 enemy wins | v1.6.0 enemy wins | Change |
+| --- | --- | --- | --- |
+| Easy | 6.9 % | 6.3 % | −0.6 points |
+| Normal | 46.9 % | 51.3 % | +4.4 points |
+| Hard | 86.9 % | 90.0 % | +3.1 points |
+| All | 46.9 % | 49.2 % | +2.3 points |
+
+The average battle is 12.74 rounds in v1.6.0 and 12.90 in v1.5.0, no
+configuration reached the round limit, and both versions replayed the same
+seed exactly in 12 configurations out of 12 and changed with a different seed
+in 12 out of 12.
+
+So the tactical depth makes the crimson legion a little sharper — four points
+on Normal, three on Hard — without turning Normal into a wall or Hard into
+an impossibility. The same measurement with the weights at full strength
+gives 60 % on Normal and 98 % on Hard, which is why the shipped weights are
+the measured ones and not the first ones that were written down.
+
+`node balance.js --deterministic --seeds=20` plays the same 240 battles with
+the shipped rules — no scatter, no AI noise. There the seed changes nothing
+(0 of 12 configurations changed with the seed, in both versions), every
+battle is decided by elimination before the limit, and the azure legion wins
+every Easy and every Normal battle: 75 % of all battles in v1.6.0 against
+67 % in v1.5.0, the difference being the two Hard battlefields the crimson
+legion now takes. The exploration settings above are the ones that measure
+the game; the deterministic run measures the one exact fight a player gets
+on each ground.
 
 ### The field: hexagons, octagons, or the old grid?
 
@@ -267,7 +326,10 @@ the progression strip clears the profile, but asks for a confirmation first.
 **The report** at the end of a battle shows what the fight was worth: the
 rounds it lasted, the damage dealt and taken, the enemies felled, the friends
 lost and the experience that was paid out, broken down into the damage, the
-kills and the victory. Every reward is paid exactly once, however often the
+kills and the victory. Since v1.6.0 it also says how many units were left
+standing, how much health was left on the field, what settled the fight
+(`ELIMINATION`, `ROUND LIMIT` or `EVEN ARMIES`) and whether it was a player
+battle or a watched one. Every reward is paid exactly once, however often the
 end of the battle is checked.
 
 **Spectating** puts both legions under AI control and takes the player out of
@@ -293,8 +355,8 @@ change to the saved profile.
 All four suites run on Node without any dependency:
 
 ```
-node regression.js      # rules, terrain, maps, difficulty, progression, AI, round limit, spectator
-node smoke_quick.js     # DOM wiring, stylesheet contract, runtime flow
+node regression.js      # rules, terrain, maps, difficulty, progression, AI, round limit, spectator, tactical depth
+node smoke_quick.js     # DOM wiring, stylesheet contract, runtime flow, damage numbers
 node verify_render.js   # real rendering and real mouse input in headless Edge
 node balance.js         # seeded balance measurement, JSON out
 ```
@@ -309,5 +371,5 @@ the hit test, and that is exactly how the selection bug of v1.2.0 survived
 the earlier suites.
 
 The suites expose their results as `=== Results: N passed, M failed ===` and
-exit with a non-zero status when something fails. The current counts are 599
-rule assertions, 162 DOM assertions and 145 render assertions.
+exit with a non-zero status when something fails. The current counts are 617
+rule assertions, 167 DOM assertions and 145 render assertions.

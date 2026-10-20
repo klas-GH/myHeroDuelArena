@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.5.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.6.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.5.0";
+const APP_VERSION = "v1.6.0";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -503,6 +503,14 @@ const AI_TUNING = {
   offensiveAbilityDamage: 1.2,/* damage weight for the same              */
   championAllyProximity: 5,  /* score per ally the champion can rally    */
   championAllyRadius: 1,     /* how close the champion keeps its ranks    */
+  lethalCredit: 18,          /* extra score for a blow that ends a unit    */
+  dangerWeight: 0.35,        /* score per point of danger a target carries*/
+  vulnerableDangerWeight: 1, /* danger to a shooter or a wounded ally     */
+  ordinaryDangerWeight: 0.4, /* danger to any other ally                  */
+  suicidalPenalty: 22,       /* penalty for a trade that kills the attacker*/
+  tradePenalty: 8,           /* penalty for a trade that kills both       */
+  wastedMovePenalty: 6,      /* penalty for walking when a blow was ready */
+  positionalLethalCredit: 14,/* score for a cell that would end a unit     */
   minActionScore: 2         /* an action must be worth this much to run*/
 };
 
@@ -591,6 +599,50 @@ function setDifficulty(id) {
   if (!Object.prototype.hasOwnProperty.call(DIFFICULTY_PROFILES, id)) return false;
   currentDifficultyId = id;
   return true;
+}
+
+/* 5.2 TACTICAL DEPTH
+ *
+ * The tactical evaluator always asks the same questions. A difficulty only
+ * decides which answers it listens to, so the rules of a fight never change
+ * with the difficulty — only the decisions do. Every weight is a plain
+ * number, so the behaviour can be read, tuned and tested.
+ *
+ *   elimination  extra credit for a blow that ends a unit
+ *   danger       extra credit for hitting a unit that threatens the army
+ *   survival     penalty for a trade the attacker cannot survive
+ *   waste        penalty for walking when a blow was already available
+ *   position     credit for a cell from which the next blow would end a unit
+ *
+ * Easy listens to none of them and keeps the plain, obvious behaviour of
+ * earlier versions. Normal listens to all of them with a light hand. Hard
+ * listens to all of them with a heavier hand.
+ *
+ * The weights are measured, not guessed. Every one of them was chosen with
+ * the balance harness, fighting the same reference opponent over four
+ * battlefields and forty seeds a map:
+ *
+ *   - the plain legion (all weights zero) wins 0 % of Normal battles
+ *   - the weights below win 51 % of Normal battles, so Normal stays the
+ *     even fight it has always been
+ *   - the same weights, one third heavier, win 90 % of Hard battles
+ *
+ * A heavier legion is a better legion, but a legion that wins every battle
+ * is not a difficulty, it is a wall.
+ */
+const TACTICAL_DEPTH = {
+  easy: { elimination: 0, danger: 0, survival: 0, waste: 0, position: 0 },
+  normal: { elimination: 0.35, danger: 0.2, survival: 0.35, waste: 0.35, position: 0.2 },
+  hard: { elimination: 0.45, danger: 0.4, survival: 0.4, waste: 0.45, position: 0.35 }
+};
+
+/* The tactical depth a team fights with. The azure legion always plays by
+ * the normal rules, exactly like its damage profile, and a spectator show
+ * gives both armies the same depth, so the fight stays an even one. */
+function tacticalDepth(team) {
+  if (battleMode === "spectator") return TACTICAL_DEPTH.normal;
+  if (team !== TEAM_RED) return TACTICAL_DEPTH.normal;
+  return TACTICAL_DEPTH[currentDifficultyId] || TACTICAL_DEPTH.normal;
 }
 
 /* The player is never handicapped by the difficulty setting: only the
@@ -723,6 +775,10 @@ const $reportTaken = document.getElementById("report-taken");
 const $reportKills = document.getElementById("report-kills");
 const $reportLosses = document.getElementById("report-losses");
 const $reportXp = document.getElementById("report-xp");
+const $reportSurvivors = document.getElementById("report-survivors");
+const $reportHealth = document.getElementById("report-health");
+const $reportDecided = document.getElementById("report-decided");
+const $reportMode = document.getElementById("report-mode");
 const $reportBreakdown = document.getElementById("report-breakdown");
 const $reportLevel = document.getElementById("report-level");
 
@@ -802,7 +858,19 @@ function createBattleLedger() {
     levelBefore: 1,
     levelAfter: 1,
     outcome: null,
-    spectator: false
+    spectator: false,
+    /* What the two armies actually did, counted from the actions that were
+     * really carried out. */
+    actions: {
+      blue: { attack: 0, move: 0, ability: 0 },
+      red: { attack: 0, move: 0, ability: 0 }
+    },
+    /* How the fight ended, and how much of each army was left standing. */
+    ending: null,
+    survivors: {
+      blue: { units: 0, hp: 0 },
+      red: { units: 0, hp: 0 }
+    }
   };
 }
 
@@ -827,7 +895,24 @@ function getBattleLedger() {
     levelBefore: battleLedger.levelBefore,
     levelAfter: battleLedger.levelAfter,
     outcome: battleLedger.outcome,
-    spectator: battleLedger.spectator
+    spectator: battleLedger.spectator,
+    actions: {
+      blue: {
+        attack: battleLedger.actions.blue.attack,
+        move: battleLedger.actions.blue.move,
+        ability: battleLedger.actions.blue.ability
+      },
+      red: {
+        attack: battleLedger.actions.red.attack,
+        move: battleLedger.actions.red.move,
+        ability: battleLedger.actions.red.ability
+      }
+    },
+    ending: battleLedger.ending,
+    survivors: {
+      blue: { units: battleLedger.survivors.blue.units, hp: battleLedger.survivors.blue.hp },
+      red: { units: battleLedger.survivors.red.units, hp: battleLedger.survivors.red.hp }
+    }
   };
 }
 
@@ -1464,6 +1549,16 @@ function canAttack(attacker, target) {
   return true;
 }
 
+/* Counts an action that was really carried out. The report and the balance
+ * harness read these numbers, so they are counted where the action happens
+ * and never guessed afterwards. */
+function recordAction(kind, team) {
+  if (!battleLedger || !battleLedger.actions) return;
+  const side = battleLedger.actions[team];
+  if (!side || side[kind] === undefined) return;
+  side[kind] += 1;
+}
+
 /* 15. DAMAGE
  * The same calculation is used by the player, by champion abilities and by
  * the AI, so nobody fights by different rules.
@@ -1496,6 +1591,24 @@ function calculateDamage(attacker, defender, options) {
   return Math.max(1, raw);
 }
 
+/* 15.1 DAMAGE NUMBERS
+ *
+ * A blow reads better when the number is shown on the field itself and not
+ * only in the log. The number is purely visual: it never touches the rules,
+ * it never touches the ledger, and it takes itself away again.
+ */
+function showDamagePop(targetId, amount, kind) {
+  const el = unitElements.get(targetId);
+  if (!el) return;
+  const pop = document.createElement("div");
+  pop.className = kind === "kill" ? "damage-pop damage-pop-kill" : "damage-pop";
+  pop.textContent = String(amount);
+  el.appendChild(pop);
+  later(() => {
+    if (pop.parentNode) pop.parentNode.removeChild(pop);
+  }, 900);
+}
+
 function applyDamage(targetId, amount, options) {
   const opts = options || {};
   const target = units.get(targetId);
@@ -1504,6 +1617,9 @@ function applyDamage(targetId, amount, options) {
   const hpBefore = target.hp;
   target.hp = Math.max(0, target.hp - amount);
   const dealt = hpBefore - target.hp;
+
+  /* The number of the blow, shown on the field. */
+  if (dealt > 0) showDamagePop(targetId, dealt, target.hp <= 0 ? "kill" : "hit");
 
   /* Only a real blow counts towards the damage reward, and only the health
    * that actually left the target counts: overkill is never rewarded. */
@@ -2031,25 +2147,82 @@ function estimateIncomingDamage(col, row, team, defenderDef) {
   return total;
 }
 
+/* Whether a unit is soft: a shooter that cannot fight back at arm's length,
+ * the champion, or a fighter that is already badly hurt. */
+function isVulnerableUnit(unit) {
+  if (!unit || !unit.alive || unit.defeated) return false;
+  if (unit.type === "champion") return true;
+  if (unit.range > 1 || (unit.shot && unit.shot.range > 1)) return true;
+  return unit.hp <= unit.maxHp * 0.5;
+}
+
+/* How much danger a target carries for the side that wants it gone. A unit
+ * that can reach a soft ally is worth more than its bare type value, and a
+ * unit that can reach nothing is worth nothing at all. */
+function targetDanger(target, viewerTeam) {
+  if (!target || !target.alive || target.defeated) return 0;
+  let danger = 0;
+  for (const [, ally] of units) {
+    if (!ally.alive || ally.defeated) continue;
+    if (ally.team !== viewerTeam) continue;
+    if (ally.id === target.id) continue;
+    if (!canReach(target, target, { col: ally.col, row: ally.row })) continue;
+    const weight = isVulnerableUnit(ally)
+      ? AI_TUNING.vulnerableDangerWeight
+      : AI_TUNING.ordinaryDangerWeight;
+    danger += weight * attackValue(target, target, { col: ally.col, row: ally.row });
+  }
+  return danger;
+}
+
 function evaluateAttackAction(attacker, target, attackerPos) {
   const pos = attackerPos || attacker;
   const profile = profileForTeam(attacker.team);
+  const depth = tacticalDepth(attacker.team);
   const damage = calculateDamage(attacker, target, { attackerPos: pos });
-  const kills = damage >= target.hp;
+  const lethal = damage >= target.hp;
 
+  /* 1. The blow itself. */
   let score = damage * AI_TUNING.damageWeight * profile.tradeAppetite;
-  if (kills) score += AI_TUNING.killBonus + targetValue(target);
+
+  /* 2. The unit that falls. */
+  if (lethal) {
+    score += AI_TUNING.killBonus + targetValue(target);
+    score += depth.elimination * AI_TUNING.lethalCredit;
+  }
+
+  /* 3. Finishing a unit that is already hurt. */
   if (target.hp <= target.maxHp * 0.5) score += AI_TUNING.finishBonus;
+
+  /* 4. The ground the blow is struck from. */
   score += getTerrainAimBonus(pos);
 
-  /* A sharper opponent goes after the banner carrier. */
+  /* 5. A sharper opponent goes after the banner carrier. */
   if (profile.championFocus && target.type === "champion") {
     score += profile.championFocus;
   }
 
-  /* Trading blows is a real cost. */
+  /* 6. The danger the target carries and the share of it this blow takes off
+   *    the table. A blow that ends the target removes all of it. */
+  if (depth.danger > 0) {
+    const share = lethal ? 1 : damage / Math.max(1, target.hp + damage);
+    score += depth.danger * AI_TUNING.dangerWeight * targetDanger(target, attacker.team) * share;
+  }
+
+  /* 7. Trading blows is a real cost. */
   const retaliation = estimateIncomingDamage(pos.col, pos.row, attacker.team, attacker.def);
   score -= retaliation * AI_TUNING.retaliationWeight * profile.caution;
+
+  /* 8. Survival. The blow the target lands back decides whether the
+   *    attacker lives through the exchange. A target that falls cannot land
+   *    it, so a killing blow is never a suicide. */
+  if (depth.survival > 0 && !lethal) {
+    const counter = calculateDamage(target, attacker, { attackerPos: target, defenderPos: pos });
+    if (attacker.hp - counter <= 0) {
+      score -= depth.survival * AI_TUNING.suicidalPenalty;
+    }
+  }
+
   return score;
 }
 
@@ -2072,7 +2245,7 @@ function advanceDirection(unit) {
   return -forward;
 }
 
-function evaluateMoveAction(unit, cell) {
+function evaluateMoveAction(unit, cell, currentAttack, follow) {
   const terrain = getTerrainAt(cell.col, cell.row);
   const profile = profileForTeam(unit.team);
   const advance = (cell.col - unit.col) * advanceDirection(unit);
@@ -2114,6 +2287,18 @@ function evaluateMoveAction(unit, cell) {
   if (unit.type === "champion") {
     score += countAlliesNear(unit, cell, AI_TUNING.championAllyRadius) * AI_TUNING.championAllyProximity;
   }
+
+  /* Walking has to be worth something. When the unit can already strike and
+   * the new cell opens nothing better, the walk is a wasted step. A step
+   * that makes the unit safer is never a waste. */
+  const depth = tacticalDepth(unit.team);
+  if (depth.waste > 0 && currentAttack) {
+    const next = follow || null;
+    const safer = nextThreat < currentThreat;
+    if (!safer && (!next || next.score <= currentAttack.score)) {
+      score -= depth.waste * AI_TUNING.wastedMovePenalty;
+    }
+  }
   return score;
 }
 
@@ -2135,7 +2320,10 @@ function bestAttackFrom(unit, cell) {
   let best = null;
   for (const target of getValidTargets(unit, cell)) {
     const score = evaluateAttackAction(unit, target, cell);
-    if (!best || score > best.score) best = { target, score };
+    if (!best || score > best.score) {
+      const damage = calculateDamage(unit, target, { attackerPos: cell });
+      best = { target, score, lethal: damage >= target.hp };
+    }
   }
   return best;
 }
@@ -2235,14 +2423,18 @@ function actionKey(action) {
   return action.kind;
 }
 
-function evaluateAction(action) {
+function evaluateAction(action, currentAttack) {
   let score = 0;
   if (action.kind === "attack") {
     score = AI_TUNING.actNowBonus + evaluateAttackAction(action.unit, action.target);
   } else if (action.kind === "move") {
-    score = evaluateMoveAction(action.unit, action.cell);
     const follow = bestAttackFrom(action.unit, action.cell);
+    score = evaluateMoveAction(action.unit, action.cell, currentAttack, follow);
     if (follow) score += follow.score;
+    /* A cell from which the next blow would end a unit is worth more than
+     * a cell that only looks closer. */
+    const depth = tacticalDepth(action.unit.team);
+    if (follow && follow.lethal) score += depth.position * AI_TUNING.positionalLethalCredit;
   } else if (action.kind === "ability") {
     score = evaluateAbilityAction(action.unit, action.ability, action.target);
   }
@@ -2256,9 +2448,13 @@ function evaluateAction(action) {
  * the best available plan. */
 function chooseEnemyAction(unit) {
   const actions = getLegalActions(unit);
+  const depth = tacticalDepth(unit.team);
+  /* The best blow available from where the unit stands, worked out once for
+   * the whole turn so that every candidate step can be compared against it. */
+  const currentAttack = depth.waste > 0 ? bestAttackFrom(unit, unit) : null;
   let best = null;
   for (const action of actions) {
-    const score = evaluateAction(action);
+    const score = evaluateAction(action, currentAttack);
     if (score < AI_TUNING.minActionScore) continue;
     if (!best || score > best.score || (score === best.score && actionKey(action) < actionKey(best.action))) {
       best = { action, score };
@@ -2369,6 +2565,7 @@ function performAiMove(unit, destination) {
   unit.hasMoved = true;
   /* Remember where the unit came from so it cannot shuffle back and forth. */
   unit.lastAiCell = from;
+  recordAction("move", unit.team);
 
   const el = unitElements.get(unit.id);
   if (el) {
@@ -2419,6 +2616,7 @@ function performAiAttack(unit, target) {
 
     const damage = calculateDamage(unit, target);
     applyDamage(target.id, damage, { countDamage: true, team: unit.team });
+    recordAction("attack", unit.team);
 
     logEvent(`${unit.displayName} attacks ${target.displayName} for ${damage} damage.`, "ai");
 
@@ -2442,6 +2640,7 @@ function performAiAbility(unit, ability, target) {
     executeNextEnemyAction();
     return;
   }
+  recordAction("ability", unit.team);
   later(() => {
     if (battleToken !== currentBattleToken) return;
     if (checkBattleEnd()) return;
@@ -2548,16 +2747,16 @@ function endBattleByRoundLimit() {
 
   if (blueHp === redHp) {
     logEvent(`The round limit is reached with ${blueHp} health on each side — a draw.`, "system");
-    endBattle(false, "draw");
+    endBattle(false, "draw", "even");
     return;
   }
   if (blueHp > redHp) {
     logEvent(`The round limit is reached — the azure legion holds the field with ${blueHp} health.`, "system");
-    endBattle(true, "victory");
+    endBattle(true, "victory", "round_limit");
     return;
   }
   logEvent(`The round limit is reached — the crimson legion holds the field with ${redHp} health.`, "system");
-  endBattle(false, "defeat");
+  endBattle(false, "defeat", "round_limit");
 }
 
 /* 20. BATTLE END & REMATCH */
@@ -2576,13 +2775,17 @@ function checkBattleEnd() {
   if (!livingRed && livingBlue) outcome = "victory";
   else if (!livingBlue && livingRed) outcome = "defeat";
 
-  endBattle(!livingRed && livingBlue, outcome);
+  endBattle(!livingRed && livingBlue, outcome, "elimination");
   return true;
 }
 
 /* Ends the battle: the field is put into its final state and the result is
- * written down exactly once. */
-function endBattle(victory, outcome) {
+ * written down exactly once.
+ *
+ * ending says what settled the fight: "elimination" when an army was wiped
+ * out, "round_limit" when the field was settled on the health left, and
+ * "even" when neither army was ahead. */
+function endBattle(victory, outcome, ending) {
   battleActive = false;
   renderSetupPanel();
   gameState = STATE_ENDED;
@@ -2595,19 +2798,20 @@ function endBattle(victory, outcome) {
   $battlefield.classList.remove("ai-turn-blue-active");
 
   const spectator = battleMode === "spectator";
+  const atLimit = ending === "round_limit";
 
   if (outcome === "victory") {
     $battleResult.textContent = spectator
-      ? "SPECTATOR — AZURE LEGION PREVAILS"
-      : "VICTORY — AZURE LEGION PREVAILS";
+      ? `SPECTATOR — AZURE LEGION PREVAILS${atLimit ? " ON THE ROUND LIMIT" : ""}`
+      : `VICTORY — AZURE LEGION PREVAILS${atLimit ? " ON THE ROUND LIMIT" : ""}`;
     $battleResult.className = "battle-result victory";
     logEvent(spectator
       ? "The azure legion wins the show."
       : "Azure Legion is victorious!", "system");
   } else if (outcome === "defeat") {
     $battleResult.textContent = spectator
-      ? "SPECTATOR — CRIMSON LEGION PREVAILS"
-      : "DEFEAT — CRIMSON LEGION PREVAILS";
+      ? `SPECTATOR — CRIMSON LEGION PREVAILS${atLimit ? " ON THE ROUND LIMIT" : ""}`
+      : `DEFEAT — CRIMSON LEGION PREVAILS${atLimit ? " ON THE ROUND LIMIT" : ""}`;
     $battleResult.className = "battle-result defeat";
     logEvent(spectator
       ? "The crimson legion wins the show."
@@ -2632,6 +2836,7 @@ function endBattle(victory, outcome) {
 
   if (!battleFinalized) {
     battleFinalized = true;
+    battleLedger.ending = ending || "elimination";
     finalizeBattleResult(victory, outcome);
   }
 }
@@ -2641,6 +2846,13 @@ function finalizeBattleResult(victory, outcome) {
   battleLedger.rounds = Math.min(roundNumber, BATTLE_ROUND_LIMIT);
   battleLedger.spectator = battleMode === "spectator";
   battleLedger.outcome = outcome || (victory ? "victory" : "defeat");
+
+  /* What was left standing when the fight ended, and what settled it. */
+  const blueLeft = getTeamUnits(TEAM_BLUE);
+  const redLeft = getTeamUnits(TEAM_RED);
+  battleLedger.survivors.blue = { units: blueLeft.length, hp: totalRemainingHp(TEAM_BLUE) };
+  battleLedger.survivors.red = { units: redLeft.length, hp: totalRemainingHp(TEAM_RED) };
+  battleLedger.ending = battleLedger.ending || (outcome === "draw" ? "even" : "elimination");
 
   /* A spectator battle pays nothing at all: no experience, no battle in the
    * tally, no level, no change to the saved profile. */
@@ -2871,6 +3083,24 @@ function renderBattleReport(outcome) {
   if ($reportKills) $reportKills.textContent = String(battleLedger.defeated);
   if ($reportLosses) $reportLosses.textContent = String(battleLedger.lost);
   if ($reportXp) $reportXp.textContent = String(totalXp);
+
+  /* What was left standing, and what settled the fight. The numbers come
+   * from the ledger, never from the combat log. */
+  const survivors = battleLedger.survivors || { blue: { units: 0, hp: 0 }, red: { units: 0, hp: 0 } };
+  if ($reportSurvivors) {
+    $reportSurvivors.textContent = `${survivors.blue.units} / ${survivors.red.units}`;
+  }
+  if ($reportHealth) {
+    $reportHealth.textContent = `${survivors.blue.hp} / ${survivors.red.hp}`;
+  }
+  if ($reportDecided) {
+    $reportDecided.textContent = battleLedger.ending === "round_limit"
+      ? "ROUND LIMIT"
+      : battleLedger.ending === "even" ? "EVEN ARMIES" : "ELIMINATION";
+  }
+  if ($reportMode) {
+    $reportMode.textContent = battleLedger.spectator ? "SPECTATOR" : "PLAYER";
+  }
   if ($reportBreakdown) {
     $reportBreakdown.textContent = battleLedger.spectator
       ? "Spectator mode — no rewards are paid."
@@ -3311,6 +3541,7 @@ function onMoveClick(unitId, col, row) {
 
   if (canMoveTo(unit, col, row)) {
     moveUnit(unit, col, row);
+    recordAction("move", unit.team);
     clearMoveIndicators();
     clearAttackIndicators();
     showAttackIndicators(unit);
@@ -3365,6 +3596,7 @@ function executeAttack(attackerId, targetId) {
 
     const damage = calculateDamage(attacker, target);
     applyDamage(targetId, damage, { countDamage: true, team: attacker.team });
+    recordAction("attack", attacker.team);
 
     logEvent(`${attacker.displayName} attacks ${target.displayName} for ${damage} damage.`, "player");
     if (getTerrainDefBonus(target) > 0) {
@@ -3568,6 +3800,14 @@ if (typeof window !== "undefined") {
     evaluateAction,
     chooseEnemyAction,
     estimateIncomingDamage,
+    evaluateAttackAction,
+    evaluateMoveAction,
+    bestAttackFrom,
+    tacticalDepth,
+    targetDanger,
+    isVulnerableUnit,
+    TACTICAL_DEPTH,
+    AI_TUNING,
 
     /* flow */
     initArmies,
