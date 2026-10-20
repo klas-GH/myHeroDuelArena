@@ -1,4 +1,4 @@
-/* REGRESSION TEST SUITE - myHeroDuelArena v1.2.1
+/* REGRESSION TEST SUITE - myHeroDuelArena v1.5.0
  * Run: node regression.js
  *
  * Validates the real game rules. The engine is loaded from game.js through
@@ -7,8 +7,9 @@
  * rules; v1.2.0 replaces it because terrain, abilities and the tactical AI
  * made a second implementation impossible to keep honest.)
  *
- * Covers the v1.0.1 rules, the v1.1.0 tactical turn system and the
- * v1.2.0 terrain, progression, ability and AI systems.
+ * Covers the v1.0.1 rules, the v1.1.0 tactical turn system, the v1.2.0
+ * terrain, progression, ability and AI systems, the v1.4.0 battlefield
+ * selector and the v1.5.0 round limit, sudden death and spectator mode.
  */
 
 "use strict";
@@ -1925,6 +1926,337 @@ section("69. The enemy turns around when it walks past");
 
   const closing = cells.filter(c => c.col < red.col);
   assert(closing.length > 0, "the enemy can step back toward the foe it walked past");
+}
+
+/* 70. THE ROUND LIMIT
+ *
+ * A battle is never fought for longer than BATTLE_ROUND_LIMIT rounds. To
+ * reach the limit the armies need enough health to survive it, so the
+ * helper below puts every fighter on a large health pool.
+ */
+
+section("70. The round limit");
+
+{
+  const { api } = newGame();
+  assert(api.BATTLE_ROUND_LIMIT === 30, `the round limit is 30 rounds (got ${api.BATTLE_ROUND_LIMIT})`);
+  assert(api.getRoundLimit() === 30, "the engine reports the round limit");
+  assert(api.getState().roundLimit === 30, "the battle state reports the round limit");
+}
+
+/* Plays a battle that cannot be won by elimination, so the round limit is
+ * the thing that has to end it. Returns the number of rounds that were
+ * fought. */
+function battleToTheLimit(api, health) {
+  for (const u of api.getUnits().values()) {
+    u.hp = health;
+    u.maxHp = health;
+  }
+  api.startBattle();
+  let played = 0;
+  while (played < 200 && api.getState().gameState !== "ended") {
+    played++;
+    api.runTurnInstantForTeam(TEAM_BLUE);
+    if (api.checkBattleEnd()) break;
+    api.runEnemyTurnInstant();
+    if (api.checkBattleEnd()) break;
+  }
+  return played;
+}
+
+/* Fights up to the last round without playing it. */
+function battleToTheLastRound(api, health) {
+  for (const u of api.getUnits().values()) {
+    u.hp = health;
+    u.maxHp = health;
+  }
+  api.startBattle();
+  let played = 0;
+  while (played < 200 && api.getState().roundNumber < api.BATTLE_ROUND_LIMIT) {
+    played++;
+    api.runTurnInstantForTeam(TEAM_BLUE);
+    if (api.checkBattleEnd()) break;
+    api.runEnemyTurnInstant();
+    if (api.checkBattleEnd()) break;
+  }
+  return played;
+}
+
+{
+  const { api } = newGame();
+  const played = battleToTheLimit(api, 200000);
+  const ledger = api.getBattleLedger();
+
+  assert(api.getState().gameState === "ended", "a battle that reaches the limit ends there");
+  assert(played === 30, `exactly 30 rounds were fought (got ${played})`);
+  assert(ledger.rounds === 30, `the ledger records 30 rounds (got ${ledger.rounds})`);
+  assert(api.getState().roundNumber === 30, "the round counter stops at the limit");
+  assert(api.getTotalRemainingHp(TEAM_BLUE) > 0 && api.getTotalRemainingHp(TEAM_RED) > 0,
+    "both armies are still standing when the limit is reached");
+  assert(api.getTeamUnits(TEAM_BLUE).length > 0 && api.getTeamUnits(TEAM_RED).length > 0,
+    "neither army was wiped out");
+}
+
+/* 71. SUDDEN DEATH */
+
+section("71. Sudden death");
+
+{
+  const { api } = newGame();
+  for (const u of api.getUnits().values()) {
+    u.hp = 200000;
+    u.maxHp = 200000;
+  }
+  api.startBattle();
+
+  assert(api.isSuddenDeath() === false, "a battle does not begin in sudden death");
+
+  /* The very same blow, measured before the limit and inside it. */
+  const attacker = unitByType(api, TEAM_BLUE, "footman");
+  const defender = unitByType(api, TEAM_RED, "footman");
+  const place = () => {
+    attacker.col = 4; attacker.row = 1;
+    defender.col = 5; defender.row = 1;
+  };
+
+  place();
+  const normal = api.calculateDamage(attacker, defender);
+
+  let played = 0;
+  while (played < 200 && api.getState().roundNumber < api.BATTLE_ROUND_LIMIT) {
+    played++;
+    api.runTurnInstantForTeam(TEAM_BLUE);
+    if (api.checkBattleEnd()) break;
+    api.runEnemyTurnInstant();
+    if (api.checkBattleEnd()) break;
+  }
+
+  assert(api.getState().roundNumber === 30, "the last round is reached");
+  assert(api.isSuddenDeath() === true, "the last round is fought in sudden death");
+
+  place();
+  const sudden = api.calculateDamage(attacker, defender);
+  assert(sudden === Math.round(normal * api.SUDDEN_DEATH_DAMAGE_MULTIPLIER),
+    `sudden death multiplies every blow by ${api.SUDDEN_DEATH_DAMAGE_MULTIPLIER} (${normal} -> ${sudden})`);
+
+  /* The multiplier is the same for both armies, so the fight stays fair. */
+  const red = unitByType(api, TEAM_RED, "footman");
+  red.col = 4; red.row = 1;
+  attacker.col = 5; attacker.row = 1;
+  const redBlow = api.calculateDamage(red, attacker);
+  attacker.col = 4; attacker.row = 1;
+  red.col = 5; red.row = 1;
+  assert(redBlow === sudden, "both armies strike with the same force in sudden death");
+}
+
+/* 72. THE LIMIT IS SETTLED ON THE HEALTH LEFT */
+
+section("72. The round limit is settled on the health left");
+
+{
+  const { api } = newGame();
+  const blue = blueUnits(api);
+  const red = redUnits(api);
+
+  for (const u of blue) u.hp = 10;
+  for (const u of red) u.hp = 10;
+  assert(api.resolveRoundLimit() === "draw", "an even field is a draw");
+
+  blue[0].hp = 11;
+  assert(api.resolveRoundLimit() === "blue", "the army with more health left wins");
+
+  red[0].hp = 20;
+  assert(api.resolveRoundLimit() === "red", "the other army wins when it is ahead");
+
+  /* Elimination comes before the health comparison. */
+  for (const u of red) { u.alive = false; u.defeated = true; }
+  assert(api.resolveRoundLimit() === "elimination", "a wiped out army settles it by elimination");
+}
+
+{
+  /* An even field at the limit ends the battle in a draw. */
+  const { api, doc } = newGame();
+  battleToTheLastRound(api, 200000);
+
+  assert(api.getState().roundNumber === 30, "the battle reaches the last round");
+
+  /* One fighter per side, the same health, and too far apart to reach each
+   * other: the last round cannot change the balance of the field. */
+  const blue = blueUnits(api);
+  const red = redUnits(api);
+  for (const u of blue.slice(1)) { u.alive = false; u.defeated = true; }
+  for (const u of red.slice(1)) { u.alive = false; u.defeated = true; }
+  blue[0].hp = 100; blue[0].col = 0; blue[0].row = 0;
+  red[0].hp = 100; red[0].col = 9; red[0].row = 3;
+
+  api.runTurnInstantForTeam(TEAM_BLUE);
+  if (!api.checkBattleEnd()) api.runEnemyTurnInstant();
+
+  assert(api.getState().gameState === "ended", "the even battle ends at the limit");
+  assert(api.getTotalRemainingHp(TEAM_BLUE) === api.getTotalRemainingHp(TEAM_RED),
+    `both armies are left with the same health (${api.getTotalRemainingHp(TEAM_BLUE)} vs ${api.getTotalRemainingHp(TEAM_RED)})`);
+  assert(doc.getElementById("battle-result").textContent.indexOf("DRAW") !== -1,
+    `the result banner calls it a draw (${doc.getElementById("battle-result").textContent})`);
+  assert(doc.getElementById("report-outcome").textContent === "DRAW",
+    "the report calls it a draw");
+  assert(api.getBattleLedger().rounds === 30, "the draw is recorded after 30 rounds");
+}
+
+{
+  /* Elimination has the last word, even when the other army is healthier. */
+  const { api, doc } = newGame();
+  api.startBattle();
+  for (const u of api.getUnits().values()) {
+    u.hp = 200000;
+    u.maxHp = 200000;
+  }
+  /* The crimson legion is far healthier, so the health comparison alone
+   * would hand the fight to it. */
+  for (const u of redUnits(api)) {
+    u.hp = 900000;
+    u.maxHp = 900000;
+  }
+
+  let played = 0;
+  while (played < 200 && api.getState().roundNumber < api.BATTLE_ROUND_LIMIT) {
+    played++;
+    api.runTurnInstantForTeam(TEAM_BLUE);
+    if (api.checkBattleEnd()) break;
+    api.runEnemyTurnInstant();
+    if (api.checkBattleEnd()) break;
+  }
+
+  assert(api.getState().roundNumber === 30, "the battle reaches the last round");
+  assert(api.getTotalRemainingHp(TEAM_RED) > api.getTotalRemainingHp(TEAM_BLUE),
+    "the crimson legion is the healthier army");
+
+  for (const u of redUnits(api)) {
+    api.applyDamage(u.id, 9999999, { countDamage: true, team: TEAM_BLUE });
+  }
+  api.checkBattleEnd();
+
+  assert(api.getState().gameState === "ended", "the battle ends on the last round");
+  assert(api.getTotalRemainingHp(TEAM_RED) === 0, "the crimson legion is wiped out");
+  assert(doc.getElementById("battle-result").textContent.indexOf("VICTORY") !== -1,
+    `the elimination decides the battle (${doc.getElementById("battle-result").textContent})`);
+}
+
+/* 73. THE SPECTATOR MODE */
+
+section("73. The spectator mode");
+
+{
+  const { api, doc } = newGame();
+  assert(api.getBattleMode() === "player", "a new game starts in player mode");
+  assert(api.isSpectatorMode() === false, "a new game is not a spectator battle");
+
+  api.startSpectatorBattle();
+
+  assert(api.getBattleMode() === "spectator", "the spectator battle switches the mode");
+  assert(api.isSpectatorMode() === true, "the engine reports the spectator mode");
+  assert(api.getState().spectatorActive === true, "the battle state reports the spectator");
+  assert(api.getState().battleActive === true, "the spectator battle is running");
+  assert(api.getState().currentTurn === TEAM_BLUE, "the azure legion takes the first turn");
+
+  /* A spectator does not command anybody. */
+  const unit = doc.getElementById("blue-units").children[0];
+  unit.dispatch("click");
+  assert(api.getState().selectedUnitId === null, "a spectator cannot select a unit");
+  assert(doc.getElementById("end-turn-button").classList.contains("hidden"),
+    "the end turn button is hidden during a spectator battle");
+
+  api.resetBattle();
+  assert(api.getBattleMode() === "player", "a reset hands the game back to the player");
+}
+
+{
+  const { api } = newGame();
+  api.startSpectatorBattle();
+  const result = api.runSpectatorBattleInstant();
+
+  assert(result.ended === true, "the spectator battle reaches a conclusion");
+  assert(api.getState().gameState === "ended", "the game reports the show as over");
+  assert(api.getState().battleMode === "spectator", "the mode is still spectator at the end");
+  assert(api.getBattleLedger().rounds > 0, "the show is written into the ledger");
+  assert(api.getBattleLedger().spectator === true, "the ledger marks the battle as a spectator battle");
+}
+
+/* 74. A SPECTATOR BATTLE PAYS NOTHING */
+
+section("74. A spectator battle pays nothing");
+
+{
+  const storage = createLocalStorage();
+  const { api, doc } = newGame({ storage });
+  const before = api.getProgression();
+  const rewardsBefore = api.getAwardedRewards().size;
+
+  api.startSpectatorBattle();
+  api.runSpectatorBattleInstant();
+
+  const after = api.getProgression();
+
+  assert(after.xp === before.xp, "no experience is paid");
+  assert(after.level === before.level, "no level is gained");
+  assert(after.battles === before.battles, "the battle is not counted");
+  assert(after.wins === before.wins, "no win is recorded");
+  assert(after.abilityPoints === before.abilityPoints, "no ability point is gained");
+  assert(after.unlocked.join(",") === before.unlocked.join(","), "no ability is unlocked");
+  assert(api.getAwardedRewards().size === rewardsBefore, "no reward key is handed out");
+  assert(storage.getItem(api.STORAGE_KEY) === null, "nothing is written to storage");
+
+  const ledger = api.getBattleLedger();
+  assert(ledger.xp.damage === 0 && ledger.xp.kill === 0 && ledger.xp.victory === 0,
+    "the ledger records no experience at all");
+  assert(doc.getElementById("report-xp").textContent === "0", "the report shows no experience");
+  assert(/no rewards/i.test(doc.getElementById("report-breakdown").textContent),
+    "the report says that no rewards are paid");
+  assert(/untouched/i.test(doc.getElementById("report-level").textContent),
+    "the report says that the profile is untouched");
+}
+
+/* 75. A PLAYER BATTLE STILL PAYS ITS REWARDS */
+
+section("75. A player battle still pays its rewards");
+
+{
+  const { api } = newGame();
+
+  api.startSpectatorBattle();
+  api.runSpectatorBattleInstant();
+  assert(api.getBattleMode() === "spectator", "the show leaves the mode on spectator");
+
+  api.resetBattle();
+  assert(api.getBattleMode() === "player", "a reset hands the game back to the player");
+
+  api.startBattle();
+  assert(api.getBattleMode() === "player", "the next battle is a player battle again");
+
+  const before = api.getProgression().xp;
+  for (const u of redUnits(api)) {
+    if (!u.defeated) api.applyDamage(u.id, 9999);
+  }
+  api.checkBattleEnd();
+
+  assert(api.getProgression().xp > before, "the player battle still pays experience");
+  assert(api.getProgression().battles === 1, "the player battle is counted exactly once");
+  assert(api.getBattleLedger().spectator === false, "the ledger marks the battle as a player battle");
+}
+
+/* 76. ORDINARY BATTLES ARE LEFT ALONE */
+
+section("76. Ordinary battles are left alone");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+
+  assert(api.isSuddenDeath() === false, "an ordinary battle does not begin in sudden death");
+  assert(api.getState().roundNumber === 1, "the round counter starts at one");
+
+  api.runEnemyTurnInstant();
+  assert(api.getState().roundNumber === 2, "the round counter moves on with the rounds");
+  assert(api.isSuddenDeath() === false, "sudden death is still far away");
 }
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);

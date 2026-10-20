@@ -1,4 +1,4 @@
-/* BALANCE HARNESS — myHeroDuelArena v1.4.0
+/* BALANCE HARNESS — myHeroDuelArena v1.5.0
  * Run: node balance.js [options]
  *
  * Fights battles with the real engine, headless and without a browser, and
@@ -47,7 +47,9 @@ function parseArgs(argv) {
     jitter: 2,
     difficulty: null,
     maps: null,
-    maxRounds: 30,
+    /* The engine settles a battle itself after BATTLE_ROUND_LIMIT rounds, so
+     * this is only a safety net above that limit. */
+    maxRounds: 40,
     timeoutMs: 5000,
     out: null,
     quiet: false,
@@ -126,9 +128,14 @@ function playBattle(config) {
 
   let outcome = "stalemate";
   if (ended) {
-    if (redAlive === 0 && blueAlive > 0) outcome = "blue";
-    else if (blueAlive === 0 && redAlive > 0) outcome = "red";
-    else outcome = "stalemate";
+    /* The engine records how it settled the battle, so the measurement
+     * never has to guess. */
+    const settled = ledger.outcome;
+    if (settled === "victory") outcome = "blue";
+    else if (settled === "defeat") outcome = "red";
+    else if (settled === "draw") outcome = "limit";
+    else if (blueAlive === 0 && redAlive === 0) outcome = "stalemate";
+    else if (blueAlive > 0 && redAlive > 0) outcome = "limit";
   }
 
   const totalXp = ledger.xp.damage + ledger.xp.kill + ledger.xp.victory;
@@ -179,6 +186,7 @@ function summarise(battles) {
   const enemyWins = battles.filter(b => b.outcome === "red").length;
   const referenceWins = battles.filter(b => b.outcome === "blue").length;
   const stalemates = battles.filter(b => b.outcome === "stalemate").length;
+  const limits = battles.filter(b => b.outcome === "limit").length;
   const timeouts = battles.filter(b => b.timedOut).length;
 
   return {
@@ -186,6 +194,7 @@ function summarise(battles) {
     enemyWins,
     referenceWins,
     stalemates,
+    limits,
     timeouts,
     enemyWinRate: total ? round2(enemyWins / total) : 0,
     averageRounds: round2(average(battles.map(b => b.rounds))),
@@ -332,6 +341,9 @@ function printReport(report) {
   const totals = summarise(report.battles);
   console.log(`\noverall: enemy win rate ${totals.enemyWinRate} over ${totals.battles} battles, `
     + `${totals.averageRounds} rounds and ${totals.averageXp} XP per battle`);
+  if (totals.limits > 0) {
+    console.log(`battles settled by the round limit: ${totals.limits}`);
+  }
 
   const timedOut = report.battles.filter(b => b.timedOut).length;
   if (timedOut > 0) console.log(`warning: ${timedOut} battle(s) hit the round or time limit`);

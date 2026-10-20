@@ -1,4 +1,4 @@
-/* RENDER VERIFICATION — myHeroDuelArena v1.1.0
+/* RENDER VERIFICATION — myHeroDuelArena v1.5.0
  * Run: node verify_render.js
  *
  * Drives the real page in headless Edge via the DevTools protocol and checks
@@ -700,7 +700,7 @@ async function main() {
           const r = c.getBoundingClientRect();
           return { right: r.right, bottom: r.bottom, width: r.width, height: r.height };
         });
-        const controls = ['start-button', 'end-turn-button', 'progression-strip', 'champion-panel']
+        const controls = ['start-button', 'end-turn-button', 'progression-strip', 'champion-panel', 'spectate-button']
           .map(id => document.getElementById(id))
           .filter(Boolean)
           .map(el => {
@@ -958,6 +958,102 @@ async function main() {
     assert(/^\d+$/.test(report.xp.text), `the report shows the experience (${report.xp.text})`);
     assert(/XP/.test(report.breakdown.text), "the report breaks the experience down");
     assert(report.level.text.length > 0, "the report says where the champion stands");
+
+    console.log("\n17. The spectator mode — a real click on the control");
+
+    /* The spectator show is the second door into the arena. It has to work
+     * with a real pointer, and it has to leave the champion's profile
+     * completely alone while the two legions fight it out. */
+    const beforeShow = await cdp.evaluate(`(async () => {
+      const api = window.MyHeroDuelArena;
+      api.resetBattle();
+      const button = document.getElementById('spectate-button');
+      /* The control sits at the bottom of the page, so it is brought into
+       * view before the pointer is aimed at it. */
+      button.scrollIntoView({ block: 'center', inline: 'center' });
+      await new Promise(r => setTimeout(r, 250));
+      const r = button.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const p = api.getProgression();
+      return {
+        buttonVisible: r.width > 0 && r.height > 0,
+        buttonDisabled: button.disabled,
+        hitIsButton: !!(hit && hit.closest && hit.closest('#spectate-button')),
+        hitTag: hit ? (hit.className || hit.tagName) : null,
+        x: r.left + r.width / 2,
+        y: r.top + r.height / 2,
+        rect: { top: Math.round(r.top), left: Math.round(r.left), width: Math.round(r.width), height: Math.round(r.height) },
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        xp: p.xp,
+        level: p.level,
+        battles: p.battles,
+        wins: p.wins
+      };
+    })()`);
+
+    assert(beforeShow.buttonVisible === true, "the spectator control is on screen");
+    assert(beforeShow.buttonDisabled === false, "the spectator control is free between battles");
+    assert(beforeShow.hitIsButton === true,
+      `the hit test reaches the spectator control (hit ${beforeShow.hitTag}, rect ${JSON.stringify(beforeShow.rect)}, viewport ${JSON.stringify(beforeShow.viewport)})`);
+
+    await cdp.mouseClick(beforeShow.x, beforeShow.y);
+    await new Promise(r => setTimeout(r, 1200));
+
+    const watching = await cdp.evaluate(`(() => {
+      const api = window.MyHeroDuelArena;
+      const state = api.getState();
+      const p = api.getProgression();
+      const log = [...document.querySelectorAll('#combat-log .log-entry')].map(e => e.textContent);
+      const button = document.getElementById('spectate-button');
+      return {
+        mode: state.battleMode,
+        spectator: state.spectatorActive,
+        active: state.battleActive,
+        turn: document.getElementById('turn-text').textContent,
+        round: document.getElementById('round-text').textContent,
+        bannerVisible: !document.getElementById('turn-banner').classList.contains('hidden'),
+        endTurnHidden: document.getElementById('end-turn-button').classList.contains('hidden'),
+        stripSpectating: document.getElementById('progression-strip').classList.contains('spectating'),
+        buttonDisabled: button.disabled,
+        log,
+        xp: p.xp,
+        level: p.level,
+        battles: p.battles,
+        wins: p.wins,
+        stored: localStorage.getItem(api.STORAGE_KEY)
+      };
+    })()`);
+
+    assert(watching.mode === "spectator", "a real click starts the spectator show");
+    assert(watching.spectator === true, "the page is in spectator mode");
+    assert(watching.active === true, "the show is running");
+    assert(watching.bannerVisible === true, "the turn banner is on screen during the show");
+    assert(/AZURE LEGION|CRIMSON LEGION/.test(watching.turn),
+      `the banner names the legion that is fighting (${watching.turn})`);
+    assert(/^ROUND \d+$/.test(watching.round), `the banner names the round (${watching.round})`);
+    assert(watching.endTurnHidden === true, "the end turn control is hidden during the show");
+    assert(watching.stripSpectating === true, "the progression strip says that nothing is being earned");
+    assert(watching.buttonDisabled === true, "the spectator control is locked while the show runs");
+    assert(watching.log.some(t => /advances|attacks/.test(t)),
+      `the AI is actually fighting (${JSON.stringify(watching.log)})`);
+
+    assert(watching.xp === beforeShow.xp, "the show pays no experience");
+    assert(watching.level === beforeShow.level, "the show gains no level");
+    assert(watching.battles === beforeShow.battles, "the show is not counted as a battle");
+    assert(watching.wins === beforeShow.wins, "the show records no win");
+
+    await cdp.evaluate(`(() => { window.MyHeroDuelArena.resetBattle(); })()`);
+    await new Promise(r => setTimeout(r, 250));
+
+    const afterShow = await cdp.evaluate(`(() => ({
+      mode: window.MyHeroDuelArena.getBattleMode(),
+      stripSpectating: document.getElementById('progression-strip').classList.contains('spectating'),
+      buttonDisabled: document.getElementById('spectate-button').disabled
+    }))()`);
+
+    assert(afterShow.mode === "player", "a reset hands the game back to the player");
+    assert(afterShow.stripSpectating === false, "the progression strip comes back to normal");
+    assert(afterShow.buttonDisabled === false, "the spectator control is free again");
 
     console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
   } catch (err) {

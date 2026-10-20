@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.4.0 — CHOOSE THE GROUND, SET THE DIFFICULTY, EARN THE XP
+   myHeroDuelArena v1.5.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.4.0";
+const APP_VERSION = "v1.5.0";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -452,7 +452,22 @@ const XP_VICTORY_BONUS = 50;
 const XP_PER_DAMAGE = 5;
 
 /* Battle resolution */
+/* A battle is never fought for longer than this. When the limit is reached
+ * the field is settled in sudden death: the two armies are compared by the
+ * health they have left, and an even field is a draw. */
 const BATTLE_ROUND_LIMIT = 30;
+
+/* Damage is amplified in the final round, so a stalemate breaks instead of
+ * grinding on. The factor is the same for both armies. */
+const SUDDEN_DEATH_DAMAGE_MULTIPLIER = 1.5;
+
+/* The spectator show runs on a quicker clock than a player battle. */
+const SPECTATOR_TIMING = {
+  attack: 190,
+  move: 230,
+  ability: 170,
+  gap: 110
+};
 
 
 /* Progression is stored under a namespaced key. */
@@ -499,6 +514,12 @@ const AI_TIMING = {
   ability: 300,
   gap: 200
 };
+
+/* The pacing of the running AI turn. A spectator battle is a show rather
+ * than a fight, so it runs on the quicker clock. */
+function aiTiming() {
+  return battleMode === "spectator" ? SPECTATOR_TIMING : AI_TIMING;
+}
 
 /* 5.1 DIFFICULTY PROFILES
  *
@@ -574,8 +595,12 @@ function setDifficulty(id) {
 
 /* The player is never handicapped by the difficulty setting: only the
  * crimson legion changes. The blue side always plays by the normal rules,
- * which also makes it a stable reference opponent for the balance harness. */
+ * which also makes it a stable reference opponent for the balance harness.
+ *
+ * A spectator battle is a display, not a challenge, so both armies fight by
+ * the normal rules there: neither side is handed the harder opponent. */
 function profileForTeam(team) {
+  if (battleMode === "spectator") return DIFFICULTY_PROFILES.normal;
   if (team !== TEAM_RED) return DIFFICULTY_PROFILES.normal;
   return DIFFICULTY_PROFILES[currentDifficultyId] || DIFFICULTY_PROFILES.normal;
 }
@@ -643,6 +668,7 @@ function getCombatOptions() {
 
 const $status = document.getElementById("status");
 const $startButton = document.getElementById("start-button");
+const $spectateButton = document.getElementById("spectate-button");
 const $selectionInfo = document.getElementById("selection-info");
 const $selectedName = document.getElementById("selected-name");
 const $selectedStats = document.getElementById("selected-stats");
@@ -738,6 +764,23 @@ let battleFinalized = false;
 /* Reward keys already handed out in this session. */
 const awardedRewards = new Set();
 
+/* "player" or "spectator". A spectator battle is the AI against itself and
+ * pays nothing: no experience, no rewards, no change to the profile. */
+let battleMode = "player";
+
+/* True while a spectator battle is on the field. */
+let spectatorActive = false;
+
+/* The team whose turn comes next in a spectator battle. */
+let spectatorTurnTeam = TEAM_BLUE;
+
+/* The instant spectator driver steers the show itself instead of handing the
+ * next turn to a timer. */
+let spectatorAutoAdvance = true;
+
+/* True once the round limit has been reached and the final round is fought. */
+let suddenDeathActive = false;
+
 /* The battlefield the next battle is fought on. */
 let activeMapId = DEFAULT_MAP_ID;
 
@@ -757,7 +800,9 @@ function createBattleLedger() {
     lost: 0,
     xp: { damage: 0, kill: 0, victory: 0 },
     levelBefore: 1,
-    levelAfter: 1
+    levelAfter: 1,
+    outcome: null,
+    spectator: false
   };
 }
 
@@ -780,7 +825,9 @@ function getBattleLedger() {
     lost: battleLedger.lost,
     xp: { damage: battleLedger.xp.damage, kill: battleLedger.xp.kill, victory: battleLedger.xp.victory },
     levelBefore: battleLedger.levelBefore,
-    levelAfter: battleLedger.levelAfter
+    levelAfter: battleLedger.levelAfter,
+    outcome: battleLedger.outcome,
+    spectator: battleLedger.spectator
   };
 }
 
@@ -1434,6 +1481,12 @@ function calculateDamage(attacker, defender, options) {
   let raw = attackValue(attacker, attackerPos, defenderPos) + atkBonus + aimBonus
     - Math.floor((defender.def + defBonus) / 2);
 
+  /* In sudden death every blow counts for more, for both armies alike, so a
+   * fight that reached the round limit still ends in a decision. */
+  if (suddenDeathActive) {
+    raw = Math.round(raw * SUDDEN_DEATH_DAMAGE_MULTIPLIER);
+  }
+
   /* Damage scatter is off unless the balance harness turns it on, so the
    * ordinary game keeps its exact numbers. */
   if (combatVariance > 0) {
@@ -1749,6 +1802,10 @@ function getXpToNextLevel() {
 /* Experience is only ever paid once for a given key. */
 function awardExperience(amount, reason, eventKey) {
   if (!amount || amount <= 0) return 0;
+  /* A spectator battle is a show, not a fight the player took part in, so
+   * it pays nothing. The gate sits here, in the one place every reward
+   * passes through. */
+  if (battleMode === "spectator") return 0;
   if (eventKey) {
     if (awardedRewards.has(eventKey)) return 0;
     awardedRewards.add(eventKey);
@@ -1822,7 +1879,15 @@ function applyChampionProgression(champion) {
 
 /* 18. TURN MANAGEMENT */
 
-function startBattle() {
+/* Starts a battle.
+ *
+ * options.mode "player" (the default) hands the blue legion to the player.
+ * options.mode "spectator" hands both armies to the AI and takes every
+ * reward off the table, so a watched battle can never touch the profile. */
+function startBattle(options) {
+  const opts = options || {};
+  const mode = opts.mode === "spectator" ? "spectator" : "player";
+
   cancelPendingTimers();
   aiActionQueue = [];
   aiActionIndex = 0;
@@ -1831,20 +1896,24 @@ function startBattle() {
   battleId += 1;
   battleFinalized = false;
 
+  setBattleMode(mode);
+
   battleActive = true;
-  currentTurn = "player";
-  gameState = STATE_PLAYER_SELECTING;
+  currentTurn = mode === "spectator" ? TEAM_BLUE : "player";
+  gameState = mode === "spectator" ? STATE_ENEMY_TURN : STATE_PLAYER_SELECTING;
   roundNumber = 1;
   selectedUnitId = null;
   pendingAbilityId = null;
+  suddenDeathActive = false;
+  updateSpectateButton();
 
   $startButton.disabled = true;
-  $startButton.textContent = "ARENA READY";
+  $startButton.textContent = mode === "spectator" ? "SPECTATING" : "ARENA READY";
   $battleResult.classList.add("hidden");
   hideBattleReport();
   $turnBanner.classList.remove("hidden");
-  $endTurnButton.classList.remove("hidden");
   $endTurnButton.disabled = false;
+  $endTurnButton.classList.toggle("hidden", mode === "spectator");
   $selectionInfo.classList.add("hidden");
   $abilityWrap.classList.add("hidden");
   $combatLog.innerHTML = "";
@@ -1854,17 +1923,50 @@ function startBattle() {
   renderSetupPanel();
   battleLedger = createBattleLedger();
   battleLedger.mapId = getActiveMapId();
-  battleLedger.difficultyId = getDifficultyId();
+  battleLedger.difficultyId = mode === "spectator" ? DEFAULT_DIFFICULTY_ID : getDifficultyId();
   battleLedger.seed = randomSeed;
   battleLedger.levelBefore = progression.level;
   battleLedger.levelAfter = progression.level;
-  applyChampionProgression(getPlayerChampion());
+  battleLedger.spectator = mode === "spectator";
+  /* The champion's permanent bonuses belong to the player. A spectator
+   * battle is fought at base strength on both sides. */
+  if (mode !== "spectator") applyChampionProgression(getPlayerChampion());
   refreshAllHealthBars();
   updateTurnBanner();
   updateBattleStatus();
   updateProgressionUI();
   updateChampionPanel();
+
+  if (mode === "spectator") {
+    spectatorTurnTeam = TEAM_BLUE;
+    logEvent("The legions clash. You are watching, not fighting.", "system");
+    runSpectatorTurn(TEAM_BLUE);
+    return;
+  }
+
   logEvent("The battle begins!", "system");
+}
+
+/* Switches the battle mode and puts the interface into the matching state. */
+function setBattleMode(mode) {
+  battleMode = mode === "spectator" ? "spectator" : "player";
+  spectatorActive = battleMode === "spectator";
+  spectatorAutoAdvance = true;
+  if ($progressionStrip) {
+    $progressionStrip.classList.toggle("spectating", spectatorActive);
+  }
+  if (document && document.body) {
+    document.body.classList.toggle("spectating", spectatorActive);
+  }
+}
+
+/* Starts a spectator battle: the AI fights the AI and the fight pays
+ * nothing at all. */
+function startSpectatorBattle(options) {
+  const opts = options || {};
+  resetBattle();
+  startBattle(Object.assign({}, opts, { mode: "spectator" }));
+  return true;
 }
 
 /* Action flags reset every round; ability uses are per battle. */
@@ -2165,14 +2267,19 @@ function chooseEnemyAction(unit) {
   return best ? best.action : null;
 }
 
-function runEnemyTurn() {
+/* Hands a turn to the tactical AI. The player never drives a team through
+ * this path: the enemy does, and so does the other legion in a spectator
+ * battle. Both are played by exactly the same brain, under exactly the
+ * same rules. */
+function runAiTurn(team) {
   gameState = STATE_ENEMY_TURN;
   $turnBanner.classList.add("ai-turn-active");
-  $battlefield.classList.add("ai-turn-active");
+  $battlefield.classList.toggle("ai-turn-active", team !== TEAM_BLUE);
+  $battlefield.classList.toggle("ai-turn-blue-active", team === TEAM_BLUE);
 
-  aiTurnTeam = TEAM_RED;
+  aiTurnTeam = team;
   aiTurnOwnsRound = true;
-  aiActionQueue = buildActionQueue(TEAM_RED);
+  aiActionQueue = buildActionQueue(team);
   aiActionIndex = 0;
 
   if (aiActionQueue.length === 0) {
@@ -2180,6 +2287,21 @@ function runEnemyTurn() {
     return;
   }
   executeNextEnemyAction();
+}
+
+function runEnemyTurn() {
+  runAiTurn(TEAM_RED);
+}
+
+/* Hands the next turn of a spectator battle to the AI. The player only
+ * watches. */
+function runSpectatorTurn(team) {
+  if (!battleActive || gameState === STATE_ENDED) return;
+  spectatorTurnTeam = team;
+  currentTurn = team;
+  updateTurnBanner();
+  updateBattleStatus();
+  runAiTurn(team);
 }
 
 /* Plays one team's turn with the tactical AI, resolving the whole turn in one
@@ -2264,7 +2386,7 @@ function performAiMove(unit, destination) {
       return;
     }
     continueAiAction(unit);
-  }, AI_TIMING.move);
+  }, aiTiming().move);
 }
 
 /* After an action that did not consume the whole turn, the unit may still
@@ -2310,8 +2432,8 @@ function performAiAttack(unit, target) {
 
     later(() => {
       executeNextEnemyAction();
-    }, AI_TIMING.gap);
-  }, AI_TIMING.attack);
+    }, aiTiming().gap);
+  }, aiTiming().attack);
 }
 
 function performAiAbility(unit, ability, target) {
@@ -2329,81 +2451,208 @@ function performAiAbility(unit, ability, target) {
       continueAiAction(unit);
       return;
     }
-    later(() => { executeNextEnemyAction(); }, AI_TIMING.gap);
-  }, AI_TIMING.ability);
+    later(() => { executeNextEnemyAction(); }, aiTiming().gap);
+  }, aiTiming().ability);
 }
 
 function finishEnemyTurn() {
+  const finishedTeam = aiTurnTeam;
   aiTurnTeam = null;
-  currentTurn = "player";
-  roundNumber++;
-  gameState = STATE_PLAYER_SELECTING;
   $turnBanner.classList.remove("ai-turn-active");
   $battlefield.classList.remove("ai-turn-active");
+  $battlefield.classList.remove("ai-turn-blue-active");
+
+  /* A spectator battle hands the field straight from one legion to the
+   * other. The round is only closed once both have had their turn. */
+  if (battleMode === "spectator") {
+    /* The instant driver steers the show itself, so it closes the rounds. */
+    if (!spectatorAutoAdvance) return;
+
+    if (finishedTeam === TEAM_BLUE) {
+      spectatorTurnTeam = TEAM_RED;
+      later(() => runSpectatorTurn(TEAM_RED), aiTiming().gap);
+      return;
+    }
+    if (closeRound()) return;
+    spectatorTurnTeam = TEAM_BLUE;
+    later(() => runSpectatorTurn(TEAM_BLUE), aiTiming().gap);
+    return;
+  }
+
+  currentTurn = "player";
+  gameState = STATE_PLAYER_SELECTING;
   $endTurnButton.disabled = false;
   $endTurnButton.classList.remove("hidden");
 
+  if (closeRound()) return;
+  logEvent("Your turn!", "system");
+}
+
+/* Closes the round: the counter moves on, the flags are reset and the
+ * battle either ends or the next round begins. Returns true when the
+ * battle is over. */
+function closeRound() {
+  /* An army that has been wiped out decides the battle, whatever the round
+   * counter says. Elimination always comes first. */
+  if (checkBattleEnd()) return true;
+
+  /* The round limit is the last word: no battle is ever fought for longer
+   * than BATTLE_ROUND_LIMIT rounds. */
+  if (roundNumber >= BATTLE_ROUND_LIMIT) {
+    endBattleByRoundLimit();
+    return true;
+  }
+
+  roundNumber++;
   resetActionFlags();
   expireTemporaryEffects();
   refreshAllHealthBars();
+
+  /* The last round is fought in sudden death. */
+  if (roundNumber === BATTLE_ROUND_LIMIT) enterSuddenDeath();
+
   updateTurnBanner();
   updateBattleStatus();
-  logEvent("Your turn!", "system");
+  return false;
+}
 
-  if (checkBattleEnd()) return;
+/* The last round of a battle is fought in sudden death: every blow counts
+ * for more, so a fight that reached the round limit still ends in a
+ * decision. */
+function enterSuddenDeath() {
+  if (suddenDeathActive) return;
+  suddenDeathActive = true;
+  logEvent("SUDDEN DEATH — the final round is fought.", "system");
+}
+
+/* The health an army has left. The round limit is settled on this number. */
+function totalRemainingHp(team) {
+  return getTeamUnits(team).reduce((sum, unit) => sum + Math.max(0, unit.hp), 0);
+}
+
+/* The round limit has been reached. The field is settled by the health each
+ * army has left: the stronger army wins and an even field is a draw. */
+function endBattleByRoundLimit() {
+  const livingBlue = getTeamUnits(TEAM_BLUE).length > 0;
+  const livingRed = getTeamUnits(TEAM_RED).length > 0;
+
+  /* Elimination comes first: a wiped out army loses, whatever the health
+   * comparison would have said. */
+  if (!livingBlue || !livingRed) {
+    checkBattleEnd();
+    return;
+  }
+
+  const blueHp = totalRemainingHp(TEAM_BLUE);
+  const redHp = totalRemainingHp(TEAM_RED);
+
+  if (blueHp === redHp) {
+    logEvent(`The round limit is reached with ${blueHp} health on each side — a draw.`, "system");
+    endBattle(false, "draw");
+    return;
+  }
+  if (blueHp > redHp) {
+    logEvent(`The round limit is reached — the azure legion holds the field with ${blueHp} health.`, "system");
+    endBattle(true, "victory");
+    return;
+  }
+  logEvent(`The round limit is reached — the crimson legion holds the field with ${redHp} health.`, "system");
+  endBattle(false, "defeat");
 }
 
 /* 20. BATTLE END & REMATCH */
 
+/* Is the battle over? The battle ends when one army is wiped out, and the
+ * round limit settles it if both are still standing. */
 function checkBattleEnd() {
+  if (gameState === STATE_ENDED) return true;
+
   const livingBlue = getTeamUnits(TEAM_BLUE).length > 0;
   const livingRed = getTeamUnits(TEAM_RED).length > 0;
 
-  if (!livingBlue || !livingRed) {
-    battleActive = false;
-    renderSetupPanel();
-    gameState = STATE_ENDED;
-    currentTurn = "ended";
-    clearSelection();
-    $endTurnButton.classList.add("hidden");
-    $abilityWrap.classList.add("hidden");
-    $turnBanner.classList.add("hidden");
+  if (livingBlue && livingRed) return false;
 
-    let outcome = "stalemate";
-    if (!livingRed && livingBlue) {
-      outcome = "victory";
-      $battleResult.textContent = "VICTORY — AZURE LEGION PREVAILS";
-      $battleResult.className = "battle-result victory";
-      logEvent("Azure Legion is victorious!", "system");
-    } else if (!livingBlue && livingRed) {
-      outcome = "defeat";
-      $battleResult.textContent = "DEFEAT — CRIMSON LEGION PREVAILS";
-      $battleResult.className = "battle-result defeat";
-      logEvent("Crimson Legion has triumphed.", "system");
-    } else {
-      $battleResult.textContent = "BATTLE ENDED — NO SURVIVORS";
-      $battleResult.className = "battle-result";
-    }
+  let outcome = "stalemate";
+  if (!livingRed && livingBlue) outcome = "victory";
+  else if (!livingBlue && livingRed) outcome = "defeat";
 
-    $battleResult.classList.remove("hidden");
-    $startButton.disabled = false;
-    $startButton.textContent = "REMATCH";
+  endBattle(!livingRed && livingBlue, outcome);
+  return true;
+}
 
-    if (!battleFinalized) {
-      battleFinalized = true;
-      finalizeBattleResult(!livingRed && livingBlue, outcome);
-    }
-    return true;
+/* Ends the battle: the field is put into its final state and the result is
+ * written down exactly once. */
+function endBattle(victory, outcome) {
+  battleActive = false;
+  renderSetupPanel();
+  gameState = STATE_ENDED;
+  currentTurn = "ended";
+  clearSelection();
+  $endTurnButton.classList.add("hidden");
+  $abilityWrap.classList.add("hidden");
+  $turnBanner.classList.add("hidden");
+  $battlefield.classList.remove("ai-turn-active");
+  $battlefield.classList.remove("ai-turn-blue-active");
+
+  const spectator = battleMode === "spectator";
+
+  if (outcome === "victory") {
+    $battleResult.textContent = spectator
+      ? "SPECTATOR — AZURE LEGION PREVAILS"
+      : "VICTORY — AZURE LEGION PREVAILS";
+    $battleResult.className = "battle-result victory";
+    logEvent(spectator
+      ? "The azure legion wins the show."
+      : "Azure Legion is victorious!", "system");
+  } else if (outcome === "defeat") {
+    $battleResult.textContent = spectator
+      ? "SPECTATOR — CRIMSON LEGION PREVAILS"
+      : "DEFEAT — CRIMSON LEGION PREVAILS";
+    $battleResult.className = "battle-result defeat";
+    logEvent(spectator
+      ? "The crimson legion wins the show."
+      : "Crimson Legion has triumphed.", "system");
+  } else if (outcome === "draw") {
+    $battleResult.textContent = spectator
+      ? "SPECTATOR — EVEN ARMIES STAND"
+      : "DRAW — BOTH LEGIONS STAND";
+    $battleResult.className = "battle-result draw";
+    logEvent(spectator
+      ? "The show ends in a draw."
+      : "The battle ends in a draw.", "system");
+  } else {
+    $battleResult.textContent = "BATTLE ENDED — NO SURVIVORS";
+    $battleResult.className = "battle-result";
   }
-  return false;
+
+  $battleResult.classList.remove("hidden");
+  $startButton.disabled = false;
+  $startButton.textContent = "REMATCH";
+  updateSpectateButton();
+
+  if (!battleFinalized) {
+    battleFinalized = true;
+    finalizeBattleResult(victory, outcome);
+  }
 }
 
 /* The completion bonus is paid exactly once per battle. */
 function finalizeBattleResult(victory, outcome) {
+  battleLedger.rounds = Math.min(roundNumber, BATTLE_ROUND_LIMIT);
+  battleLedger.spectator = battleMode === "spectator";
+  battleLedger.outcome = outcome || (victory ? "victory" : "defeat");
+
+  /* A spectator battle pays nothing at all: no experience, no battle in the
+   * tally, no level, no change to the saved profile. */
+  if (battleMode === "spectator") {
+    updateProgressionUI();
+    updateChampionPanel();
+    renderBattleReport(outcome || (victory ? "victory" : "defeat"));
+    return;
+  }
+
   progression.battles += 1;
   if (victory) progression.wins += 1;
-
-  battleLedger.rounds = roundNumber;
 
   /* Experience for the damage itself. The key is tied to the battle, so the
    * reward can only ever be paid once, however often the end check runs. */
@@ -2428,6 +2677,8 @@ function finalizeBattleResult(victory, outcome) {
 }
 
 function awardExperienceForDefeat(defeatedUnit) {
+  /* A spectator battle pays nothing, so nothing is written down either. */
+  if (battleMode === "spectator") return;
   const base = XP_REWARDS[defeatedUnit.type] || 10;
   let total = base;
   let reason = `defeated ${defeatedUnit.displayName}`;
@@ -2449,6 +2700,11 @@ function resetBattle() {
   currentBattleToken = ++battleToken;
   battleFinalized = false;
 
+  /* A reset always returns to the player: the spectator show is a detour,
+   * not a state the game stays in. */
+  setBattleMode("player");
+  suddenDeathActive = false;
+
   battleActive = false;
   gameState = STATE_INIT;
   currentTurn = "player";
@@ -2469,6 +2725,7 @@ function resetBattle() {
   $turnBanner.classList.add("hidden");
   $turnBanner.classList.remove("ai-turn-active");
   $battlefield.classList.remove("ai-turn-active");
+  $battlefield.classList.remove("ai-turn-blue-active");
   $endTurnButton.classList.add("hidden");
   $endTurnButton.disabled = false;
   $selectionInfo.classList.add("hidden");
@@ -2478,6 +2735,13 @@ function resetBattle() {
   $status.textContent = "THE ARMIES AWAIT YOUR COMMAND";
   updateProgressionUI();
   updateChampionPanel();
+  updateSpectateButton();
+}
+
+/* The spectator control is only free while no battle is running. */
+function updateSpectateButton() {
+  if (!$spectateButton) return;
+  $spectateButton.disabled = battleActive;
 }
 
 /* 21. UI HELPERS */
@@ -2595,7 +2859,8 @@ function renderBattleReport(outcome) {
 
   if ($reportOutcome) {
     $reportOutcome.textContent = outcome === "victory" ? "VICTORY"
-      : outcome === "defeat" ? "DEFEAT" : "NO SURVIVORS";
+      : outcome === "defeat" ? "DEFEAT"
+      : outcome === "draw" ? "DRAW" : "NO SURVIVORS";
     $reportOutcome.className = "report-outcome " + outcome;
   }
   if ($reportMap) $reportMap.textContent = map.name;
@@ -2607,13 +2872,16 @@ function renderBattleReport(outcome) {
   if ($reportLosses) $reportLosses.textContent = String(battleLedger.lost);
   if ($reportXp) $reportXp.textContent = String(totalXp);
   if ($reportBreakdown) {
-    $reportBreakdown.textContent =
-      `Damage ${battleLedger.xp.damage} XP  ·  Kills ${battleLedger.xp.kill} XP  ·  Victory ${battleLedger.xp.victory} XP`;
+    $reportBreakdown.textContent = battleLedger.spectator
+      ? "Spectator mode — no rewards are paid."
+      : `Damage ${battleLedger.xp.damage} XP  ·  Kills ${battleLedger.xp.kill} XP  ·  Victory ${battleLedger.xp.victory} XP`;
   }
   if ($reportLevel) {
-    $reportLevel.textContent = battleLedger.levelAfter > battleLedger.levelBefore
-      ? `Champion rose from level ${battleLedger.levelBefore} to level ${battleLedger.levelAfter}.`
-      : `Champion stays at level ${battleLedger.levelAfter}.`;
+    $reportLevel.textContent = battleLedger.spectator
+      ? "Spectator mode — the champion's profile is untouched."
+      : battleLedger.levelAfter > battleLedger.levelBefore
+        ? `Champion rose from level ${battleLedger.levelBefore} to level ${battleLedger.levelAfter}.`
+        : `Champion stays at level ${battleLedger.levelAfter}.`;
   }
   $battleReport.dataset.outcome = outcome;
   $battleReport.classList.remove("hidden");
@@ -2626,7 +2894,25 @@ function hideBattleReport() {
 }
 
 function updateTurnBanner() {
-  $roundText.textContent = `ROUND ${roundNumber}`;
+  $roundText.textContent = suddenDeathActive
+    ? `ROUND ${roundNumber} — SUDDEN DEATH`
+    : `ROUND ${roundNumber}`;
+
+  /* A spectator battle names the legion that is fighting, because there is
+   * no player turn to announce. */
+  if (battleMode === "spectator") {
+    if (currentTurn === TEAM_BLUE) {
+      $turnText.textContent = "AZURE LEGION TURN";
+      $turnBanner.style.borderColor = "rgba(233, 198, 108, 0.3)";
+    } else if (currentTurn === TEAM_RED) {
+      $turnText.textContent = "CRIMSON LEGION TURN";
+      $turnBanner.style.borderColor = "rgba(248, 113, 113, 0.3)";
+    } else {
+      $turnText.textContent = "SPECTATING";
+    }
+    return;
+  }
+
   if (currentTurn === "player") {
     $turnText.textContent = "PLAYER TURN";
     $turnBanner.style.borderColor = "rgba(233, 198, 108, 0.3)";
@@ -2640,7 +2926,20 @@ function updateTurnBanner() {
 
 function updateBattleStatus() {
   if (!battleActive) {
-    $status.textContent = "THE ARMIES AWAIT YOUR COMMAND";
+    $status.textContent = battleMode === "spectator"
+      ? "THE SHOW IS OVER — THE PROFILE IS UNTOUCHED"
+      : "THE ARMIES AWAIT YOUR COMMAND";
+    return;
+  }
+
+  if (battleMode === "spectator") {
+    if (suddenDeathActive) {
+      $status.textContent = "SUDDEN DEATH — THE FINAL ROUND";
+      return;
+    }
+    $status.textContent = currentTurn === TEAM_RED
+      ? "CRIMSON LEGION IS FIGHTING..."
+      : "AZURE LEGION IS FIGHTING...";
     return;
   }
 
@@ -2957,6 +3256,11 @@ function onUnitClick(id) {
     highlightStartButton();
     return;
   }
+  if (battleMode === "spectator") {
+    /* A spectator does not command anybody. */
+    logEvent("You are watching the show — the legions fight on their own.", "system");
+    return;
+  }
   if (currentTurn !== "player" || actionLock) return;
 
   if (unit.team === TEAM_BLUE) {
@@ -3098,6 +3402,12 @@ function initGame() {
     startBattle();
   });
 
+  if ($spectateButton) {
+    $spectateButton.addEventListener("click", () => {
+      startSpectatorBattle();
+    });
+  }
+
   if ($setupToggle) {
     $setupToggle.addEventListener("click", () => toggleSetupPanel());
   }
@@ -3159,6 +3469,9 @@ if (typeof window !== "undefined") {
     DEFAULT_DIFFICULTY_ID,
     XP_PER_DAMAGE,
     DEFAULT_SEED,
+    BATTLE_ROUND_LIMIT,
+    SUDDEN_DEATH_DAMAGE_MULTIPLIER,
+    SPECTATOR_TIMING,
 
     /* state */
     getUnits: () => units,
@@ -3169,7 +3482,8 @@ if (typeof window !== "undefined") {
     getEnemyChampion,
     getState: () => ({
       gameState, battleActive, currentTurn, roundNumber,
-      selectedUnitId, actionLock, battleId, battleToken, currentBattleToken
+      selectedUnitId, actionLock, battleId, battleToken, currentBattleToken,
+      battleMode, spectatorActive, suddenDeathActive, roundLimit: BATTLE_ROUND_LIMIT
     }),
     getProgression: () => Object.assign({}, progression, { unlocked: progression.unlocked.slice() }),
     isStorageAvailable: () => storageAvailable,
@@ -3267,6 +3581,25 @@ if (typeof window !== "undefined") {
     moveUnit,
     logEvent,
 
+    /* battle mode and the round limit */
+    getBattleMode: () => battleMode,
+    isSpectatorMode: () => battleMode === "spectator",
+    setBattleMode,
+    startSpectatorBattle,
+    getRoundLimit: () => BATTLE_ROUND_LIMIT,
+    isSuddenDeath: () => suddenDeathActive,
+    getTotalRemainingHp: totalRemainingHp,
+    resolveRoundLimit: () => {
+      const blue = getTeamUnits(TEAM_BLUE);
+      const red = getTeamUnits(TEAM_RED);
+      if (blue.length === 0 || red.length === 0) return "elimination";
+      const blueHp = totalRemainingHp(TEAM_BLUE);
+      const redHp = totalRemainingHp(TEAM_RED);
+      if (blueHp === redHp) return "draw";
+      return blueHp > redHp ? "blue" : "red";
+    },
+    runSpectatorTurn,
+
     /* Resolves the whole enemy turn in one step, without the animation
      * delays. The suites use it to play a battle through to its end. */
     runEnemyTurnInstant: () => {
@@ -3279,13 +3612,40 @@ if (typeof window !== "undefined") {
       }
     },
 
+    /* Plays a whole spectator battle in one step, without the animation
+     * delays. The suites use it to watch a full AI against AI fight. */
+    runSpectatorBattleInstant: () => {
+      const previousTimers = instantTimers;
+      const previousAuto = spectatorAutoAdvance;
+      /* The show takes over: the animation timers of the opening turn are
+       * dropped, so the driver below is the only thing steering it. */
+      cancelPendingTimers();
+      instantTimers = true;
+      spectatorAutoAdvance = false;
+      try {
+        let guard = 0;
+        while (battleActive && gameState !== STATE_ENDED && guard++ < BATTLE_ROUND_LIMIT * 40) {
+          const team = spectatorTurnTeam;
+          if (!team) break;
+          runSpectatorTurn(team);
+          if (gameState === STATE_ENDED) break;
+          if (team === TEAM_BLUE) {
+            spectatorTurnTeam = TEAM_RED;
+          } else {
+            if (closeRound()) break;
+            spectatorTurnTeam = TEAM_BLUE;
+          }
+        }
+      } finally {
+        instantTimers = previousTimers;
+        spectatorAutoAdvance = previousAuto;
+      }
+      return { ended: gameState === STATE_ENDED, rounds: roundNumber };
+    },
+
     /* Resolves one team's turn with the tactical AI in one step. The
      * balance harness uses it so the reference opponent is fought by the
      * same brain the enemy uses. */
     runTurnInstantForTeam
   };
 }
-
-/* Battle mode */
-let battleMode = 'player';
-let spectatorActive = false;

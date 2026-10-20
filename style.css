@@ -720,6 +720,13 @@ body {
   background: rgba(18, 34, 26, 0.5);
 }
 
+/* A spectator battle pays nothing, so the progression strip steps back and
+ * says so. */
+.progression-strip.spectating {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
 .prog-level-badge,
 .prog-points-badge {
   font-size: 8px;
@@ -1043,6 +1050,33 @@ body {
   box-shadow: 0 0 0 3px rgba(233, 198, 108, 0.55);
 }
 
+/* 8.3a SPECTATE BUTTON
+ *
+ * The spectator show is a second door into the arena: the AI fights the AI
+ * and the fight pays nothing.
+ */
+.spectate-button {
+  border: 1px solid rgba(159, 176, 138, 0.55);
+  border-radius: 6px;
+  background: rgba(41, 60, 48, 0.75);
+  color: #d9e2c9;
+  padding: 7px 18px;
+  font-family: Georgia, serif;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.spectate-button:active {
+  transform: scale(0.97);
+}
+
+.spectate-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 @keyframes start-attention {
   0%, 100% { translate: 0 0; }
   50% { translate: 0 -2px; }
@@ -1182,6 +1216,10 @@ body {
 
 .battle-result.defeat {
   color: #f87171;
+}
+
+.battle-result.draw {
+  color: #d0d3b9;
 }
 
 .footer-note {
@@ -1352,6 +1390,12 @@ body {
   animation: ai-thinking 1.5s ease-in-out infinite;
 }
 
+/* In a spectator battle the azure legion holds the field while it thinks,
+ * so the pulse has to follow the team that is actually acting. */
+.ai-turn-blue-active .unit.blue .unit-silhouette {
+  animation: ai-thinking 1.5s ease-in-out infinite;
+}
+
 /* 9.2 REDUCED MOTION */
 @media (prefers-reduced-motion: reduce) {
   .unit,
@@ -1363,7 +1407,8 @@ body {
   .unit.moving .unit-silhouette,
   .unit.rallied .unit-silhouette,
   .unit.guarded .unit-silhouette,
-  .ai-turn-active .unit.red .unit-silhouette {
+  .ai-turn-active .unit.red .unit-silhouette,
+  .ai-turn-blue-active .unit.blue .unit-silhouette {
     animation: none !important;
     transition: none !important;
   }
@@ -1490,7 +1535,7 @@ body {
   }
 }
 /* ======================================================================
-   v1.3.0 — PRE-BATTLE SELECTOR & POST-BATTLE REPORT
+   v1.5.0 — PRE-BATTLE SELECTOR, POST-BATTLE REPORT & SPECTATOR SHOW
    ====================================================================== */
 
 /* 1. SETUP PANEL
@@ -1702,6 +1747,7 @@ body {
 
 .report-outcome.defeat { color: #f87171; }
 .report-outcome.stalemate { color: #d0d3b9; }
+.report-outcome.draw { color: #d0d3b9; }
 
 .report-map {
   font-size: 10px;

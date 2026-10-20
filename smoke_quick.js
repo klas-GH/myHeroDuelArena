@@ -1,4 +1,4 @@
-/* DOM SMOKE TEST — myHeroDuelArena v1.2.1
+/* DOM SMOKE TEST — myHeroDuelArena v1.5.0
  * Run: node smoke_quick.js
  *
  * Verifies the real game.js against a minimal DOM stub: every element id
@@ -291,7 +291,8 @@ const requiredClasses = [
   "difficulty-row", "difficulty-button", "map-row", "map-card", "map-name",
   "map-tagline", "map-preview", "map-preview-cell", "battle-report", "report-head",
   "report-outcome", "report-map", "report-difficulty", "report-grid", "report-cell",
-  "report-label", "report-value", "report-breakdown", "report-level"
+  "report-label", "report-value", "report-breakdown", "report-level",
+  "spectate-button", "spectating", "draw", "ai-turn-blue-active"
 ];
 
 const missingClasses = requiredClasses.filter(c => !css.includes(`.${c}`));
@@ -301,7 +302,8 @@ assert(missingClasses.length === 0, `all required CSS classes exist${missingClas
 const buttonRules = [
   { id: "start-button", cls: null },
   { id: "end-turn-button", cls: "end-turn-button" },
-  { id: "reset-progress-button", cls: "reset-progress-button" }
+  { id: "reset-progress-button", cls: "reset-progress-button" },
+  { id: "spectate-button", cls: "spectate-button" }
 ];
 const unstyledButtons = buttonRules.filter(b =>
   !css.includes(`#${b.id}`) && !(b.cls && css.includes(`.${b.cls}`)));
@@ -554,6 +556,68 @@ console.log("\n14. Runtime — the post-battle report");
 
   api.resetBattle();
   assert(report.classList.contains("hidden"), "the report is cleared for the next battle");
+}
+
+/* --- TEST 15: the spectator control --- */
+
+console.log("\n15. Runtime — the spectator control");
+
+{
+  const button = doc.getElementById("spectate-button");
+  assert(!!button, "the spectator button exists");
+  assert(button.disabled === false, "the spectator button is free between battles");
+
+  api.resetBattle();
+  button.dispatch("click");
+
+  const battlesBefore = api.getProgression().battles;
+  const xpBefore = api.getProgression().xp;
+
+  assert(api.isSpectatorMode() === true, "the button starts a spectator battle");
+  assert(api.getState().battleActive === true, "the show is running");
+  assert(api.getState().currentTurn === "blue", "the azure legion takes the first turn");
+  assert(doc.getElementById("end-turn-button").classList.contains("hidden"),
+    "the end turn button is hidden during the show");
+  assert(doc.getElementById("progression-strip").classList.contains("spectating"),
+    "the progression strip says that nothing is being earned");
+  assert(button.disabled === true, "the spectator button is locked while the show runs");
+  assert(doc.getElementById("turn-banner").classList.contains("hidden") === false,
+    "the turn banner is on screen during the show");
+
+  const result = api.runSpectatorBattleInstant();
+  assert(result.ended === true, "the show reaches a conclusion");
+  assert(doc.getElementById("report-xp").textContent === "0", "the show pays no experience");
+  assert(api.getProgression().battles === battlesBefore, "the show is not counted as a battle");
+  assert(api.getProgression().xp === xpBefore, "the show pays no experience to the profile");
+
+  api.resetBattle();
+  assert(button.disabled === false, "the spectator button is free again");
+  assert(!doc.getElementById("progression-strip").classList.contains("spectating"),
+    "the progression strip comes back to normal");
+  assert(api.isSpectatorMode() === false, "a reset hands the game back to the player");
+}
+
+/* --- TEST 16: the round limit --- */
+
+console.log("\n16. Runtime — the round limit");
+
+{
+  assert(api.BATTLE_ROUND_LIMIT === 30, "the round limit is 30 rounds");
+  assert(api.SUDDEN_DEATH_DAMAGE_MULTIPLIER > 1,
+    "sudden death makes every blow count for more");
+
+  api.resetBattle();
+  api.startBattle();
+
+  assert(api.isSuddenDeath() === false, "an ordinary battle is not in sudden death");
+  assert(doc.getElementById("round-text").textContent === "ROUND 1",
+    "the banner names the round");
+
+  api.runEnemyTurnInstant();
+  assert(doc.getElementById("round-text").textContent === "ROUND 2",
+    "the banner follows the rounds");
+
+  api.resetBattle();
 }
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);

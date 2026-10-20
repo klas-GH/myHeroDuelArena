@@ -2,7 +2,8 @@
 
 A browser tactics duel. Two legions fight over a shared 10 × 4 field. The blue
 legion is yours; the crimson legion is played by a deterministic tactical AI
-that scores every legal action and takes the best one.
+that scores every legal action and takes the best one. You can also hand both
+legions to the AI and watch the fight.
 
 No build step, no dependencies, no network calls — `index.html` is the app.
 
@@ -10,16 +11,70 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
-## v1.4.0 — what is in this release
+## v1.5.0 — what is in this release
 
 | Area | Summary |
 | --- | --- |
+| Spectator mode | The `SPECTATE — AI vs AI` control puts both legions on the field and hands them to the same tactical AI that plays the crimson legion. The player only watches: no experience, no rewards, no level, no change to the saved profile and nothing written to storage. |
+| The round limit | No battle is ever fought for longer than 30 rounds. The counter stops there, and the battle is settled. |
+| Sudden death | The 30th round is fought in sudden death: every blow counts for 1.5× more, for both armies alike, so a fight that reached the limit still ends in a decision. |
+| How a battle at the limit is settled | Elimination comes first: a wiped out army loses, whatever the health says. If both armies are still standing, the one with more health left wins, and an even field is a draw. |
 | Four battlefields | The ground is chosen before the fight. The Old Frontier, The Forest March, The Broken Pass and The High Ground are all handcrafted, all mirror symmetric, and all hold both armies. Each card shows a picture of its own terrain. |
 | Difficulty | Easy, Normal and Hard. The difficulty never touches the rules: it changes how the crimson legion thinks — how eagerly it closes, how much it fears a trade, how hard it hunts your champion and how much it leans on its abilities. The azure legion is never handicapped. |
 | Damage-based experience | One point of experience for every five points of damage your legion actually lands. Damage that overshoots a dying target is not rewarded, because the target was already dead before the extra landed. |
 | Post-battle report | Every battle ends with a report: rounds, damage dealt and taken, enemies felled, friends lost, and the exact experience that was paid out, broken down. |
 | Balance harness | `balance.js` fights battles headlessly, with a seed, and reports what actually happened: win rates, round counts, damage and experience per configuration, as JSON. |
 | AI fix | A unit that had walked past its enemy used to keep marching off the field, and the battle could never end. The pull toward the enemy now turns around. |
+
+### The round limit and sudden death
+
+A battle is never fought for longer than **30 rounds**. The rule is enforced by
+the engine, not by the caller: the round counter is checked every time a round
+closes, and the battle cannot reach a 31st round.
+
+The last round is fought in **sudden death**. Every blow in that round counts
+for 1.5× more, for both armies alike, so a stalemate breaks instead of grinding
+on. The banner says `ROUND 30 — SUDDEN DEATH` while it lasts.
+
+When the limit is reached the field is settled in this order:
+
+1. **Elimination first.** If one army has been wiped out, the other one won —
+   the health comparison never runs. A battle that ends this way is a normal
+   victory or defeat, and it pays its rewards like any other.
+2. **Then the health left.** If both armies are still standing, the one with
+   more total health wins.
+3. **An even field is a draw.** The same health on both sides ends the battle
+   as a draw: the result banner reads `DRAW — BOTH LEGIONS STAND`, the report
+   names the outcome `DRAW`, and the battle pays the damage reward but no
+   victory bonus.
+
+The limit applies to the player, to the AI and to the spectator show alike,
+and it is checked from the same code path, so there is no way around it.
+
+### The spectator mode
+
+`SPECTATE — AI vs AI` starts a battle in which the player has no legion at
+all: the azure legion is played by the same tactical AI that plays the crimson
+one, on the same rules, on the same map. The turn banner names the legion that
+is thinking, the end turn control is gone and the progression strip dims.
+
+A spectator battle pays **nothing**:
+
+| What a player battle does | What a spectator battle does |
+| --- | --- |
+| Pays experience for damage, kills and victory | Pays nothing |
+| Counts the battle and the win in the profile | Counts nothing |
+| Raises the level and grants ability points | Raises nothing |
+| Writes the profile to storage | Writes nothing |
+| Adds the champion's permanent level bonuses to the fight | Fights both sides at base strength |
+
+The isolation is enforced in one place — the reward gate — so there is no path
+through the show that can touch the profile. The difficulty setting does not
+apply to a spectator battle either: both armies fight by the normal rules, so
+the show is always an even fight.
+
+The show runs on its own quicker clock, and the round limit ends it exactly
+like any other battle.
 
 ### The four battlefields
 
@@ -74,14 +129,14 @@ no randomness.
 ### Measured results
 
 `node balance.js --seeds=20` (20 seeds per configuration, damage scatter 0.08,
-AI noise 2), 240 battles:
+AI noise 2), 240 battles, engine v1.5.0:
 
 | Difficulty | Battlefield | Enemy wins | Win rate | Rounds | Damage | XP |
 | --- | --- | --- | --- | --- | --- | --- |
 | Easy | Old Frontier | 0 / 20 | 0 % | 12.3 | 490 | 448 |
 | Easy | Forest March | 0 / 20 | 0 % | 11.7 | 490 | 448 |
-| Easy | Broken Pass | 4 / 20 | 20 % | 21.0 | 459 | 395 |
-| Easy | High Ground | 1 / 20 | 5 % | 17.1 | 466 | 418 |
+| Easy | Broken Pass | 4 / 20 | 20 % | 20.5 | 459 | 403 |
+| Easy | High Ground | 1 / 20 | 5 % | 16.6 | 468 | 423 |
 | Normal | Old Frontier | 5 / 20 | 25 % | 11.7 | 443 | 383 |
 | Normal | Forest March | 9 / 20 | 45 % | 11.8 | 437 | 352 |
 | Normal | Broken Pass | 13 / 20 | 65 % | 18.2 | 408 | 333 |
@@ -108,6 +163,18 @@ What the numbers say:
   went. With the level thresholds at 100 / 250 / 450 / 700, a good battle
   earns a level and a bad one does not. The damage reward is a quarter of
   the total on a long battle and a third of it on a quick one.
+- The round limit changed two of the 240 battles and nothing else. Two Easy
+  battles (Broken Pass and High Ground, seed 2) used to run past the
+  harness's own 30 round budget and were never settled; they now reach the
+  engine's limit, are decided on the health left and pay their rewards.
+  Both were won by the azure legion, so the win counts are unchanged, while
+  the average experience of those two configurations rose (395 → 403 and
+  418 → 423) and the average round count fell (21.0 → 20.5 and 17.1 → 16.6).
+
+`node balance.js --deterministic --seeds=20` (no scatter, no AI noise, the
+shipped rules) plays the same 240 battles: the seed changes nothing (0 of 12
+configurations changed with the seed), every battle is decided by elimination
+before the limit, and the overall enemy win rate is 33 %.
 
 ### The field: hexagons, octagons, or the old grid?
 
@@ -173,6 +240,11 @@ it, so a unit standing in cover has to be flanked.
 **Defeat** is permanent for the battle. A dead unit leaves the field and its
 experience is paid out once.
 
+**The round limit** is 30. No battle runs longer than that. The last round is
+fought in sudden death, where every blow counts for 1.5× more, and a battle
+that reaches the limit without an elimination is settled on the health each
+army has left: the stronger army wins, an even field is a draw.
+
 **The champion** is a stronger unit than the rest of the legion. It keeps the
 same rules as everyone else, and it carries two weapons: its own blow (20 ATK
 at arm's length) and a bow (16 ATK, three cells) for when it would rather
@@ -198,6 +270,11 @@ lost and the experience that was paid out, broken down into the damage, the
 kills and the victory. Every reward is paid exactly once, however often the
 end of the battle is checked.
 
+**Spectating** puts both legions under AI control and takes the player out of
+the fight. A watched battle is a display, not a battle the player took part
+in, so it pays nothing at all: no experience, no rewards, no level and no
+change to the saved profile.
+
 ## Project layout
 
 | File | Purpose |
@@ -216,7 +293,7 @@ end of the battle is checked.
 All four suites run on Node without any dependency:
 
 ```
-node regression.js      # rules, terrain, maps, difficulty, progression, AI
+node regression.js      # rules, terrain, maps, difficulty, progression, AI, round limit, spectator
 node smoke_quick.js     # DOM wiring, stylesheet contract, runtime flow
 node verify_render.js   # real rendering and real mouse input in headless Edge
 node balance.js         # seeded balance measurement, JSON out
@@ -232,4 +309,5 @@ the hit test, and that is exactly how the selection bug of v1.2.0 survived
 the earlier suites.
 
 The suites expose their results as `=== Results: N passed, M failed ===` and
-exit with a non-zero status when something fails.
+exit with a non-zero status when something fails. The current counts are 599
+rule assertions, 162 DOM assertions and 145 render assertions.
