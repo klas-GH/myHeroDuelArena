@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.3.0";
+const APP_VERSION = "v1.4.0";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
