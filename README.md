@@ -1,4 +1,4 @@
-﻿# myHeroDuelArena
+# myHeroDuelArena
 
 A browser tactics duel. Two legions fight over a shared 10 × 4 field. The blue
 legion is yours; the crimson legion is played by a deterministic tactical AI
@@ -11,6 +11,52 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 ```
 open index.html
 ```
+
+## v1.8.0 — the duel series, armour, the defence stand and the side strongholds
+
+| Area | Summary |
+| --- | --- |
+| The duel | A battle is no longer a single fight: it is the first match of a duel. The legion that takes two of three matches wins the duel, and the series stops as soon as one side has two. The azure legion opens the first match, the crimson legion opens the second, and the decider is opened by whichever side the dice pick. A match inside a duel is not a battle of its own: the victory bonus, the experience and the win-loss record belong to the duel, not to the match that just ended. |
+| The BATTLEFIELDS button | The battlefield and difficulty chooser moved from the top of the screen to the footer. It opens through the BATTLEFIELDS button in the last row, so the whole top of the screen belongs to the battlefield. |
+| The strongholds | The stronghold that used to stand in the middle of the back line is gone. One stronghold stands at each margin, left and right, behind its own legion, running top to bottom and facing the field. |
+| Bigger pictures | Every troop picture grew by a quarter again, and a picture in the first or the last column is nudged back inside the field so the army never hangs over the edge. |
+| Hit feedback | Every hit paints the receiver with a red glow and a one-second shudder, and the device vibrates for a second when it can. |
+| Armour | Every troop carries its own armour: a share of every incoming blow that turns away before the fighter feels it. Armour makes a fighter harder to bring down, but never a wall — an armoured champion still falls in a handful of blows. |
+| The defence stand | A fighter that has not acted may give up its move and its blow to brace behind a shield. While it stands, its armour rises by twenty points, and the stance lasts until it acts again. |
+| The riposte | A fighter struck by a blade answers with a blade of its own, at once, without waiting for its turn. The answer spends the fighter's blow for the round, and a shooter is answered with steel, not with an arrow. |
+
+### The measured balance
+
+`node balance.js --seeds=40` (40 seeds per configuration, damage scatter 0.08,
+AI noise 2), 480 battles, engine v1.8.0:
+
+| Difficulty | Battlefield | Enemy wins | Win rate | Rounds | Damage | XP |
+| --- | --- | --- | --- | --- | --- | --- |
+| Easy | Old Frontier | 0 / 40 | 0 % | 10.2 | 390 | 363 |
+| Easy | Forest March | 1 / 40 | 3 % | 10.9 | 390 | 361 |
+| Easy | Broken Pass | 0 / 40 | 0 % | 9.6 | 390 | 363 |
+| Easy | High Ground | 0 / 40 | 0 % | 10.1 | 390 | 363 |
+| Normal | Old Frontier | 22 / 40 | 55 % | 12.9 | 368 | 280 |
+| Normal | Forest March | 29 / 40 | 73 % | 12.0 | 327 | 235 |
+| Normal | Broken Pass | 26 / 40 | 65 % | 12.6 | 360 | 264 |
+| Normal | High Ground | 7 / 40 | 18 % | 11.4 | 383 | 335 |
+| Hard | Old Frontier | 40 / 40 | 100 % | 9.0 | 278 | 159 |
+| Hard | Forest March | 39 / 40 | 98 % | 9.0 | 280 | 173 |
+| Hard | Broken Pass | 40 / 40 | 100 % | 8.8 | 275 | 154 |
+| Hard | High Ground | 31 / 40 | 78 % | 10.8 | 323 | 217 |
+
+| Difficulty | v1.7.1 enemy wins | v1.8.0 enemy wins | Change |
+| --- | --- | --- | --- |
+| Easy | 6.3 % | 3 % | −3.3 points |
+| Normal | 60.6 % | 53 % | −7.6 points |
+| Hard | 80.6 % | 94 % | +13.4 points |
+| All | 49.2 % | 49 % | −0.2 points |
+
+What the numbers say:
+
+- Easy is still a walkover, Normal is a real fight at about half, and Hard is a hard fight — the ladder is where it belongs.
+- The overall rate lands on 49 %, the same figure v1.6.0 and v1.7.1 measured, so armour, the defence stand and the riposte changed the feel of the fight without tilting it.
+- The defence stand and the riposte cost the fighter its action, so the AI only uses them when it is really under the weather, and they do not tip the ladder.
 
 ## v1.7.1 — the battlefield, the reach of the weapons and the lead
 

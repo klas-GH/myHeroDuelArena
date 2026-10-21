@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.7.1 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.8.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,10 +46,15 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.7.1";
+const APP_VERSION = "v1.8.0";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
+
+/* The name a legion is known by on the field. */
+function teamName(team) {
+  return team === TEAM_BLUE ? "The azure legion" : "The crimson legion";
+}
 
 /* 1.1 BATTLEFIELD GRID
  * Logical grid: 10 columns x 4 rows, rendered as a single shared field.
@@ -84,18 +89,32 @@ const STATE_ENDED = "ended";
  * `shot` is the second weapon of a unit that carries a bow. The champion
  * fights with its own weapon at close range and can loose an arrow at a
  * longer distance, but the arrow carries less force than a blow.
+ *
+ * `armour` is the share of every blow that the armour of the fighter turns
+ * away. The numbers are tuned so that the game keeps its pace: armour
+ * makes a fighter harder to bring down, but it never turns one into a
+ * wall that has to be beaten down over half a duel. A champion in heavy
+ * armour still falls in a handful of blows.
  */
 const UNIT_STATS = {
-  archer:   { hp: 40, atk: 14, def: 4,  move: 2, range: 3, melee: false, special: null },
-  footman:  { hp: 60, atk: 12, def: 6,  move: 1, range: 2, melee: true,  special: null },
-  ballista: { hp: 45, atk: 18, def: 3,  move: 1, range: 4, melee: false, special: null },
-  chevalier:{ hp: 55, atk: 16, def: 5,  move: 3, range: 2, melee: true,  special: null },
-  champion: { hp: 90, atk: 20, def: 8,  move: 2, range: 2, melee: true,  special: "rally",
+  archer:   { hp: 40, atk: 14, def: 4,  move: 2, range: 3, melee: false, armour: 0.15, special: null },
+  footman:  { hp: 60, atk: 12, def: 6,  move: 1, range: 2, melee: true,  armour: 0.20, special: null },
+  ballista: { hp: 45, atk: 18, def: 3,  move: 1, range: 4, melee: false, armour: 0.12, special: null },
+  chevalier:{ hp: 55, atk: 16, def: 5,  move: 3, range: 2, melee: true,  armour: 0.25, special: null },
+  champion: { hp: 90, atk: 20, def: 8,  move: 2, range: 2, melee: true,  armour: 0.18, special: "rally",
               shot: { atk: 16 } }
 };
 
 /* 1.4 CHAMPION ABILITY SET — every champion owns the same three abilities. */
 const CHAMPION_ABILITIES = ["rally", "power_strike", "guarding_aura"];
+
+/* 1.5 THE DEFENCE STAND
+ *
+ * A fighter that makes a defence stand gives up its action and braces
+ * behind its shield. While it stands, its armour is twenty points higher,
+ * and the stance lasts until the fighter acts again.
+ */
+const DEFENCE_STAND_ARMOUR = 0.20;
 
 /* 2. BATTLEFIELD TERRAIN
  *
@@ -481,6 +500,19 @@ const SPECTATOR_TIMING = {
   gap: 110
 };
 
+/* 4.1 THE DUEL
+ *
+ * A duel is a series of matches, and the legion that takes two of them wins
+ * the duel. The series is at most three matches long, and it stops as soon
+ * as one legion has two wins.
+ */
+const DUEL_MATCH_LIMIT = 3;
+const DUEL_WINS_NEEDED = 2;
+
+/* How long a show waits between two matches, so the result of the match
+ * that was just fought can be read before the next one begins. */
+const DUEL_ADVANCE_DELAY = 4200;
+
 
 /* Progression is stored under a namespaced key. */
 const STORAGE_KEY = "myHeroDuelArena.championProfile.v1";
@@ -739,6 +771,8 @@ const $selectedName = document.getElementById("selected-name");
 const $selectedStats = document.getElementById("selected-stats");
 const $selectedHealth = document.getElementById("selected-health");
 const $actionHints = document.getElementById("action-hints");
+const $braceButton = document.getElementById("brace-button");
+const $battlefieldsButton = document.getElementById("battlefields-button");
 const $battleResult = document.getElementById("battle-result");
 const $turnBanner = document.getElementById("turn-banner");
 const $turnText = document.getElementById("turn-text");
@@ -792,6 +826,7 @@ const $reportXp = document.getElementById("report-xp");
 const $reportSurvivors = document.getElementById("report-survivors");
 const $reportHealth = document.getElementById("report-health");
 const $reportDecided = document.getElementById("report-decided");
+const $reportDuel = document.getElementById("report-duel");
 const $reportMode = document.getElementById("report-mode");
 const $reportBreakdown = document.getElementById("report-breakdown");
 const $reportLevel = document.getElementById("report-level");
@@ -838,6 +873,31 @@ const awardedRewards = new Set();
  * pays nothing: no experience, no rewards, no change to the profile. */
 let battleMode = "player";
 
+/* The legion that opened the match being fought. It opens the odd rounds
+ * of that match; the other legion opens the even ones. */
+let matchOpener = TEAM_BLUE;
+
+/* The duel in progress. A duel is a series of up to three matches that is
+ * won by the legion that takes two of them. */
+const duel = {
+  active: false,
+  id: 0,
+  mode: "player",
+  matchNumber: 0,
+  blueWins: 0,
+  redWins: 0,
+  opener: TEAM_BLUE,
+  matches: [],
+  lastOutcome: null,
+  finished: false,
+  result: null
+};
+
+/* The instant driver steers a show itself, so the series is advanced by the
+ * driver and not by the timer that carries a show from one match to the
+ * next. */
+let duelAutoAdvance = true;
+
 /* True while a spectator battle is on the field. */
 let spectatorActive = false;
 
@@ -876,8 +936,8 @@ function createBattleLedger() {
     /* What the two armies actually did, counted from the actions that were
      * really carried out. */
     actions: {
-      blue: { attack: 0, move: 0, ability: 0 },
-      red: { attack: 0, move: 0, ability: 0 }
+      blue: { attack: 0, move: 0, ability: 0, riposte: 0 },
+      red: { attack: 0, move: 0, ability: 0, riposte: 0 }
     },
     /* How the fight ended, and how much of each army was left standing. */
     ending: null,
@@ -914,12 +974,14 @@ function getBattleLedger() {
       blue: {
         attack: battleLedger.actions.blue.attack,
         move: battleLedger.actions.blue.move,
-        ability: battleLedger.actions.blue.ability
+        ability: battleLedger.actions.blue.ability,
+        riposte: battleLedger.actions.blue.riposte
       },
       red: {
         attack: battleLedger.actions.red.attack,
         move: battleLedger.actions.red.move,
-        ability: battleLedger.actions.red.ability
+        ability: battleLedger.actions.red.ability,
+        riposte: battleLedger.actions.red.riposte
       }
     },
     ending: battleLedger.ending,
@@ -970,6 +1032,7 @@ function createUnit(id, team, type) {
     hp: stats.hp,
     atk: stats.atk,
     def: stats.def,
+    armour: stats.armour || 0,
     move: stats.move,
     range: stats.range,
     melee: !!stats.melee,
@@ -986,6 +1049,7 @@ function createUnit(id, team, type) {
     row: 0,
     hasMoved: false,
     hasAttacked: false,
+    braced: false,
     abilityUses: {},
     effects: [],
     lastAiCell: null,
@@ -1315,7 +1379,7 @@ function positionUnit(element, unit) {
    * of that column and the next one, towards the enemy. The logical anchor
    * never changes, so the collision rules stay honest. */
   const span = unit.footprint && unit.footprint > 1 ? unit.footprint : 1;
-  const shift = (span - 1) * 0.5 * (100 / GRID_COLS) * (unit.footprintDir || 1);
+  const shift = (span - 1) * 0.5 * (100 / GRID_COLS) * footprintDir(unit);
   element.style.left = `${colPercent(unit.col) + shift}%`;
   element.style.top = `${rowPercent(unit.row)}%`;
   /* The lane nearest to the viewer is drawn last, so a tall picture leans
@@ -1323,13 +1387,26 @@ function positionUnit(element, unit) {
   element.style.zIndex = String(GRID_ROWS - unit.row);
   /* A picture is wider than the cell it stands on, so a fighter in the
    * first or the last column would hang over the edge of the field. The
-   * picture is nudged back inside, so the army never leaves the ground it
-   * fights on. The champion is drawn across two whole columns, so it never
-   * overhangs at all. */
-  const edge = unit.type === "champion"
-    ? 0
-    : (unit.col === 0 ? 2 : (unit.col === GRID_COLS - 1 ? -2 : 0));
-  element.style.setProperty("--art-shift", `${edge}cqw`);
+   * picture is nudged back inside by the width it overhangs, worked out
+   * from the size of the picture itself, so a picture that grows keeps its
+   * own edge. The champion is drawn across two whole columns, so it never
+   * overhangs unless it stands on an edge column, in which case the
+   * overhang is pulled back just as far as it needs to go. */
+  const picW = unit.type === "champion" ? 25 : 17.5; /* cqw, i.e. percent of field width */
+  /* translate(-50%) on the unit makes style.left its visual centre, so the
+   * picture is centred on colPercent(col) plus the footprint shift. */
+  const centre = colPercent(unit.col) + shift;
+  const picLeft = centre - picW / 2;
+  const picRight = centre + picW / 2;
+  /* Nudge the picture back inside the field by however far it pokes out,
+   * with a couple of pixels of slack so sub-pixel rounding never leaves a
+   * picture half outside the field's edge. */
+  const field = document.getElementById("battlefield");
+  const bufferCqw = field ? (2 / Math.max(1, field.clientWidth)) * 100 : 0;
+  let artShift = 0;
+  if (picRight > 100) artShift = -(picRight - 100) - bufferCqw;
+  else if (picLeft < 0) artShift = -picLeft + bufferCqw;
+  element.style.setProperty("--art-shift", `${artShift}cqw`);
   /* The name and the health bar follow the troop. */
   const overlay = unitOverlays.get(unit.id);
   if (overlay) {
@@ -1391,6 +1468,7 @@ function clearSelection() {
   $selectionInfo.classList.add("hidden");
   $abilityWrap.classList.add("hidden");
   $actionHints.textContent = "";
+  if ($braceButton) $braceButton.classList.add("hidden");
   updateChampionPanel();
 }
 
@@ -1418,8 +1496,8 @@ function selectUnit(id) {
   const reach = unit.melee
     ? `MELEE ${formatReach(getMeleeReach(unit))}`
     : `RANGE ${formatReach(getRangedReach(unit))}`;
-  $selectedStats.textContent = `ATK ${unit.atk} | DEF ${unit.def} | ${reach}` +
-    (unit.shot ? ` | BOW ${unit.shot.atk} ATK Â· FIELD` : "");
+  $selectedStats.textContent = `ATK ${unit.atk} | DEF ${unit.def} | ARM ${Math.round(getUnitArmour(unit) * 100)}% | ${reach}` +
+    (unit.shot ? ` | BOW ${unit.shot.atk} ATK · FIELD` : "");
   $selectedHealth.style.width = "100%";
 
   const hints = [];
@@ -1430,7 +1508,15 @@ function selectUnit(id) {
     if (ready.length > 0) hints.push(`${ready.length} ability ready`);
     if (!hints.length) hints.push("No actions available");
   }
-  $actionHints.textContent = hints.join(" Â· ");
+  $actionHints.textContent = hints.join(" · ");
+
+  /* The defence stand is offered to every fighter that can still act. */
+  if ($braceButton) {
+    const canBrace = unit.team === TEAM_BLUE
+      && currentTurn === "player"
+      && canDefenceStand(unit);
+    $braceButton.classList.toggle("hidden", !canBrace);
+  }
 
   if (unit.team === TEAM_BLUE && currentTurn === "player") {
     showMoveIndicators(unit);
@@ -1476,14 +1562,105 @@ function isOccupiedByTeam(col, row, team) {
   return false;
 }
 
+/* 13.1 THE GROUND UNDER A PICTURE
+ *
+ * The champion is drawn across two columns, but it is still one fighter in
+ * one cell. The picture, however, covers the ground of two cells, and a
+ * fighter that walked onto that ground would be drawn on top of it: two
+ * champions could end up standing in the same place at the same time.
+ *
+ * So the ground a picture stands on counts as taken. A fighter may only
+ * move to a cell when its whole picture would lie on free ground, and no
+ * other picture may lie on the ground it claims.
+ *
+ * The champion always reaches towards the enemy, but it never draws itself
+ * off the edge of the field: at the last column it turns back inwards.
+ */
+function footprintDir(unit) {
+  const dir = unit.footprintDir || 1;
+  const span = unit.footprint && unit.footprint > 1 ? unit.footprint : 1;
+  if (span <= 1) return dir;
+  const next = unit.col + dir;
+  if (next < 0 || next >= GRID_COLS) return -dir;
+  return dir;
+}
+
+/* Every cell a fighter's picture is drawn on. */
+function footprintCells(unit, col, row) {
+  const anchorCol = col === undefined ? unit.col : col;
+  const anchorRow = row === undefined ? unit.row : row;
+  const span = unit.footprint && unit.footprint > 1 ? unit.footprint : 1;
+  const dir = footprintDir(unit);
+  const cells = [{ col: anchorCol, row: anchorRow }];
+  for (let i = 1; i < span; i++) {
+    cells.push({ col: anchorCol + i * dir, row: anchorRow });
+  }
+  return cells;
+}
+
+/* Whether the ground under (col,row) is claimed by another fighter, either
+ * because the fighter stands on it or because it is drawn on it. */
+function isGroundTaken(col, row, excludeId) {
+  for (const [id, u] of units) {
+    if (id === excludeId) continue;
+    if (!u.alive || u.defeated) continue;
+    for (const cell of footprintCells(u)) {
+      if (cell.col === col && cell.row === row) return true;
+    }
+  }
+  return false;
+}
+
+/* Whether a fighter could stand on (col,row) with its whole picture on
+ * ground that is free. */
+function canStandAt(unit, col, row) {
+  if (!isInBounds(col, row)) return false;
+  const dir = footprintDir(unit);
+  const span = unit.footprint && unit.footprint > 1 ? unit.footprint : 1;
+  for (let i = 0; i < span; i++) {
+    if (isGroundTaken(col + i * dir, row, unit.id)) return false;
+  }
+  return true;
+}
+
+/* Every pair of fighters that are drawn on the same ground. The list is
+ * empty when no two pictures overlap. */
+function findGroundOverlaps() {
+  const clashes = [];
+  const living = [];
+  for (const [, u] of units) {
+    if (!u.alive || u.defeated) continue;
+    living.push(u);
+  }
+  for (let i = 0; i < living.length; i++) {
+    for (let j = i + 1; j < living.length; j++) {
+      const a = footprintCells(living[i]);
+      const b = footprintCells(living[j]);
+      for (const ca of a) {
+        for (const cb of b) {
+          if (ca.col === cb.col && ca.row === cb.row) {
+            clashes.push({
+              a: living[i].id,
+              b: living[j].id,
+              col: ca.col,
+              row: ca.row
+            });
+          }
+        }
+      }
+    }
+  }
+  return clashes;
+}
+
 /* A diagonal step is refused when both cells it would slip between are
  * blocked, whether by a rock formation or by another fighter. A line of
  * units therefore holds its ground, and a gap in a wall is a real gap. */
 function canStepDiagonally(fromCol, fromRow, dc, dr, unitId) {
   const sideA = getTerrainAt(fromCol + dc, fromRow);
   const sideB = getTerrainAt(fromCol, fromRow + dr);
-  const blockedA = !sideA.passable || isOccupied(fromCol + dc, fromRow, unitId);
-  const blockedB = !sideB.passable || isOccupied(fromCol, fromRow + dr, unitId);
+  const blockedA = !sideA.passable || isGroundTaken(fromCol + dc, fromRow, unitId);
+  const blockedB = !sideB.passable || isGroundTaken(fromCol, fromRow + dr, unitId);
   return !(blockedA && blockedB);
 }
 
@@ -1507,7 +1684,7 @@ function getReachableCells(unit) {
       const nc = current.col + dc;
       const nr = current.row + dr;
       if (!isInBounds(nc, nr)) continue;
-      if (isOccupied(nc, nr, unit.id)) continue;
+      if (!canStandAt(unit, nc, nr)) continue;
       const terrain = getTerrainAt(nc, nr);
       if (!terrain.passable) continue;
       if (dc !== 0 && dr !== 0 && !canStepDiagonally(current.col, current.row, dc, dr, unit.id)) continue;
@@ -1536,7 +1713,7 @@ function getReachableCells(unit) {
 
 function canMoveTo(unit, col, row) {
   if (!isInBounds(col, row)) return false;
-  if (isOccupied(col, row, unit.id)) return false;
+  if (!canStandAt(unit, col, row)) return false;
   if (!isTerrainPassable(col, row)) return false;
   return getReachableCells(unit).some(c => c.col === col && c.row === row);
 }
@@ -1547,6 +1724,8 @@ function moveUnit(unit, col, row) {
   unit.col = col;
   unit.row = row;
   unit.hasMoved = true;
+  /* A fighter that walks is no longer standing its ground. */
+  clearDefenceStand(unit);
 
   const el = unitElements.get(unit.id);
   if (el) {
@@ -1816,7 +1995,110 @@ function calculateDamage(attacker, defender, options) {
     raw = Math.round(raw * (1 + (nextRandom() * 2 - 1) * combatVariance));
   }
 
-  return Math.max(1, raw);
+  /* The armour of the defender turns a share of the blow away. The share is
+   * the last word on the damage: what is left is what the fighter feels. */
+  raw = raw * (1 - getUnitArmour(defender));
+
+  return Math.max(1, Math.round(raw));
+}
+
+/* The share of every blow that the armour of a fighter turns away. */
+function getUnitArmour(unit) {
+  if (!unit) return 0;
+  const value = Number(unit.armour);
+  const base = Number.isFinite(value) && value > 0 ? value : 0;
+  /* A fighter that makes a defence stand braces behind its shield, and the
+   * stance adds to the armour it already carries. */
+  const bonus = unit.braced ? DEFENCE_STAND_ARMOUR : 0;
+  return Math.min(0.9, base + bonus);
+}
+
+/* 15.2 THE RIPOSTE
+ *
+ * A fighter that is hit by a blade answers with a blade of its own, at
+ * once, without waiting for its turn. The answer costs the fighter its
+ * blow for that round: it has already struck, and it does not strike
+ * twice. A fighter that cannot reach the attacker with its own weapon, or
+ * that has already attacked this round, keeps its blow to itself.
+ */
+function canRiposte(defender, attacker) {
+  if (!defender || !attacker) return false;
+  if (!defender.alive || defender.defeated) return false;
+  if (!attacker.alive || attacker.defeated) return false;
+  if (!defender.melee) return false;
+  if (defender.hasAttacked) return false;
+  /* Only a blow of the hand is answered with a blow of the hand. */
+  if (getStrikeKind(attacker, attacker, defender) !== "melee") return false;
+  return meleeStrikeAllowed(defender, defender, attacker);
+}
+
+/* The answer of a fighter that has been hit by a blade. */
+function riposteAgainst(defender, attacker) {
+  if (!canRiposte(defender, attacker)) return false;
+
+  const damage = calculateDamage(defender, attacker, {
+    attackerPos: defender,
+    defenderPos: attacker
+  });
+  /* The fighter has struck, so its own blow for this round is spent. */
+  defender.hasAttacked = true;
+  applyDamage(attacker.id, damage, { countDamage: true, team: defender.team });
+  recordAction("riposte", defender.team);
+
+  logEvent(
+    `${defender.displayName} ripostes against ${attacker.displayName} for ${damage} damage.`,
+    defender.team === TEAM_BLUE ? "player" : "ai"
+  );
+
+  const el = unitElements.get(defender.id);
+  if (el) {
+    el.classList.add("attacking");
+    later(() => el.classList.remove("attacking"), 400);
+  }
+  if (!attacker.alive || attacker.defeated) {
+    logEvent(`${attacker.displayName} is defeated.`, "system");
+  }
+  return true;
+}
+
+/* 15.3 THE DEFENCE STAND
+ *
+ * A fighter that makes a defence stand gives up its action and braces
+ * behind its shield: while it stands, its armour is twenty points higher.
+ * The stance lasts until the fighter acts again, so a unit that braces and
+ * then strikes is an ordinary fighter once more.
+ */
+function canDefenceStand(unit) {
+  if (!unit || !unit.alive || unit.defeated) return false;
+  if (unit.hasMoved || unit.hasAttacked) return false;
+  if (unit.braced) return false;
+  return true;
+}
+
+/* Braces a fighter behind its shield. The action is spent: a fighter that
+ * braces does not also walk or strike. */
+function makeDefenceStand(unit) {
+  if (!canDefenceStand(unit)) return false;
+  unit.braced = true;
+  unit.hasMoved = true;
+  unit.hasAttacked = true;
+
+  const el = unitElements.get(unit.id);
+  if (el) el.classList.add("braced");
+
+  logEvent(
+    `${unit.displayName} makes a defence stand — its armour rises by ${Math.round(DEFENCE_STAND_ARMOUR * 100)}%.`,
+    unit.team === TEAM_BLUE ? "player" : "ai"
+  );
+  return true;
+}
+
+/* The stance ends when the fighter acts again. */
+function clearDefenceStand(unit) {
+  if (!unit || !unit.braced) return;
+  unit.braced = false;
+  const el = unitElements.get(unit.id);
+  if (el) el.classList.remove("braced");
 }
 
 /* 15.1 DAMAGE NUMBERS
@@ -1825,6 +2107,22 @@ function calculateDamage(attacker, defender, options) {
  * only in the log. The number is purely visual: it never touches the rules,
  * it never touches the ledger, and it takes itself away again.
  */
+
+/* How long the red aura and the shudder of a fighter that has been hit
+ * last. */
+const HIT_FLASH_MS = 1000;
+
+/* A device that can buzz is told about every blow, so the hit can be felt
+ * as well as seen. Devices that cannot buzz are left alone. */
+function vibrateOnHit() {
+  if (typeof navigator === "undefined") return;
+  if (!navigator || typeof navigator.vibrate !== "function") return;
+  try {
+    navigator.vibrate(HIT_FLASH_MS);
+  } catch (err) {
+    /* A device that refuses to buzz is not a reason to stop the fight. */
+  }
+}
 function showDamagePop(targetId, amount, kind) {
   const el = unitElements.get(targetId);
   if (!el) return;
@@ -1856,9 +2154,14 @@ function applyDamage(targetId, amount, options) {
   const el = unitElements.get(targetId);
   if (el) {
     updateUnitHealthBar(el, target);
+    /* The fighter that took the blow glows red and shudders for a second,
+     * so the hit is felt and not only counted. */
+    el.classList.remove("damaged");
+    void el.offsetWidth;
     el.classList.add("damaged");
-    later(() => el.classList.remove("damaged"), 500);
+    later(() => el.classList.remove("damaged"), HIT_FLASH_MS);
   }
+  vibrateOnHit();
 
   if (target.hp <= 0) {
     target.alive = false;
@@ -2232,7 +2535,9 @@ function applyChampionProgression(champion) {
  *
  * options.mode "player" (the default) hands the blue legion to the player.
  * options.mode "spectator" hands both armies to the AI and takes every
- * reward off the table, so a watched battle can never touch the profile. */
+ * reward off the table, so a watched battle can never touch the profile.
+ * options.opener names the legion that opens the match; it opens the odd
+ * rounds of that match and the other legion opens the even ones. */
 function startBattle(options) {
   const opts = options || {};
   const mode = opts.mode === "spectator" ? "spectator" : "player";
@@ -2247,6 +2552,9 @@ function startBattle(options) {
 
   setBattleMode(mode);
 
+  /* Whoever opens the match takes the first round. */
+  matchOpener = opts.opener || (duel.active ? duel.opener : TEAM_BLUE);
+
   battleActive = true;
   currentTurn = mode === "spectator" ? TEAM_BLUE : "player";
   gameState = mode === "spectator" ? STATE_ENEMY_TURN : STATE_PLAYER_SELECTING;
@@ -2254,7 +2562,7 @@ function startBattle(options) {
   selectedUnitId = null;
   pendingAbilityId = null;
   suddenDeathActive = false;
-  updateSpectateButton();
+  updateActionButtons();
 
   $startButton.disabled = true;
   $startButton.textContent = mode === "spectator" ? "SPECTATING" : "ARENA READY";
@@ -2287,13 +2595,21 @@ function startBattle(options) {
   updateChampionPanel();
 
   if (mode === "spectator") {
-    spectatorTurnTeam = TEAM_BLUE;
+    spectatorTurnTeam = matchOpener;
     logEvent("The legions clash. You are watching, not fighting.", "system");
-    runSpectatorTurn(TEAM_BLUE);
+    logEvent(`${teamName(matchOpener)} opens match ${duel.active ? duel.matchNumber : 1}.`, "system");
+    runSpectatorTurn(matchOpener);
     return;
   }
 
   logEvent("The battle begins!", "system");
+  logEvent(`${teamName(matchOpener)} opens the match.`, "system");
+
+  /* A match that the crimson legion opens is started by the crimson
+   * legion: the azure legion answers the first round. */
+  if (matchOpener === TEAM_RED) {
+    beginEnemyTurn("The crimson legion opens the match.");
+  }
 }
 
 /* Switches the battle mode and puts the interface into the matching state. */
@@ -2310,12 +2626,11 @@ function setBattleMode(mode) {
 }
 
 /* Starts a spectator battle: the AI fights the AI and the fight pays
- * nothing at all. */
+ * nothing at all. A show is a duel like any other: up to three matches,
+ * won by the legion that takes two of them. */
 function startSpectatorBattle(options) {
   const opts = options || {};
-  resetBattle();
-  startBattle(Object.assign({}, opts, { mode: "spectator" }));
-  return true;
+  return startDuel(Object.assign({}, opts, { mode: "spectator" }));
 }
 
 /* Action flags reset every round; ability uses are per battle. */
@@ -2677,6 +2992,11 @@ function getLegalActions(unit) {
       }
     }
   }
+
+  /* The defence stand: give up the action, gain armour. */
+  if (canDefenceStand(unit)) {
+    actions.push({ kind: "brace", unit });
+  }
   return actions;
 }
 
@@ -2684,10 +3004,23 @@ function getLegalActions(unit) {
 function actionKey(action) {
   if (action.kind === "attack") return `attack:${action.target.id}`;
   if (action.kind === "move") return `move:${action.cell.col},${action.cell.row}`;
+  if (action.kind === "brace") return "brace";
   if (action.kind === "ability") {
     return `ability:${action.ability.id}:${action.target ? action.target.id : "-"}`;
   }
   return action.kind;
+}
+
+/* What the defence stand is worth to a fighter.
+ *
+ * The armour that is gained is worth the blows it keeps off the fighter:
+ * a fifth of everything that is aimed at it while it stands. A fighter
+ * that stands in the open with nothing aimed at it gains nothing, so the
+ * AI only braces when it is really under the weather. */
+function evaluateBraceAction(unit) {
+  const incoming = estimateIncomingDamage(unit.col, unit.row, unit.team, unit.def);
+  if (incoming <= 0) return -1;
+  return incoming * DEFENCE_STAND_ARMOUR * AI_TUNING.damageWeight;
 }
 
 function evaluateAction(action, currentAttack) {
@@ -2704,6 +3037,8 @@ function evaluateAction(action, currentAttack) {
     if (follow && follow.lethal) score += depth.position * AI_TUNING.positionalLethalCredit;
   } else if (action.kind === "ability") {
     score = evaluateAbilityAction(action.unit, action.ability, action.target);
+  } else if (action.kind === "brace") {
+    score = evaluateBraceAction(action.unit);
   }
   /* The jitter is off by default, so the shipped game weighs every option by
    * the rules alone. The balance harness turns it up to explore strategies. */
@@ -2822,7 +3157,19 @@ function executeNextEnemyAction() {
     performAiAttack(unit, action.target);
     return;
   }
+  if (action.kind === "brace") {
+    performAiBrace(unit);
+    return;
+  }
   performAiMove(unit, action.cell);
+}
+
+/* The AI braces: it gives up its action and its armour goes up. */
+function performAiBrace(unit) {
+  makeDefenceStand(unit);
+  later(() => {
+    executeNextEnemyAction();
+  }, aiTiming().gap);
 }
 
 function performAiMove(unit, destination) {
@@ -2887,11 +3234,15 @@ function performAiAttack(unit, target) {
 
     logEvent(`${unit.displayName} attacks ${target.displayName} for ${damage} damage.`, "ai");
 
+    /* A fighter that is hit by a blade answers with a blade of its own. */
+    riposteAgainst(target, unit);
+
     if (!target.alive || target.defeated) {
       logEvent(`${target.displayName} is defeated.`, "system");
     }
 
     unit.hasAttacked = true;
+    clearDefenceStand(unit);
 
     if (checkBattleEnd()) return;
 
@@ -2926,16 +3277,21 @@ function performAiAbility(unit, ability, target) {
  * Since v1.7.1 a bow covers the whole field, so the legion that acts first
  * in a round gets a free round of shooting before the other army can
  * answer. The order of play would then decide the battle and not the
- * armies, which is why the lead alternates: the azure legion opens the
- * first round, the crimson legion opens the second, and so on. Neither
- * side keeps the first move, and the fight is settled by the legions
- * themselves.
+ * armies, which is why the lead alternates: the legion that opened the
+ * match opens the first round, the other legion opens the second, and so
+ * on. Neither side keeps the first move, and the fight is settled by the
+ * legions themselves.
  *
  * The round that is being fought right now decides who opens it. A round
  * is closed when the legion that answered has finished its turn.
+ *
+ * Over a duel each party opens one of the matches, so the series as a
+ * whole hands the opening move around as well.
  */
 function roundLeader() {
-  return roundNumber % 2 === 1 ? TEAM_BLUE : TEAM_RED;
+  const opener = matchOpener;
+  if (roundNumber % 2 === 1) return opener;
+  return opener === TEAM_BLUE ? TEAM_RED : TEAM_BLUE;
 }
 
 /* Hands the field to the azure legion. */
@@ -3151,14 +3507,23 @@ function endBattle(victory, outcome, ending) {
   }
 
   $battleResult.classList.remove("hidden");
-  $startButton.disabled = false;
-  $startButton.textContent = "REMATCH";
-  updateSpectateButton();
+  updateActionButtons();
 
   if (!battleFinalized) {
     battleFinalized = true;
     battleLedger.ending = ending || "elimination";
     finalizeBattleResult(victory, outcome);
+  }
+
+  /* A duel counts the match that was just fought and says whether the
+   * series goes on. */
+  if (duel.active && !duel.finished) {
+    recordDuelMatch(outcome === "victory" ? "victory" : outcome === "defeat" ? "defeat" : "draw");
+    if (duel.finished) {
+      finishDuel();
+    } else {
+      announceNextDuelMatch();
+    }
   }
 }
 
@@ -3184,8 +3549,13 @@ function finalizeBattleResult(victory, outcome) {
     return;
   }
 
-  progression.battles += 1;
-  if (victory) progression.wins += 1;
+  /* A duel is a series of matches, and the series is what is counted: a
+   * match inside a duel is not a battle of its own. A single match that
+   * was never part of a duel still counts on its own. */
+  if (!duel.active) {
+    progression.battles += 1;
+    if (victory) progression.wins += 1;
+  }
 
   /* Experience for the damage itself. The key is tied to the battle, so the
    * reward can only ever be paid once, however often the end check runs. */
@@ -3194,7 +3564,8 @@ function finalizeBattleResult(victory, outcome) {
     battleLedger.xp.damage = damageXp;
     awardExperience(damageXp, `${battleLedger.damage.blue} damage dealt`, `battle:${battleId}:damage`);
   }
-  if (victory) {
+  /* The victory bonus belongs to the duel, not to a single match of it. */
+  if (victory && !duel.active) {
     battleLedger.xp.victory = XP_VICTORY_BONUS;
     awardExperience(XP_VICTORY_BONUS, "victory", `battle:${battleId}:victory`);
   }
@@ -3223,7 +3594,218 @@ function awardExperienceForDefeat(defeatedUnit) {
   awardExperience(total, reason, `battle:${battleId}:kill:${defeatedUnit.id}`);
 }
 
+/* 20.5 THE DUEL SERIES
+ *
+ * A duel is not one match: it is a series of up to three matches, and the
+ * legion that takes two of them wins the duel. The ground, the opponent and
+ * the rules stay the same from one match to the next — what changes is who
+ * opens.
+ *
+ * The legion that opens a match takes the first round, and with it the
+ * extra round of an odd fight. Inside a match the lead still alternates
+ * from one round to the next, so the opener of a match opens the odd
+ * rounds of that match and the other legion opens the even ones.
+ *
+ * Over a series each party opens once: the azure legion opens the first
+ * match, the crimson legion opens the second, and the third match — the
+ * decider, fought only when the series is level — is opened by a random
+ * legion. Neither side can hoard the opening move.
+ *
+ * Every match keeps its own ledger, so the report can still say what a
+ * single match was worth. The duel keeps the score of the series on top of
+ * it, and the duel is what the profile counts: a duel won is a win, a duel
+ * lost is a loss.
+ */
+function createDuel(mode) {
+  duel.active = true;
+  duel.id += 1;
+  duel.mode = mode === "spectator" ? "spectator" : "player";
+  duel.matchNumber = 1;
+  duel.blueWins = 0;
+  duel.redWins = 0;
+  duel.opener = duelOpenerForMatch(1);
+  duel.matches = [];
+  duel.lastOutcome = null;
+  duel.finished = false;
+  duel.result = null;
+  return duel;
+}
+
+/* Throws a duel away. The field is emptied as well, so nothing of the
+ * series is left behind. */
+function abandonDuel() {
+  duel.active = false;
+  duel.matchNumber = 0;
+  duel.blueWins = 0;
+  duel.redWins = 0;
+  duel.opener = TEAM_BLUE;
+  duel.matches = [];
+  duel.lastOutcome = null;
+  duel.finished = false;
+  duel.result = null;
+}
+
+/* Who opens a given match of a duel. The azure legion opens the first
+ * match, the crimson legion opens the second, and the decider is opened by
+ * a random legion. */
+function duelOpenerForMatch(matchNumber) {
+  if (matchNumber <= 1) return TEAM_BLUE;
+  if (matchNumber === 2) return TEAM_RED;
+  return nextRandom() < 0.5 ? TEAM_BLUE : TEAM_RED;
+}
+
+/* The score of the series, as it is shown on the field. */
+function duelScoreText() {
+  return `${duel.blueWins}–${duel.redWins}`;
+}
+
+function duelScoreLabel() {
+  return `AZURE ${duel.blueWins} – ${duel.redWins} CRIMSON`;
+}
+
+/* The state of the duel, for the interface and for the test surface. */
+function getDuelState() {
+  return {
+    active: duel.active,
+    id: duel.id,
+    mode: duel.mode,
+    matchNumber: duel.matchNumber,
+    matchLimit: DUEL_MATCH_LIMIT,
+    winsNeeded: DUEL_WINS_NEEDED,
+    blueWins: duel.blueWins,
+    redWins: duel.redWins,
+    opener: duel.opener,
+    score: duelScoreText(),
+    finished: duel.finished,
+    result: duel.result,
+    matches: duel.matches.map(m => Object.assign({}, m))
+  };
+}
+
+/* Starts a duel: a fresh series, fought on the ground that is chosen. */
+function startDuel(options) {
+  const opts = options || {};
+  const mode = opts.mode === "spectator" ? "spectator" : "player";
+  createDuel(mode);
+  resetField();
+  startBattle({ mode, opener: duel.opener });
+  return true;
+}
+
+/* Starts the next match of a duel that is still open. */
+function startNextDuelMatch() {
+  if (!duel.active || duel.finished) return false;
+  if (duel.matchNumber >= DUEL_MATCH_LIMIT) return false;
+  duel.matchNumber += 1;
+  duel.opener = duelOpenerForMatch(duel.matchNumber);
+  resetField({ keepMode: true });
+  startBattle({ mode: duel.mode, opener: duel.opener });
+  return true;
+}
+
+/* Writes the match that was just fought into the score of the duel and
+ * decides whether the series is over. */
+function recordDuelMatch(outcome) {
+  const winner = outcome === "victory" ? TEAM_BLUE : outcome === "defeat" ? TEAM_RED : null;
+  duel.matches.push({
+    matchNumber: duel.matchNumber,
+    opener: duel.opener,
+    outcome: outcome || "draw",
+    winner,
+    rounds: battleLedger.rounds,
+    damage: battleLedger.damage.blue,
+    kills: battleLedger.defeated,
+    losses: battleLedger.lost
+  });
+  if (winner === TEAM_BLUE) duel.blueWins += 1;
+  else if (winner === TEAM_RED) duel.redWins += 1;
+  duel.lastOutcome = outcome || "draw";
+
+  if (duel.blueWins >= DUEL_WINS_NEEDED) {
+    duel.finished = true;
+    duel.result = "victory";
+  } else if (duel.redWins >= DUEL_WINS_NEEDED) {
+    duel.finished = true;
+    duel.result = "defeat";
+  } else if (duel.matchNumber >= DUEL_MATCH_LIMIT) {
+    /* Three matches fought and the series is still level: the duel is
+     * drawn. */
+    duel.finished = true;
+    duel.result = "draw";
+  }
+  return duel;
+}
+
+/* The duel is over: the series is written down and the field says so. */
+function finishDuel() {
+  const outcome = duel.result === "victory" ? "victory"
+    : duel.result === "defeat" ? "defeat" : "draw";
+
+  if (battleMode !== "spectator") {
+    /* The duel is what the profile counts. */
+    progression.battles += 1;
+    if (outcome === "victory") {
+      progression.wins += 1;
+      battleLedger.xp.victory = XP_VICTORY_BONUS;
+      awardExperience(XP_VICTORY_BONUS, "duel victory", `duel:${duel.id}:victory`);
+    }
+    battleLedger.levelAfter = progression.level;
+    saveChampionProgression();
+    updateProgressionUI();
+    updateChampionPanel();
+  }
+
+  const score = duelScoreText();
+  if (outcome === "victory") {
+    $battleResult.textContent = `DUEL VICTORY — AZURE LEGION WINS ${score}`;
+    $battleResult.className = "battle-result victory";
+  } else if (outcome === "defeat") {
+    $battleResult.textContent = `DUEL DEFEAT — CRIMSON LEGION WINS ${score}`;
+    $battleResult.className = "battle-result defeat";
+  } else {
+    $battleResult.textContent = `DUEL DRAWN — ${score}`;
+    $battleResult.className = "battle-result draw";
+  }
+
+  logEvent(`The duel is over: ${duelScoreLabel()}.`, "system");
+  renderBattleReport(outcome);
+  updateActionButtons();
+  updateBattleStatus();
+}
+
+/* The match is over but the duel is not: the next match is announced. */
+function announceNextDuelMatch() {
+  const score = duelScoreText();
+  const won = duel.blueWins > duel.redWins;
+  logEvent(`Match ${duel.matchNumber} of ${DUEL_MATCH_LIMIT} — the duel stands at ${score}.`, "system");
+  $battleResult.textContent =
+    `MATCH ${duel.matchNumber} ${won ? "WON" : "LOST"} — DUEL ${score}`;
+  $battleResult.className = "battle-result " + (won ? "victory" : "defeat");
+  /* The report is written again, so it carries the score of the series. */
+  renderBattleReport(duel.lastOutcome);
+  updateActionButtons();
+  updateBattleStatus();
+
+  /* A show plays itself: the next match begins on its own. A player waits
+   * for the NEXT MATCH button. */
+  if (battleMode === "spectator" && duelAutoAdvance) {
+    later(() => {
+      if (duel.active && !duel.finished) startNextDuelMatch();
+    }, DUEL_ADVANCE_DELAY);
+  }
+}
+
 function resetBattle() {
+  abandonDuel();
+  resetField();
+}
+
+/* Empties the field and puts the interface back to the state before a
+ * battle. The mode is kept when the field is cleared for the next match of
+ * a duel, and dropped back to the player's when the whole duel is
+ * abandoned. */
+function resetField(options) {
+  const keepMode = !!(options && options.keepMode);
   cancelPendingTimers();
   aiActionQueue = [];
   aiActionIndex = 0;
@@ -3235,7 +3817,7 @@ function resetBattle() {
 
   /* A reset always returns to the player: the spectator show is a detour,
    * not a state the game stays in. */
-  setBattleMode("player");
+  if (!keepMode) setBattleMode("player");
   suddenDeathActive = false;
 
   battleActive = false;
@@ -3271,10 +3853,55 @@ function resetBattle() {
   updateSpectateButton();
 }
 
+/* The two action buttons always say what they are going to do.
+ *
+ *   ENTER THE ARENA   a duel against the crimson legion
+ *   REMATCH           the same duel, fought again
+ *   NEXT MATCH        the next match of a duel that is still open
+ *   SPECTATE — AI vs AI   a show: the AI against itself
+ *   REMATCH THE SHOW  the same show, fought again
+ *
+ * The spectator control is only free while no battle is running. */
+function updateActionButtons() {
+  if (!$startButton) return;
+  const showMode = battleMode === "spectator";
+  const duelOpen = duel.active && !duel.finished;
+
+  if (battleActive) {
+    $startButton.disabled = true;
+    $startButton.textContent = showMode ? "SPECTATING" : "ARENA READY";
+    if ($spectateButton) {
+      $spectateButton.disabled = true;
+      $spectateButton.textContent = "SPECTATE — AI vs AI";
+    }
+    return;
+  }
+
+  if (duelOpen && gameState === STATE_ENDED) {
+    /* A match has been fought and the series goes on. */
+    $startButton.disabled = false;
+    $startButton.textContent = "NEXT MATCH";
+    if ($spectateButton) {
+      $spectateButton.disabled = true;
+      $spectateButton.textContent = "SPECTATE — AI vs AI";
+    }
+    return;
+  }
+
+  /* Between duels. */
+  $startButton.disabled = false;
+  $startButton.textContent = showMode
+    ? "ENTER THE ARENA"
+    : gameState === STATE_ENDED ? "REMATCH" : "ENTER THE ARENA";
+  if ($spectateButton) {
+    $spectateButton.disabled = false;
+    $spectateButton.textContent = showMode ? "REMATCH THE SHOW" : "SPECTATE — AI vs AI";
+  }
+}
+
 /* The spectator control is only free while no battle is running. */
 function updateSpectateButton() {
-  if (!$spectateButton) return;
-  $spectateButton.disabled = battleActive;
+  updateActionButtons();
 }
 
 /* 21. UI HELPERS */
@@ -3290,8 +3917,9 @@ function renderSetupPanel() {
   renderDifficultyButtons();
   renderMapCards();
   /* The ground and the opponent are chosen between battles: the field must
-   * never change under a running fight. */
-  $setupPanel.classList.toggle("locked", battleActive);
+   * never change under a running fight — and never in the middle of a duel,
+   * which is fought on one ground from the first match to the last. */
+  $setupPanel.classList.toggle("locked", battleActive || (duel.active && !duel.finished));
 }
 
 function renderDifficultyButtons() {
@@ -3354,7 +3982,7 @@ function renderMapCards() {
 }
 
 function selectDifficulty(id) {
-  if (battleActive) return false;
+  if (battleActive || (duel.active && !duel.finished)) return false;
   if (!setDifficulty(id)) return false;
   renderSetupPanel();
   const profile = DIFFICULTY_PROFILES[id];
@@ -3363,7 +3991,7 @@ function selectDifficulty(id) {
 }
 
 function selectMap(id) {
-  if (battleActive) return false;
+  if (battleActive || (duel.active && !duel.finished)) return false;
   if (!setActiveMap(id)) return false;
   renderSetupPanel();
   renderTerrain();
@@ -3422,10 +4050,22 @@ function renderBattleReport(outcome) {
   if ($reportMode) {
     $reportMode.textContent = battleLedger.spectator ? "SPECTATOR" : "PLAYER";
   }
+  /* The score of the series, when the match was one of a duel. */
+  if ($reportDuel) {
+    $reportDuel.textContent = duel.active
+      ? `${duelScoreText()} · MATCH ${duel.matchNumber}/${DUEL_MATCH_LIMIT}`
+      : "—";
+  }
   if ($reportBreakdown) {
-    $reportBreakdown.textContent = battleLedger.spectator
-      ? "Spectator mode — no rewards are paid."
-      : `Damage ${battleLedger.xp.damage} XP  Â·  Kills ${battleLedger.xp.kill} XP  Â·  Victory ${battleLedger.xp.victory} XP`;
+    if (battleLedger.spectator) {
+      $reportBreakdown.textContent = "Spectator mode — no rewards are paid.";
+    } else if (duel.active) {
+      $reportBreakdown.textContent = duel.finished
+        ? `Duel ${duelScoreLabel()} — Damage ${battleLedger.xp.damage} XP  ·  Kills ${battleLedger.xp.kill} XP  ·  Victory ${battleLedger.xp.victory} XP`
+        : `Duel ${duelScoreLabel()} — Damage ${battleLedger.xp.damage} XP  ·  Kills ${battleLedger.xp.kill} XP  ·  The duel is not over yet`;
+    } else {
+      $reportBreakdown.textContent = `Damage ${battleLedger.xp.damage} XP  ·  Kills ${battleLedger.xp.kill} XP  ·  Victory ${battleLedger.xp.victory} XP`;
+    }
   }
   if ($reportLevel) {
     $reportLevel.textContent = battleLedger.spectator
@@ -3445,9 +4085,11 @@ function hideBattleReport() {
 }
 
 function updateTurnBanner() {
-  $roundText.textContent = suddenDeathActive
+  /* The banner says which match of the duel is being fought. */
+  const match = duel.active ? `MATCH ${duel.matchNumber}/${DUEL_MATCH_LIMIT} · ` : "";
+  $roundText.textContent = match + (suddenDeathActive
     ? `ROUND ${roundNumber} — SUDDEN DEATH`
-    : `ROUND ${roundNumber}`;
+    : `ROUND ${roundNumber}`);
 
   /* A spectator battle names the legion that is fighting, because there is
    * no player turn to announce. */
@@ -3477,9 +4119,15 @@ function updateTurnBanner() {
 
 function updateBattleStatus() {
   if (!battleActive) {
-    $status.textContent = battleMode === "spectator"
-      ? "THE SHOW IS OVER — THE PROFILE IS UNTOUCHED"
-      : "THE ARMIES AWAIT YOUR COMMAND";
+    if (battleMode === "spectator") {
+      $status.textContent = duel.active && !duel.finished
+        ? "THE SHOW GOES ON — THE NEXT MATCH IS COMING"
+        : "THE SHOW IS OVER — THE PROFILE IS UNTOUCHED";
+    } else {
+      $status.textContent = duel.active && !duel.finished
+        ? `THE DUEL GOES ON — ${duelScoreLabel()} — PRESS NEXT MATCH`
+        : "THE ARMIES AWAIT YOUR COMMAND";
+    }
     return;
   }
 
@@ -3510,7 +4158,7 @@ function updateBattleStatus() {
       const head = parts.length
         ? `${unit.displayName} — ${parts.join(", ")}`
         : `${unit.displayName} — no actions left`;
-      $status.textContent = `${head} Â· ${describeTerrain(unit.col, unit.row)}`;
+      $status.textContent = `${head} · ${describeTerrain(unit.col, unit.row)}`;
       return;
     }
   }
@@ -3561,7 +4209,7 @@ function updateProgressionUI() {
   $progPoints.textContent = String(progression.abilityPoints);
 
   if (!storageAvailable) {
-    $progXpText.textContent += " Â· SESSION ONLY";
+    $progXpText.textContent += " · SESSION ONLY";
   }
 }
 
@@ -3582,8 +4230,8 @@ function updateChampionPanel() {
   $champLevel.textContent = `LEVEL ${progression.level}`;
   const bonus = getLevelBonuses(progression.level);
   $champStats.textContent =
-    `HP ${champion.hp}/${champion.maxHp} Â· ATK ${champion.atk} Â· DEF ${champion.def}` +
-    (champion.shot ? ` Â· BOW ${champion.shot.atk} ATK Â· FIELD` : "") +
+    `HP ${champion.hp}/${champion.maxHp} · ATK ${champion.atk} · DEF ${champion.def}` +
+    (champion.shot ? ` · BOW ${champion.shot.atk} ATK · FIELD` : "") +
     (bonus.hp || bonus.atk || bonus.def ? ` (base +${bonus.hp} HP +${bonus.atk} ATK +${bonus.def} DEF)` : "");
 
   renderAbilityList(champion);
@@ -3910,6 +4558,8 @@ function executeAttack(attackerId, targetId) {
 
   actionLock = true;
   attacker.hasAttacked = true;
+  /* A fighter that strikes is no longer standing its ground. */
+  clearDefenceStand(attacker);
 
   const attackerEl = unitElements.get(attackerId);
   if (attackerEl) attackerEl.classList.add("attacking");
@@ -3923,6 +4573,10 @@ function executeAttack(attackerId, targetId) {
     recordAction("attack", attacker.team);
 
     logEvent(`${attacker.displayName} attacks ${target.displayName} for ${damage} damage.`, "player");
+
+    /* A fighter that is hit by a blade answers with a blade of its own. */
+    riposteAgainst(target, attacker);
+
     if (getTerrainDefBonus(target) > 0) {
       logEvent(`${getTerrainAt(target.col, target.row).label} cover reduces the damage.`, "system");
     }
@@ -3952,10 +4606,10 @@ function initGame() {
   renderTerrain();
   renderSetupPanel();
   updateProgressionUI();
+  updateActionButtons();
 
   $startButton.addEventListener("click", () => {
-    if (gameState === STATE_ENDED || battleActive) resetBattle();
-    startBattle();
+    onStartButtonClick();
   });
 
   if ($spectateButton) {
@@ -3966,6 +4620,23 @@ function initGame() {
 
   if ($setupToggle) {
     $setupToggle.addEventListener("click", () => toggleSetupPanel());
+  }
+
+  if ($battlefieldsButton) {
+    $battlefieldsButton.addEventListener("click", () => toggleSetupPanel());
+  }
+
+  if ($braceButton) {
+    $braceButton.addEventListener("click", () => {
+      if (currentTurn !== "player" || gameState !== STATE_PLAYER_SELECTING) return;
+      const unit = selectedUnitId ? units.get(selectedUnitId) : null;
+      if (!unit || unit.team !== TEAM_BLUE) return;
+      if (!makeDefenceStand(unit)) return;
+      clearSelection();
+      updateBattleStatus();
+      updateEndTurnButton();
+      if (checkBattleEnd()) return;
+    });
   }
 
   $endTurnButton.addEventListener("click", () => {
@@ -3979,12 +4650,23 @@ function initGame() {
   window.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      if (gameState === STATE_ENDED || battleActive) resetBattle();
-      startBattle();
+      onStartButtonClick();
     }
   });
 
   console.log(`${APP_NAME} ${APP_VERSION} initialized.`);
+}
+
+/* The start button does one of three things: it opens a duel against the
+ * crimson legion, it opens the next match of a duel that is still running,
+ * or it fights the duel again from the beginning. */
+function onStartButtonClick() {
+  if (duel.active && !duel.finished && gameState === STATE_ENDED) {
+    /* The duel is still open: the next match of the series. */
+    startNextDuelMatch();
+    return;
+  }
+  startDuel({ mode: "player" });
 }
 
 initGame();
@@ -4028,6 +4710,8 @@ if (typeof window !== "undefined") {
     BATTLE_ROUND_LIMIT,
     SUDDEN_DEATH_DAMAGE_MULTIPLIER,
     SPECTATOR_TIMING,
+    DUEL_MATCH_LIMIT,
+    DUEL_WINS_NEEDED,
 
     /* state */
     getUnits: () => units,
@@ -4086,15 +4770,31 @@ if (typeof window !== "undefined") {
     isOccupied,
     fieldDistance,
 
+    /* the ground under a picture */
+    footprintCells,
+    footprintDir,
+    isGroundTaken,
+    canStandAt,
+    findGroundOverlaps,
+
     /* rules */
     getReachableCells,
     canMoveTo,
     getValidTargets,
     canAttack,
     calculateDamage,
+    getUnitArmour,
     getUnitAtkBonus,
     getUnitDefBonus,
     expireTemporaryEffects,
+
+    /* armour, the defence stand and the riposte */
+    canDefenceStand,
+    makeDefenceStand,
+    clearDefenceStand,
+    canRiposte,
+    riposteAgainst,
+    DEFENCE_STAND_ARMOUR,
 
     /* strike classes
      *
@@ -4174,6 +4874,14 @@ if (typeof window !== "undefined") {
     getRoundLimit: () => BATTLE_ROUND_LIMIT,
     isSuddenDeath: () => suddenDeathActive,
     getTotalRemainingHp: totalRemainingHp,
+
+    /* the duel */
+    getDuelState,
+    startDuel,
+    startNextDuelMatch,
+    duelOpenerForMatch,
+    getMatchOpener: () => matchOpener,
+    getDuelScoreText: duelScoreText,
     resolveRoundLimit: () => {
       const blue = getTeamUnits(TEAM_BLUE);
       const red = getTeamUnits(TEAM_RED);
@@ -4210,28 +4918,52 @@ if (typeof window !== "undefined") {
       }
     },
 
-    /* Plays a whole spectator battle in one step, without the animation
-     * delays. The suites use it to watch a full AI against AI fight. */
+    /* Plays a whole show in one step, without the animation delays: every
+     * match of the duel, one after the other. The suites use it to watch a
+     * full AI against AI duel. */
     runSpectatorBattleInstant: () => {
       const previousTimers = instantTimers;
       const previousAuto = spectatorAutoAdvance;
+      const previousDuelAuto = duelAutoAdvance;
       /* The show takes over: the animation timers of the opening turn are
        * dropped, so the driver below is the only thing steering it. */
       cancelPendingTimers();
       instantTimers = true;
       spectatorAutoAdvance = false;
+      duelAutoAdvance = false;
       try {
         let guard = 0;
-        while (battleActive && gameState !== STATE_ENDED && guard++ < BATTLE_ROUND_LIMIT * 40) {
+        const limit = BATTLE_ROUND_LIMIT * 40 * DUEL_MATCH_LIMIT;
+        while (guard++ < limit) {
+          if (!battleActive || gameState === STATE_ENDED) {
+            /* A match is over. The series either goes on or it does not. */
+            if (duel.active && !duel.finished) {
+              startNextDuelMatch();
+              continue;
+            }
+            break;
+          }
           const team = spectatorTurnTeam;
           if (!team) break;
           runSpectatorTurn(team);
-          if (gameState === STATE_ENDED) break;
+          if (gameState === STATE_ENDED) {
+            if (duel.active && !duel.finished) {
+              startNextDuelMatch();
+              continue;
+            }
+            break;
+          }
           const leader = roundLeader();
           const trailer = leader === TEAM_BLUE ? TEAM_RED : TEAM_BLUE;
           if (team === trailer) {
             /* The legion that answered is done: the round is over. */
-            if (closeRound()) break;
+            if (closeRound()) {
+              if (duel.active && !duel.finished) {
+                startNextDuelMatch();
+                continue;
+              }
+              break;
+            }
             spectatorTurnTeam = roundLeader();
           } else {
             spectatorTurnTeam = trailer;
@@ -4240,8 +4972,9 @@ if (typeof window !== "undefined") {
       } finally {
         instantTimers = previousTimers;
         spectatorAutoAdvance = previousAuto;
+        duelAutoAdvance = previousDuelAuto;
       }
-      return { ended: gameState === STATE_ENDED, rounds: roundNumber };
+      return { ended: gameState === STATE_ENDED, rounds: roundNumber, duel: getDuelState() };
     },
 
     /* Resolves one team's turn with the tactical AI in one step. The

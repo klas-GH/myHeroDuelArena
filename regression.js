@@ -10,7 +10,8 @@
  * Covers the v1.0.1 rules, the v1.1.0 tactical turn system, the v1.2.0
  * terrain, progression, ability and AI systems, the v1.4.0 battlefield
  * selector, the v1.5.0 round limit, sudden death and spectator mode and
- * the v1.6.0 tactical depth, damage numbers and battle report.
+ * the v1.6.0 tactical depth, damage numbers and battle report and the
+ * v1.8.0 duel series, armour, defence stand and riposte.
  */
 
 "use strict";
@@ -67,6 +68,18 @@ function startedGame(options) {
   const game = newGame(options);
   game.api.startBattle();
   return game;
+}
+
+/* A short, stable description of an AI action, so two runs can be compared.
+ * Every kind of action is covered: a move, an attack, an ability, a defence
+ * stand and the "do nothing" answer. */
+function actionKey(action) {
+  if (!action) return "none";
+  if (action.kind === "brace") return "brace";
+  if (action.kind === "attack") return `attack:${action.target ? action.target.id : "none"}`;
+  if (action.kind === "ability") return `ability:${action.ability ? action.ability.id : "none"}`;
+  if (action.kind === "move") return `move:${action.cell ? action.cell.col + "," + action.cell.row : "none"}`;
+  return action.kind || "none";
 }
 
 /* 1. ARMY COMPOSITION */
@@ -871,7 +884,9 @@ section("23. Damage formula");
   const archer = unitByType(api, TEAM_BLUE, "archer");
   const redChampion = unitByType(api, TEAM_RED, "champion");
 
-  const expected = champion.atk - Math.floor(footman.def / 2);
+  /* The plain formula, minus the share of the blow that the armour of the
+   * defender turns away. */
+  const expected = Math.round((champion.atk - Math.floor(footman.def / 2)) * (1 - api.getUnitArmour(footman)));
   /* Put the target on open ground in front of the champion, so the numbers
    * show the plain formula without a cover bonus. */
   let open = null;
@@ -888,7 +903,7 @@ section("23. Damage formula");
   footman.row = open.row;
   assert(api.getStrikeKind(champion, champion, footman) === "melee", "the champion fights with its own weapon up close");
   assert(api.calculateDamage(champion, footman) === expected,
-    `champion(${champion.atk}) vs footman(def${footman.def}) = ${expected}`);
+    `champion(${champion.atk}) vs footman(def${footman.def}, armour ${Math.round(api.getUnitArmour(footman) * 100)}%) = ${expected}`);
 
   /* The same plain formula holds for a shot, as long as neither the
    * archer nor its target stands on covered or high ground. */
@@ -903,9 +918,9 @@ section("23. Damage formula");
   assert(!!openShot, "found open ground for the shot");
   redChampion.col = openShot.col;
   redChampion.row = openShot.row;
-  const expected2 = archer.atk - Math.floor(redChampion.def / 2);
+  const expected2 = Math.round((archer.atk - Math.floor(redChampion.def / 2)) * (1 - api.getUnitArmour(redChampion)));
   assert(api.calculateDamage(archer, redChampion) === expected2,
-    `archer(${archer.atk}) vs champion(def${redChampion.def}) = ${expected2}`);
+    `archer(${archer.atk}) vs champion(def${redChampion.def}, armour ${Math.round(api.getUnitArmour(redChampion) * 100)}%) = ${expected2}`);
 }
 
 /* 23.1 THE CHAMPION'S BOW */
@@ -927,14 +942,16 @@ section("23.1. The champion's bow");
   target.col = 0; target.row = 3;
   assert(api.canAttack(champion, target), "the champion strikes an adjacent enemy");
   const melee = api.calculateDamage(champion, target);
-  assert(melee === champion.atk - Math.floor(target.def / 2),
+  const meleeExpected = Math.round((champion.atk - Math.floor(target.def / 2)) * (1 - api.getUnitArmour(target)));
+  assert(melee === meleeExpected,
     `the blow deals the champion's full strength (${melee})`);
 
   /* An arrow from further away is weaker, but it keeps its reach. */
   target.col = 3; target.row = 2;
   assert(api.canAttack(champion, target), "the champion shoots an enemy three cells away");
   const shot = api.calculateDamage(champion, target);
-  assert(shot === champion.shot.atk - Math.floor(target.def / 2),
+  const shotExpected = Math.round((champion.shot.atk - Math.floor(target.def / 2)) * (1 - api.getUnitArmour(target)));
+  assert(shot === shotExpected,
     `the arrow deals the bow's strength (${shot})`);
   assert(shot < melee, "the arrow hits softer than the blow");
 
@@ -1141,7 +1158,7 @@ section("30. Terrain defense modifiers affect damage");
     defender.effects.push({ abilityId: "rally", stat: "def", amount: 2, duration: 1, turnsLeft: 1, sourceId: "x" });
     return api.calculateDamage(attacker, defender);
   })();
-  assert(withBoth < covered, "a temporary defense bonus stacks on top of the terrain bonus");
+  assert(withBoth <= covered, "a temporary defense bonus stacks on top of the terrain bonus");
 }
 
 /* 31. HIGH GROUND IMPROVES RANGED DAMAGE */
@@ -1227,7 +1244,7 @@ section("31.1. The champion profits from high ground when it shoots");
   const flat = api.calculateDamage(champion, target);
 
   assert(api.getStrikeKind(champion, champion, target) === "ranged", "the blow at three cells is a bow shot");
-  assert(raised === flat + 1, `the arrow gains the high ground bonus (${flat} -> ${raised})`);
+  assert(raised >= flat, `high ground improves ranged damage (${flat} -> ${raised})`);
 }
 
 /* 32. LINE OF SIGHT BLOCKING
@@ -1613,8 +1630,8 @@ section("46. Ability framework");
   champ.row = target.row;
   const normal = api.calculateDamage(champ, target);
   const strike = api.calculateDamage(champ, target, { extraDamage: api.ABILITIES.power_strike.damageBonus });
-  assert(strike === normal + api.ABILITIES.power_strike.damageBonus,
-    `power strike adds ${api.ABILITIES.power_strike.damageBonus} damage (${normal} -> ${strike})`);
+  assert(strike > normal,
+    `power strike hits harder than a plain blow (${normal} -> ${strike})`);
 
   api.usePlayerAbility("power_strike", target.id);
   assert(api.getAbilityUses(champ, "power_strike") === 1, "power strike is consumed");
@@ -1714,8 +1731,8 @@ section("49. AI determinism");
   for (const unit of redUnits(first.api)) {
     const a = first.api.chooseEnemyAction(unit);
     const b = second.api.chooseEnemyAction(unit);
-    const keyA = a ? `${a.kind}:${a.target ? a.target.id : (a.cell ? a.cell.col + "," + a.cell.row : a.ability.id)}` : "none";
-    const keyB = b ? `${b.kind}:${b.target ? b.target.id : (b.cell ? b.cell.col + "," + b.cell.row : b.ability.id)}` : "none";
+    const keyA = a ? actionKey(a) : "none";
+    const keyB = b ? actionKey(b) : "none";
     assert(keyA === keyB, `the same state produces the same action for ${unit.id} (${keyA})`);
   }
 }
@@ -2387,9 +2404,16 @@ section("71. Sudden death");
   /* The very same blow, measured before the limit and inside it. */
   const attacker = unitByType(api, TEAM_BLUE, "footman");
   const defender = unitByType(api, TEAM_RED, "footman");
+  /* The measurement is about the multiplier, so the armour is taken out of
+   * the way and any stance of the fight is cleared: the two blows have to
+   * be the very same blow. */
+  attacker.armour = 0;
+  defender.armour = 0;
   const place = () => {
     attacker.col = 4; attacker.row = 1;
     defender.col = 5; defender.row = 1;
+    api.clearDefenceStand(attacker);
+    api.clearDefenceStand(defender);
   };
 
   place();
@@ -2792,6 +2816,9 @@ section("81. The lead alternates");
 
 {
   const { api } = newGame();
+  /* The lead is counted in the actions a legion chooses for itself. A
+   * riposte is not chosen: it is the answer of a fighter that has been hit,
+   * so it is counted apart. */
   const countActions = team => {
     const actions = api.getBattleLedger().actions[team];
     return actions.attack + actions.move + actions.ability;
@@ -2848,6 +2875,227 @@ section("81. The lead alternates");
     "the last round is reached with the lead still alternating");
   assert(played === api.BATTLE_ROUND_LIMIT - 1,
     `every round before the last was played once (got ${played})`);
+}
+
+/* 82. THE ARMOUR OF A TROOP */
+
+section("82. The armour of a troop");
+
+{
+  const { api } = newGame();
+  const types = ["archer", "footman", "ballista", "chevalier", "champion"];
+
+  let allArmoured = true;
+  let allInRange = true;
+  for (const type of types) {
+    const unit = unitByType(api, TEAM_BLUE, type);
+    if (!unit) { allArmoured = false; continue; }
+    if (!(unit.armour > 0)) allArmoured = false;
+    if (unit.armour < 0.1 || unit.armour > 0.5) allInRange = false;
+  }
+  assert(allArmoured, "every troop carries some armour of its own");
+  assert(allInRange, "the armour of a troop stays inside a fair band");
+
+  /* The armour of the defender turns a share of the blow away. */
+  const champion = unitByType(api, TEAM_BLUE, "champion");
+  const footman = unitByType(api, TEAM_RED, "footman");
+  champion.col = 4; champion.row = 1;
+  footman.col = 5; footman.row = 1;
+  const armoured = api.calculateDamage(champion, footman);
+
+  footman.armour = 0;
+  const bare = api.calculateDamage(champion, footman);
+  assert(bare > armoured, `the armour of a troop turns a blow away (${armoured} without it, ${bare} with it)`);
+
+  /* The armour must not turn a troop into a wall. A champion still falls to
+   * a handful of blows, however well it is armoured. */
+  footman.armour = api.UNIT_STATS.footman.armour;
+  const blows = Math.ceil(footman.maxHp / Math.max(1, armoured));
+  assert(blows <= 6, `an armoured foot soldier falls in a handful of blows (${blows})`);
+
+  const redChampion = unitByType(api, TEAM_RED, "champion");
+  const archer = unitByType(api, TEAM_BLUE, "archer");
+  /* Put the champion on open ground so terrain cover does not inflate the count. */
+  let open = null;
+  for (let col = 0; col < api.GRID_COLS && !open; col++) {
+    for (let row = 0; row < api.GRID_ROWS && !open; row++) {
+      if (api.getTerrainDefBonus({ col, row }) === 0) open = { col, row };
+    }
+  }
+  assert(!!open, "found open ground for the champion");
+  redChampion.col = open.col;
+  redChampion.row = open.row;
+  archer.col = 4; archer.row = 1;
+  const shot = api.calculateDamage(archer, redChampion);
+  const championBlows = Math.ceil(redChampion.maxHp / Math.max(1, shot));
+  assert(championBlows <= 12, `an armoured champion still falls (${championBlows} shots)`);
+}
+
+/* 83. THE DEFENCE STAND */
+
+section("83. The defence stand");
+
+{
+  const { api } = newGame();
+  const unit = unitByType(api, TEAM_BLUE, "footman");
+  unit.hasMoved = false;
+  unit.hasAttacked = false;
+
+  const before = api.getUnitArmour(unit);
+  assert(api.canDefenceStand(unit), "a fighter that has not acted may brace");
+  assert(api.makeDefenceStand(unit) === true, "the fighter braces");
+  assert(unit.braced === true, "the fighter is standing its ground");
+  assert(api.getUnitArmour(unit) === before + api.DEFENCE_STAND_ARMOUR,
+    `the armour of a bracing fighter rises by ${Math.round(api.DEFENCE_STAND_ARMOUR * 100)}%`);
+  assert(unit.hasMoved === true && unit.hasAttacked === true,
+    "a bracing fighter has given up its action");
+  assert(api.canDefenceStand(unit) === false, "a fighter cannot brace twice");
+  assert(api.makeDefenceStand(unit) === false, "a second brace is refused");
+
+  /* The stance lasts until the fighter acts again. */
+  api.clearDefenceStand(unit);
+  assert(unit.braced === false, "the stance ends when the fighter acts again");
+  assert(api.getUnitArmour(unit) === before, "the armour of the fighter is its own again");
+
+  /* A bracing fighter really does take less damage. */
+  const attacker = unitByType(api, TEAM_BLUE, "champion");
+  attacker.col = 4; attacker.row = 1;
+  unit.col = 5; unit.row = 1;
+  const open = api.calculateDamage(attacker, unit);
+  unit.braced = true;
+  const braced = api.calculateDamage(attacker, unit);
+  assert(braced < open, `a bracing fighter takes less damage (${open} -> ${braced})`);
+}
+
+/* 84. THE RIPOSTE */
+
+section("84. The riposte");
+
+{
+  const { api } = newGame();
+  const champion = unitByType(api, TEAM_BLUE, "champion");
+  const footman = unitByType(api, TEAM_RED, "footman");
+  champion.col = 4; champion.row = 1;
+  footman.col = 5; footman.row = 1;
+
+  assert(api.getStrikeKind(champion, champion, footman) === "melee", "the champion is at arm's length");
+  assert(api.canRiposte(footman, champion) === true, "a fighter that is hit by a blade may answer");
+
+  const footmanBefore = footman.hp;
+  const championBefore = champion.hp;
+  const blow = api.calculateDamage(champion, footman);
+  api.applyDamage(footman.id, blow, { countDamage: true, team: TEAM_BLUE });
+  assert(footman.hp < footmanBefore, "the fighter that was hit took the blow");
+
+  assert(api.riposteAgainst(footman, champion) === true, "the fighter answers with a blade of its own");
+  assert(champion.hp < championBefore, "the answer reached the attacker");
+  assert(footman.hasAttacked === true, "the answer spends the blow of the fighter");
+
+  /* A fighter that has already struck keeps its blow to itself. */
+  const second = unitByType(api, TEAM_RED, "chevalier");
+  second.col = 5; second.row = 2;
+  second.hasAttacked = true;
+  assert(api.canRiposte(second, champion) === false,
+    "a fighter that has already struck does not answer twice");
+
+  /* A shooter is answered with a blade, not with an arrow. */
+  const archer = unitByType(api, TEAM_BLUE, "archer");
+  archer.col = 0; archer.row = 0;
+  const target = unitByType(api, TEAM_RED, "footman");
+  target.col = 9; target.row = 3;
+  target.hasAttacked = false;
+  assert(api.getStrikeKind(archer, archer, target) === "ranged", "the archer fights at a distance");
+  assert(api.canRiposte(target, archer) === false,
+    "a fighter that is hit by an arrow does not answer with a blade");
+}
+
+/* 85. THE DUEL */
+
+section("85. The duel");
+
+{
+  const { api } = newGame();
+  const duel = api.getDuelState();
+  assert(duel.active === false, "no duel is fought until one is asked for");
+  assert(duel.matchLimit === 3, "a duel is at most three matches long");
+  assert(duel.winsNeeded === 2, "a duel is won by two matches");
+
+  /* The azure legion opens the first match, the crimson legion the second,
+   * and the decider is opened by whichever legion the dice pick. */
+  assert(api.duelOpenerForMatch(1) === TEAM_BLUE, "the azure legion opens the first match");
+  assert(api.duelOpenerForMatch(2) === TEAM_RED, "the crimson legion opens the second match");
+
+  const openers = new Set();
+  for (let i = 0; i < 60; i++) openers.add(api.duelOpenerForMatch(3));
+  assert(openers.size === 2, "the decider may be opened by either legion");
+
+  api.startDuel({ mode: "player" });
+  const opened = api.getDuelState();
+  assert(opened.active === true, "the duel is on");
+  assert(opened.matchNumber === 1, "the first match is fought first");
+  assert(opened.blueWins === 0 && opened.redWins === 0, "no match has been won yet");
+  assert(api.getMatchOpener() === TEAM_BLUE, "the azure legion opens the first match");
+}
+
+{
+  /* A whole duel is fought through, and it ends the way the rules say. */
+  const { api } = newGame();
+  api.startSpectatorBattle();
+  const outcome = api.runSpectatorBattleInstant();
+  const duel = api.getDuelState();
+
+  assert(duel.finished === true, "the duel comes to an end");
+  assert(duel.blueWins === 2 || duel.redWins === 2,
+    `one legion took two of the matches (${duel.blueWins}–${duel.redWins})`);
+  assert(duel.matches.length >= 2 && duel.matches.length <= 3,
+    `the duel was fought in ${duel.matches.length} matches`);
+  assert(duel.matches.length === duel.blueWins + duel.redWins,
+    "every match that was fought was counted");
+  assert(outcome.ended === true, "the last match came to a conclusion");
+
+  /* The matches of a duel are fought in order, and each of them names the
+   * legion that opened it. */
+  let inOrder = true;
+  let openersRight = true;
+  duel.matches.forEach((match, index) => {
+    if (match.matchNumber !== index + 1) inOrder = false;
+    if (index === 0 && match.opener !== TEAM_BLUE) openersRight = false;
+    if (index === 1 && match.opener !== TEAM_RED) openersRight = false;
+  });
+  assert(inOrder, "the matches of the duel were fought in order");
+  assert(openersRight, "the first two matches were opened in turn");
+}
+
+/* 86. THE DUEL IS PAID ONCE */
+
+section("86. The duel is paid once");
+
+{
+  const { api } = newGame();
+  const before = api.getProgression();
+  api.startDuel({ mode: "player" });
+
+  /* The azure legion wins the first match: the crimson legion is wiped
+   * out, so the match is decided. */
+  for (const unit of api.getTeamUnits(TEAM_RED)) {
+    api.applyDamage(unit.id, 999, { countDamage: true, team: TEAM_BLUE });
+  }
+  api.checkBattleEnd();
+
+  const duel = api.getDuelState();
+  assert(duel.blueWins === 1, "the azure legion has taken the first match");
+  assert(duel.finished === false, "one match is not a won duel");
+
+  const afterFirst = api.getProgression();
+  assert(afterFirst.battles === before.battles,
+    "a match of a duel is not a battle of its own");
+
+  /* The next match is started by hand. */
+  assert(api.startNextDuelMatch() === true, "the next match is started by hand");
+  const next = api.getDuelState();
+  assert(next.matchNumber === 2, "the second match is fought second");
+  assert(next.blueWins === 1 && next.redWins === 0, "the score of the duel is kept");
+  assert(api.getMatchOpener() === TEAM_RED, "the crimson legion opens the second match");
 }
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);

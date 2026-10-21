@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the large fantasy troop artwork for myHeroDuelArena v1.7.1.
+"""Generate the large fantasy troop artwork for myHeroDuelArena v1.8.0.
 
 The battlefield used to show small icon-like silhouettes. This script draws
 the five troop types of the game as large, readable illustrations in the

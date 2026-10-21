@@ -5,7 +5,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#17251c">
-  <title>myHeroDuelArena v1.7.1</title>
+  <title>myHeroDuelArena v1.8.0</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
@@ -15,26 +15,8 @@
 
     <header class="topbar">
       <div class="game-title">MY HERO DUEL ARENA</div>
-      <div class="version">v1.7.1 — FIELD-WIDE BOWS, FORWARD BLADES &amp; THE PANORAMIC CASTLE</div>
+      <div class="version">v1.8.0 — THE DUEL SERIES, ARMOUR, THE DEFENCE STAND &amp; THE SIDE STRONGHOLDS</div>
     </header>
-
-    <section id="setup-panel" class="setup-panel" aria-label="Battlefield and difficulty selection">
-      <div class="setup-head">
-        <span class="setup-title">CHOOSE YOUR BATTLEFIELD</span>
-        <button id="setup-toggle" class="setup-toggle" type="button">HIDE</button>
-      </div>
-
-      <div class="setup-block">
-        <span class="setup-label">DIFFICULTY</span>
-        <div id="difficulty-row" class="difficulty-row"></div>
-        <span id="difficulty-hint" class="setup-hint"></span>
-      </div>
-
-      <div class="setup-block">
-        <span class="setup-label">BATTLEFIELD</span>
-        <div id="map-row" class="map-row"></div>
-      </div>
-    </section>
 
     <section class="landscape" id="battlefield" aria-label="Outdoor castle battlefield">
 
@@ -45,24 +27,25 @@
 
       <div class="mountains"></div>
 
-      <div class="castle" aria-hidden="true">
-        <div class="castle-wall">
-          <div class="battlements"></div>
-          <div class="wall-window wall-window-left"></div>
-          <div class="wall-window wall-window-right"></div>
-          <div class="gate"></div>
+      <div class="citadel citadel-blue" aria-hidden="true">
+        <div class="citadel-wall">
+          <div class="citadel-battlements"></div>
+          <div class="citadel-tower">
+            <div class="citadel-roof"></div>
+            <div class="citadel-window"></div>
+          </div>
+          <div class="citadel-gate"></div>
         </div>
-        <div class="keep">
-          <div class="keep-roof"></div>
-          <div class="keep-banner"></div>
-        </div>
-        <div class="tower tower-left">
-          <div class="roof"></div>
-          <div class="window"></div>
-        </div>
-        <div class="tower tower-right">
-          <div class="roof"></div>
-          <div class="window"></div>
+      </div>
+
+      <div class="citadel citadel-red" aria-hidden="true">
+        <div class="citadel-wall">
+          <div class="citadel-battlements"></div>
+          <div class="citadel-tower">
+            <div class="citadel-roof"></div>
+            <div class="citadel-window"></div>
+          </div>
+          <div class="citadel-gate"></div>
         </div>
       </div>
 
@@ -138,6 +121,10 @@
             <span class="report-label">DECIDED BY</span>
             <span id="report-decided" class="report-value">ELIMINATION</span>
           </div>
+          <div class="report-cell">
+            <span class="report-label">DUEL SCORE</span>
+            <span id="report-duel" class="report-value">—</span>
+          </div>
         </div>
         <div id="report-breakdown" class="report-breakdown"></div>
         <div id="report-level" class="report-level"></div>
@@ -145,6 +132,24 @@
     </section>
 
     <footer class="bottom-panel">
+      <section id="setup-panel" class="setup-panel collapsed" aria-label="Battlefield and difficulty selection">
+        <div class="setup-head">
+          <span class="setup-title">CHOOSE YOUR BATTLEFIELD</span>
+          <button id="setup-toggle" class="setup-toggle" type="button">OPEN</button>
+        </div>
+
+        <div class="setup-block">
+          <span class="setup-label">DIFFICULTY</span>
+          <div id="difficulty-row" class="difficulty-row"></div>
+          <span id="difficulty-hint" class="setup-hint"></span>
+        </div>
+
+        <div class="setup-block">
+          <span class="setup-label">BATTLEFIELD</span>
+          <div id="map-row" class="map-row"></div>
+        </div>
+      </section>
+
       <div class="hud-bar">
         <div class="hud-cell hud-turn">
           <div id="turn-banner" class="turn-banner hidden">
@@ -165,6 +170,8 @@
               <div class="health-bar"><div id="selected-health" class="health-fill"></div></div>
             </div>
             <div id="action-hints" class="action-hints"></div>
+            <button id="brace-button" class="brace-button hidden" type="button"
+                    title="Give up your action and brace: your armour rises by 20% until you act again.">DEFENCE STAND</button>
           </div>
         </div>
 
@@ -200,6 +207,8 @@
         </div>
 
         <div class="hud-cell hud-actions">
+          <button id="battlefields-button" class="battlefields-button" type="button"
+                  title="Choose the battlefield and the difficulty">BATTLEFIELDS</button>
           <button id="start-button">ENTER THE ARENA</button>
           <button id="spectate-button" class="spectate-button" type="button"
                   title="Watch the AI fight the AI. A spectator battle pays no rewards.">SPECTATE — AI vs AI</button>

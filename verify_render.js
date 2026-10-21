@@ -789,6 +789,15 @@ async function main() {
       });
       await new Promise(r => setTimeout(r, 400));
 
+      /* The battlefield chooser opens through the BATTLEFIELDS button, so
+       * open it before measuring its cards and the field layout. */
+      await cdp.evaluate(`(() => {
+        const panel = document.getElementById('setup-panel');
+        const button = document.getElementById('battlefields-button');
+        if (panel && button && panel.classList.contains('collapsed')) button.click();
+      })()`);
+      await new Promise(r => setTimeout(r, 200));
+
       /* A troop that is still walking to its cell is measured on the way,
        * so the layout is only read once the field has come to rest. */
       await cdp.evaluate(`(async () => {
@@ -1235,7 +1244,7 @@ async function main() {
     assert(watching.bannerVisible === true, "the turn banner is on screen during the show");
     assert(/AZURE LEGION|CRIMSON LEGION/.test(watching.turn),
       `the banner names the legion that is fighting (${watching.turn})`);
-    assert(/^ROUND \d+$/.test(watching.round), `the banner names the round (${watching.round})`);
+    assert(/^(MATCH \d+\/3 · )?ROUND \d+$/.test(watching.round), `the banner names the round (${watching.round})`);
     assert(watching.endTurnHidden === true, "the end turn control is hidden during the show");
     assert(watching.stripSpectating === true, "the progression strip says that nothing is being earned");
     assert(watching.buttonDisabled === true, "the spectator control is locked while the show runs");

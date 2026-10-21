@@ -79,14 +79,16 @@ body {
 
 /* Where the battlefield grid starts, as a share of the landscape. */
 :root {
-  --field-top: 30%;
+  --field-top: 28%;
   /* The troop pictures. The height is the size of the figure; the width is
    * how far a picture may reach sideways, so that a troop never covers the
-   * whole column next to it. */
-  --art-h: 34cqh;
-  --art-w: 14cqw;
-  --champ-art-h: 40cqh;
-  --champ-art-w: 20cqw;
+   * whole column next to it. The pictures grew by a quarter: the selector
+   * moved to the footer and the strongholds to the margins, so the field is
+   * bigger and the army can be bigger with it. */
+  --art-h: 42.5cqh;
+  --art-w: 17.5cqw;
+  --champ-art-h: 50cqh;
+  --champ-art-w: 25cqw;
 }
 
 /* 3.1 SKY & ATMOSPHERE */
@@ -95,7 +97,7 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 26%;
+  height: 20%;
   background: linear-gradient(
     to bottom,
     #7ec0ee 0%,
@@ -149,29 +151,31 @@ body {
 }
 
 .cloud-one {
-  top: 6%;
-  left: 8%;
+  top: 4%;
+  left: 22%;
 }
 
 .cloud-two {
-  top: 14%;
-  right: 14%;
+  top: 10%;
+  right: 20%;
   transform: scale(0.75);
 }
 
-/* 3.2 CASTLE & STRONGHOLD (background layer, behind armies)
+/* 3.2 THE TWO STRONGHOLDS
  *
- * The fortress is a shallow panoramic banner: a long curtain wall with two
- * towers and a central keep, drawn along the horizon. It frames the scene
- * without taking the room the battlefield needs.
+ * Each legion stands behind its own stronghold: the azure wall holds the
+ * left margin, the crimson wall the right one, and the two face each other
+ * across the field. A fortress runs from the top of the scene down to the
+ * ground, so the middle of the sky is free and the field can start higher
+ * up — which is where the room for the bigger army comes from.
  */
 .mountains {
   position: absolute;
   z-index: 0;
-  top: 9%;
+  top: 5%;
   left: -12%;
   width: 124%;
-  height: 18%;
+  height: 15%;
   background: #779b8a;
   clip-path: polygon(
     0 82%, 14% 32%, 26% 68%, 40% 10%,
@@ -180,25 +184,45 @@ body {
   );
 }
 
-.castle {
+.citadel {
   position: absolute;
   z-index: 1;
-  top: 3.5%;
-  left: 50%;
-  width: min(760px, 94%);
-  height: 48px;
-  transform: translateX(-50%);
-  filter: drop-shadow(0 5px 3px rgba(35, 53, 34, 0.5));
+  top: 0;
+  bottom: 0;
+  width: 13%;
+  pointer-events: none;
+  --stone-light: #b3ad96;
+  --stone-dark: #817e70;
+  --stone-tower-light: #999789;
+  --stone-tower-dark: #686a61;
+}
+
+.citadel-blue {
+  left: 0;
+  --stone-light: #a9b7ca;
+  --stone-dark: #6d7d92;
+  --stone-tower-light: #93a2b4;
+  --stone-tower-dark: #5c6a7c;
+}
+
+.citadel-red {
+  right: 0;
+  /* The crimson stronghold is the same wall, turned to face the field. */
+  transform: scaleX(-1);
+  --stone-light: #c3a893;
+  --stone-dark: #8d6857;
+  --stone-tower-light: #b39481;
+  --stone-tower-dark: #74513f;
 }
 
 /* The long wall of the fortress. */
-.castle-wall {
+.citadel-wall {
   position: absolute;
   left: 0;
-  right: 0;
+  top: 0;
   bottom: 0;
-  height: 26px;
-  border: 2px solid #6e6b60;
+  width: 64%;
+  border-right: 2px solid #6e6b60;
   background:
     repeating-linear-gradient(
       0deg,
@@ -207,141 +231,85 @@ body {
     ),
     repeating-linear-gradient(
       90deg,
-      #b3ad96 0 28px,
-      #817e70 29px 31px
+      var(--stone-light) 0 28px,
+      var(--stone-dark) 29px 31px
     );
+  opacity: 0.94;
 }
 
-.battlements {
+/* The battlements along the edge that looks at the field. */
+.citadel-battlements {
   position: absolute;
-  left: -2px;
-  top: -8px;
-  width: calc(100% + 4px);
-  height: 8px;
+  right: -5px;
+  top: 0;
+  bottom: 0;
+  width: 10px;
   background: repeating-linear-gradient(
-    90deg,
+    0deg,
     #aaa590 0 10px,
     transparent 10px 16px
   );
+  opacity: 0.9;
 }
 
-/* The keep in the middle of the wall. */
-.keep {
+/* The tower that watches over the gate. */
+.citadel-tower {
   position: absolute;
-  left: 50%;
-  bottom: 18px;
-  width: 9%;
-  height: 30px;
-  transform: translateX(-50%);
-  border: 2px solid #6b6b61;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      #9a988a 0 12px,
-      #686a61 13px 15px
-    );
-}
-
-.keep-roof {
-  position: absolute;
-  left: -18%;
-  top: -11px;
-  width: 136%;
-  height: 11px;
-  background: #6e4c3a;
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-}
-
-.keep-banner {
-  position: absolute;
-  left: 50%;
-  top: 2px;
-  width: 5px;
-  height: 16px;
-  transform: translateX(-50%);
-  background: #8e2f28;
-  clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
-}
-
-.tower {
-  position: absolute;
-  bottom: 14px;
-  width: 7%;
-  height: 34px;
+  left: 8%;
+  top: 16%;
+  width: 76%;
+  height: 38%;
   border: 2px solid #6b6b61;
   background: repeating-linear-gradient(
     0deg,
-    #999789 0 12px,
-    #686a61 13px 15px
+    var(--stone-tower-light) 0 12px,
+    var(--stone-tower-dark) 13px 15px
   );
 }
 
-.tower-left {
-  left: 3%;
-}
-
-.tower-right {
-  right: 3%;
-}
-
-.roof {
+.citadel-roof {
   position: absolute;
-  left: -14%;
-  top: -12px;
-  width: 128%;
-  height: 12px;
+  left: -10%;
+  top: -16px;
+  width: 120%;
+  height: 16px;
   background: #6e4c3a;
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
-.window {
+.citadel-window {
   position: absolute;
-  top: 8px;
+  top: 22%;
   left: 50%;
-  width: 6px;
-  height: 11px;
+  width: 8px;
+  height: 16px;
   transform: translateX(-50%);
   border-radius: 5px 5px 0 0;
   background: #333c3a;
 }
 
-.gate {
+/* The gate at the foot of the wall. */
+.citadel-gate {
   position: absolute;
-  left: 50%;
+  left: 14%;
   bottom: 0;
-  width: 16px;
-  height: 20px;
-  transform: translateX(-50%);
+  width: 58%;
+  height: 19%;
   border: 2px solid #554333;
-  border-radius: 8px 8px 0 0;
+  border-bottom: none;
+  border-radius: 46px 46px 0 0;
   background: repeating-linear-gradient(
     90deg,
-    #604831 0 4px,
-    #94704b 5px 6px
+    #604831 0 6px,
+    #94704b 7px 9px
   );
-}
-
-.wall-window {
-  position: absolute;
-  top: 6px;
-  width: 5px;
-  height: 9px;
-  background: #39403b;
-}
-
-.wall-window-left {
-  left: 16%;
-}
-
-.wall-window-right {
-  right: 16%;
 }
 
 /* 3.3 BATTLEFIELD GROUND */
 .ground-hill {
   position: absolute;
   z-index: 0;
-  top: 24%;
+  top: 18%;
   left: -18%;
   width: 136%;
   height: 26%;
@@ -352,7 +320,7 @@ body {
 .grass {
   position: absolute;
   z-index: 1;
-  top: 40%;
+  top: 38%;
   bottom: 0;
   width: 100%;
   background:
@@ -368,7 +336,7 @@ body {
 .battle-label {
   position: absolute;
   z-index: 2;
-  top: 27%;
+  top: 24.5%;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
@@ -383,7 +351,7 @@ body {
   position: absolute;
   z-index: 2;
   left: 50%;
-  top: 40%;
+  top: 38%;
   bottom: 0;
   width: 1px;
   background: rgba(232, 213, 161, 0.18);
@@ -394,9 +362,10 @@ body {
  * marker layers span the full field width, so a unit can move from its own
  * half into the neutral centre without breaking its layout.
  */
+/* The name of each legion hangs on the stronghold behind it. */
 .army {
   position: absolute;
-  top: 30.5%;
+  top: 25.5%;
   width: 15%;
   height: 16px;
   display: flex;
@@ -421,6 +390,8 @@ body {
   font-weight: bold;
   letter-spacing: 1px;
   text-shadow: 0 2px 3px #17251c;
+  background: rgba(23, 37, 28, 0.55);
+  border-radius: 3px;
 }
 
 .army-blue .army-name {
@@ -656,6 +627,32 @@ body {
   width: var(--champ-art-w);
   height: var(--champ-art-h);
   margin-left: calc(var(--champ-art-w) / -2 + var(--art-shift, 0cqw));
+}
+
+/* 5.1 THE EDGE SHIFT
+ *
+ * A picture is wider than the cell it stands on, so a troop in the first
+ * column would hang over the left edge of the field, and a troop in the
+ * last column over the right one. Each picture is nudged back inside by
+ * exactly the width it overhangs, so the army never leaves the ground it
+ * fights on. The nudge is worked out from the size of the picture itself,
+ * so a picture that grows later keeps its own edge.
+ */
+.unit[data-col="0"] {
+  --art-shift: calc((var(--art-w) - 10cqw) / 2);
+}
+
+.unit[data-col="9"] {
+  --art-shift: calc((10cqw - var(--art-w)) / 2);
+}
+
+/* The champion is drawn across two whole columns, so it overhangs by less. */
+.unit.champion[data-col="0"] {
+  --art-shift: calc((var(--champ-art-w) - 20cqw) / 2);
+}
+
+.unit.champion[data-col="9"] {
+  --art-shift: calc((20cqw - var(--champ-art-w)) / 2);
 }
 
 /* 4.4 OVERLAY LAYER
@@ -1362,6 +1359,34 @@ body {
   cursor: default;
 }
 
+/* 8.3b BATTLEFIELDS BUTTON
+ *
+ * The drawer that holds the battlefield cards and the difficulty. It lives in
+ * the control bar, so the top of the screen belongs to the battlefield.
+ */
+.battlefields-button {
+  border: 1px solid rgba(233, 198, 108, 0.45);
+  border-radius: 6px;
+  background: rgba(41, 60, 48, 0.75);
+  color: #e9c66c;
+  padding: 7px 12px;
+  font-family: Georgia, serif;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.battlefields-button:active {
+  transform: scale(0.97);
+}
+
+.battlefields-button.open {
+  background: rgba(233, 198, 108, 0.22);
+  color: #fff0c4;
+}
+
 @keyframes start-attention {
   0%, 100% { translate: 0 0; }
   50% { translate: 0 -2px; }
@@ -1435,6 +1460,35 @@ body {
   color: #aab7a3;
   line-height: 1.3;
   white-space: nowrap;
+}
+
+/* 8.4b THE DEFENCE STAND BUTTON
+ *
+ * A fighter that braces gives up its action and its armour rises. The
+ * button lives under the selection, so the order is read in the same place
+ * as the rest of the choice.
+ */
+.brace-button {
+  margin-top: 3px;
+  border: 1px solid rgba(157, 190, 220, 0.5);
+  border-radius: 5px;
+  background: rgba(41, 60, 78, 0.8);
+  color: #cfe0f2;
+  padding: 4px 10px;
+  font-family: Georgia, serif;
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.brace-button:active {
+  transform: scale(0.97);
+}
+
+.brace-button.hidden {
+  display: none;
 }
 
 /* 8.5 ABILITY BUTTON */
@@ -1595,19 +1649,124 @@ body {
   animation: attack-lunge-red 0.5s ease-in-out both;
 }
 
-@keyframes damage-flash {
+/* A troop that has been hit shudders and glows red for a second: the blow
+ * has to be felt, not only counted. */
+@keyframes hit-shake {
   0%, 100% {
-    opacity: 1;
-    filter: none;
+    translate: 0 0;
   }
-  25%, 75% {
+  10% {
+    translate: -6px 0;
+  }
+  20% {
+    translate: 6px 0;
+  }
+  30% {
+    translate: -5px 0;
+  }
+  40% {
+    translate: 5px 0;
+  }
+  50% {
+    translate: -4px 0;
+  }
+  60% {
+    translate: 4px 0;
+  }
+  70% {
+    translate: -3px 0;
+  }
+  80% {
+    translate: 3px 0;
+  }
+  90% {
+    translate: -2px 0;
+  }
+}
+
+@keyframes hit-aura {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  55% {
     opacity: 0.45;
-    filter: invert(0.3) hue-rotate(90deg);
+  }
+  100% {
+    opacity: 0;
   }
 }
 
 .unit.damaged .unit-art {
-  animation: damage-flash 0.5s ease-in-out both;
+  animation: hit-shake 1s ease-in-out both;
+  filter: drop-shadow(0 0 12px rgba(248, 113, 113, 0.95));
+}
+
+/* The red aura around a fighter that has been hit. */
+.unit.damaged::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 0;
+  width: var(--art-w);
+  height: var(--art-h);
+  margin-left: calc(var(--art-w) / -2 + var(--art-shift, 0cqw));
+  background: radial-gradient(
+    ellipse at 50% 65%,
+    rgba(255, 92, 92, 0.6),
+    rgba(255, 60, 60, 0.18) 55%,
+    rgba(255, 60, 60, 0) 75%
+  );
+  animation: hit-aura 1s ease-out both;
+  pointer-events: none;
+}
+
+.unit.champion.damaged::after {
+  width: var(--champ-art-w);
+  height: var(--champ-art-h);
+  margin-left: calc(var(--champ-art-w) / -2 + var(--art-shift, 0cqw));
+}
+
+/* 5.2 THE DEFENCE STAND
+ *
+ * A fighter that braces is drawn behind a shield: a pale arc in front of the
+ * picture, so the stance is read on the field and not only in the log.
+ */
+@keyframes brace-glow {
+  0%, 100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.unit.braced::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 0;
+  width: var(--art-w);
+  height: var(--art-h);
+  margin-left: calc(var(--art-w) / -2 + var(--art-shift, 0cqw));
+  background: radial-gradient(
+    ellipse at 50% 80%,
+    rgba(157, 190, 220, 0.5),
+    rgba(157, 190, 220, 0.12) 60%,
+    rgba(157, 190, 220, 0) 78%
+  );
+  animation: brace-glow 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.unit.champion.braced::before {
+  width: var(--champ-art-w);
+  height: var(--champ-art-h);
+  margin-left: calc(var(--champ-art-w) / -2 + var(--art-shift, 0cqw));
 }
 
 @keyframes defeat-fade {
@@ -1726,7 +1885,7 @@ body {
 
 /* On a narrow screen the control bar folds into a few short rows. Every
  * button keeps its full size: a bar of tiny buttons would be unreadable. */
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .hud-bar {
     flex-wrap: wrap;
     row-gap: 6px;
@@ -1850,20 +2009,29 @@ body {
 
 /* 1. SETUP PANEL
  *
- * The selector sits between the title bar and the battlefield. It is drawn
- * from the same map data the engine plays on, so a card can never promise
- * ground the battlefield does not have.
+ * The selector is a drawer that opens above the control bar, so the whole
+ * top of the screen belongs to the battlefield. It is drawn from the same
+ * map data the engine plays on, so a card can never promise ground the
+ * battlefield does not have.
  */
 .setup-panel {
-  z-index: 4;
+  position: absolute;
+  z-index: 6;
+  left: 0;
+  right: 0;
+  bottom: 100%;
   padding: 8px 12px 10px;
   background: linear-gradient(#1f2f24, #17251c);
-  border-bottom: 2px solid #806b3e;
+  border-top: 2px solid #806b3e;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.5);
 }
 
+/* The drawer is closed until the BATTLEFIELDS button opens it. When closed
+ * only the header stays visible, so the selector keeps a small footprint
+ * instead of eating the screen. */
 .setup-panel.collapsed .setup-block {
   display: none;
 }

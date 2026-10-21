@@ -1,4 +1,4 @@
-/* BALANCE HARNESS — myHeroDuelArena v1.7.1
+/* BALANCE HARNESS — myHeroDuelArena v1.8.0
  * Run: node balance.js [options]
  *
  * Fights battles with the real engine, headless and without a browser, and
@@ -320,7 +320,7 @@ function run(options) {
 function printReport(report) {
   console.log(`\n=== Balance report — ${report.engine} ===`);
   console.log(`seeds ${report.options.seeds} (from ${report.options.seedStart})`
-    + ` Â· variance ${report.options.variance} Â· jitter ${report.options.jitter}`);
+    + ` · variance ${report.options.variance} · jitter ${report.options.jitter}`);
 
   if (report.determinism.reproducibleChecked > 0) {
     console.log(`seed reproducibility: ${report.determinism.reproducibleIdentical}`
