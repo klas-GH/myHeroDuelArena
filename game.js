@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.8.1 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.8.2 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.8.1";
+const APP_VERSION = "v1.8.2";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -641,8 +641,27 @@ function getDifficultyId() {
 }
 
 function setDifficulty(id) {
+  if (battleActive) return false;
   if (!Object.prototype.hasOwnProperty.call(DIFFICULTY_PROFILES, id)) return false;
   currentDifficultyId = id;
+  return true;
+}
+
+/* Show the current difficulty on the footer cycle button. */
+function updateDifficultyLabel() {
+  if (!$difficultyCycle) return;
+  $difficultyCycle.textContent = DIFFICULTY_PROFILES[currentDifficultyId].label;
+}
+
+/* Cycle the AI difficulty: Easy → Normal → Hard → Easy. */
+function cycleDifficulty() {
+  if (battleActive) return false;
+  const ids = DIFFICULTY_IDS;
+  const index = ids.indexOf(currentDifficultyId);
+  const next = ids[(index + 1) % ids.length];
+  if (!setDifficulty(next)) return false;
+  updateDifficultyLabel();
+  logEvent(`Difficulty set to ${DIFFICULTY_PROFILES[next].label}.`, "system");
   return true;
 }
 
@@ -772,7 +791,6 @@ const $selectedStats = document.getElementById("selected-stats");
 const $selectedHealth = document.getElementById("selected-health");
 const $actionHints = document.getElementById("action-hints");
 const $braceButton = document.getElementById("brace-button");
-const $battlefieldsButton = document.getElementById("battlefields-button");
 const $battleResult = document.getElementById("battle-result");
 const $turnBanner = document.getElementById("turn-banner");
 const $turnText = document.getElementById("turn-text");
@@ -804,6 +822,9 @@ const $abilityList = document.getElementById("ability-list");
 
 const $levelUpBanner = document.getElementById("level-up-banner");
 const $levelUpText = document.getElementById("level-up-text");
+
+const $difficultyLabel = document.getElementById("difficulty-label");
+const $difficultyCycle = document.getElementById("difficulty-cycle");
 
 
 /* Post-battle report. */
@@ -3901,6 +3922,7 @@ function selectDifficulty(id) {
   if (battleActive || (duel.active && !duel.finished)) return false;
   if (!setDifficulty(id)) return false;
   const profile = DIFFICULTY_PROFILES[id];
+  updateDifficultyLabel();
   logEvent(`Difficulty set to ${profile.label}.`, "system");
   return true;
 }
@@ -4513,6 +4535,7 @@ function initGame() {
   renderTerrain();
   updateProgressionUI();
   updateActionButtons();
+  updateDifficultyLabel();
 
   $startButton.addEventListener("click", () => {
     onStartButtonClick();
@@ -4522,6 +4545,10 @@ function initGame() {
     $spectateButton.addEventListener("click", () => {
       startSpectatorBattle();
     });
+  }
+
+  if ($difficultyCycle) {
+    $difficultyCycle.addEventListener("click", cycleDifficulty);
   }
 
   if ($braceButton) {

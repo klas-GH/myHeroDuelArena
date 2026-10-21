@@ -12,6 +12,16 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.8.2 — the difficulty cycle and a tighter header
+
+- The `setup-panel` is gone. A small `Difficulty:` label with a cycle button
+  (`Easy → Normal → Hard → Easy`) now sits in the footer next to `ENTER THE
+  ARENA`, so the player can set the AI strength without a screen overlay.
+- The header is slimmer, and the two footer buttons are smaller with wrapped
+  two-row labels so they fit on narrow screens.
+- `setDifficulty` is locked while a battle runs, so the enemy cannot switch
+  difficulty mid-fight.
+
 ## v1.8.1 — the pre-battle chooser leaves the field
 
 The `setup-panel` and its `BATTLEFIELDS` button are gone: the battlefield and difficulty are now set through the engine (`setDifficulty`, `selectMap`, `setActiveMap`) instead of a screen overlay, so the whole top of the screen belongs to the field.

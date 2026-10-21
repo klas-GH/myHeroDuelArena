@@ -36,20 +36,20 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 15px;
+  padding: 7px 12px;
   background: linear-gradient(#293c30, #17251c);
   border-bottom: 2px solid #806b3e;
 }
 
 .game-title {
-  font-size: 17px;
+  font-size: 14px;
   font-weight: bold;
   letter-spacing: 2px;
   color: #e9c66c;
 }
 
 .version {
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 1px;
   color: #d0d3b9;
 }
@@ -1305,13 +1305,16 @@ body {
   border-radius: 6px;
   background: linear-gradient(#b9944b, #75552a);
   color: #fff4d0;
-  padding: 8px 16px;
+  padding: 5px 10px;
   font-family: Georgia, serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: bold;
   letter-spacing: 1px;
   cursor: pointer;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
+  max-width: 90px;
+  line-height: 1.2;
 }
 
 #start-button:active {
@@ -1341,13 +1344,16 @@ body {
   border-radius: 6px;
   background: rgba(41, 60, 48, 0.75);
   color: #d9e2c9;
-  padding: 7px 12px;
+  padding: 4px 8px;
   font-family: Georgia, serif;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: bold;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
+  max-width: 90px;
+  line-height: 1.2;
 }
 
 .spectate-button:active {
@@ -1956,13 +1962,15 @@ body {
   }
 
   #start-button {
-    padding: 10px 22px;
-    font-size: 12px;
+    padding: 6px 10px;
+    font-size: 9px;
+    white-space: normal;
+    max-width: 88px;
   }
 
   .end-turn-button {
-    padding: 10px 22px;
-    font-size: 12px;
+    padding: 6px 10px;
+    font-size: 9px;
   }
 
   .move-indicator,
@@ -2117,6 +2125,35 @@ body {
   background: #e9c66c;
   border-color: #f0dc9c;
   font-weight: bold;
+}
+
+/* 2.2 DIFFICULTY CYCLE
+ *
+ * The small control in the footer that lets the player cycle the AI
+ * difficulty before a battle: Easy → Normal → Hard → Easy. */
+.difficulty-label {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.difficulty-cycle-button {
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+  background: #22332a;
+  border: 1px solid #4c6349;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.difficulty-cycle-button:active {
+  transform: scale(0.97);
 }
 
 /* 3. MAP CARDS */
