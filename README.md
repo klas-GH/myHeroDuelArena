@@ -12,6 +12,14 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.8.4 — the turn mode stacks next to difficulty
+
+- A `turn:` label with a cycle button (`Party → Troop → Party`) now sits on
+  the footer to the left of the `Difficulty:` control. `Party` moves all
+  blue fighters at once; `Troop` hands out one move per fighter per round
+  (a Heroes of Might &amp; Magic style, to be filled out later). Default is
+  Party.
+
 ## v1.8.3 — the difficulty cycle stacks on the footer
 
 - The `Difficulty:` label now sits on top of the `Easy → Normal → Hard` cycle

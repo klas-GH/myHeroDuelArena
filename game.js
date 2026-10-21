@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.8.3 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.8.4 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.8.3";
+const APP_VERSION = "v1.8.4";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -665,6 +665,43 @@ function cycleDifficulty() {
   return true;
 }
 
+const TURN_MODE_IDS = ["party", "troop"];
+const DEFAULT_TURN_MODE_ID = "party";
+
+let currentTurnModeId = DEFAULT_TURN_MODE_ID;
+
+function getTurnModeProfiles() {
+  return TURN_MODE_IDS.map(id => ({ id, label: id.charAt(0).toUpperCase() + id.slice(1) }));
+}
+
+function getTurnModeId() {
+  return currentTurnModeId;
+}
+
+function setTurnModeId(id) {
+  if (battleActive) return false;
+  if (!TURN_MODE_IDS.includes(id)) return false;
+  currentTurnModeId = id;
+  return true;
+}
+
+/* Show the current turn mode on the footer cycle button. */
+function updateTurnLabel() {
+  if (!$turnCycle) return;
+  $turnCycle.textContent = currentTurnModeId.charAt(0).toUpperCase() + currentTurnModeId.slice(1);
+}
+
+/* Cycle the turn mode: Party → Troop → Party. */
+function cycleTurnMode() {
+  if (battleActive) return false;
+  const index = TURN_MODE_IDS.indexOf(currentTurnModeId);
+  const next = TURN_MODE_IDS[(index + 1) % TURN_MODE_IDS.length];
+  if (!setTurnModeId(next)) return false;
+  updateTurnLabel();
+  logEvent(`Turn mode set to ${next}.`, "system");
+  return true;
+}
+
 /* 5.2 TACTICAL DEPTH
  *
  * The tactical evaluator always asks the same questions. A difficulty only
@@ -825,6 +862,8 @@ const $levelUpText = document.getElementById("level-up-text");
 
 const $difficultyLabel = document.getElementById("difficulty-label");
 const $difficultyCycle = document.getElementById("difficulty-cycle");
+const $turnLabel = document.getElementById("turn-label");
+const $turnCycle = document.getElementById("turn-cycle");
 
 
 /* Post-battle report. */
@@ -4536,6 +4575,7 @@ function initGame() {
   updateProgressionUI();
   updateActionButtons();
   updateDifficultyLabel();
+  updateTurnLabel();
 
   $startButton.addEventListener("click", () => {
     onStartButtonClick();
@@ -4549,6 +4589,10 @@ function initGame() {
 
   if ($difficultyCycle) {
     $difficultyCycle.addEventListener("click", cycleDifficulty);
+  }
+
+  if ($turnCycle) {
+    $turnCycle.addEventListener("click", cycleTurnMode);
   }
 
   if ($braceButton) {
@@ -4663,6 +4707,12 @@ if (typeof window !== "undefined") {
     getMapTerrainCounts,
     validateMap,
     selectMap,
+
+    /* turn mode */
+    getTurnModeProfiles,
+    getTurnModeId,
+    setTurnModeId,
+    cycleTurnMode,
 
     /* difficulty */
     getDifficultyProfiles,

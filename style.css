@@ -2165,6 +2165,47 @@ body {
   transform: scale(0.97);
 }
 
+/* 2.2b TURN MODE
+ *
+ * The turn mode selects how the blue legion acts: "Party" moves every blue
+ * fighter in one go, while "Troop" hands out one move per fighter per round
+ * (a Heroes of Might & Magic style, to be filled out later). Default is
+ * Party. */
+.turn-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-right: 8px;
+}
+
+.turn-label {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.turn-cycle-button {
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+  background: #22332a;
+  border: 1px solid #4c6349;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.turn-cycle-button:active {
+  transform: scale(0.97);
+}
+
 /* 3. MAP CARDS */
 .map-row {
   display: flex;
