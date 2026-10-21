@@ -12,6 +12,11 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.8.3 — the difficulty cycle stacks on the footer
+
+- The `Difficulty:` label now sits on top of the `Easy → Normal → Hard` cycle
+  button in the footer, so the pair reads as a single control in one column.
+
 ## v1.8.2 — the difficulty cycle and a tighter header
 
 - The `setup-panel` is gone. A small `Difficulty:` label with a cycle button
