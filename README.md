@@ -12,6 +12,10 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.8.1 — the pre-battle chooser leaves the field
+
+The `setup-panel` and its `BATTLEFIELDS` button are gone: the battlefield and difficulty are now set through the engine (`setDifficulty`, `selectMap`, `setActiveMap`) instead of a screen overlay, so the whole top of the screen belongs to the field.
+
 ## v1.8.0 — the duel series, armour, the defence stand and the side strongholds
 
 | Area | Summary |

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.8.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.8.1 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.8.0";
+const APP_VERSION = "v1.8.1";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -805,12 +805,6 @@ const $abilityList = document.getElementById("ability-list");
 const $levelUpBanner = document.getElementById("level-up-banner");
 const $levelUpText = document.getElementById("level-up-text");
 
-/* Pre-battle selector: difficulty buttons and one card per battlefield. */
-const $setupPanel = document.getElementById("setup-panel");
-const $setupToggle = document.getElementById("setup-toggle");
-const $difficultyRow = document.getElementById("difficulty-row");
-const $difficultyHint = document.getElementById("difficulty-hint");
-const $mapRow = document.getElementById("map-row");
 
 /* Post-battle report. */
 const $battleReport = document.getElementById("battle-report");
@@ -2577,7 +2571,6 @@ function startBattle(options) {
 
   resetActionFlags();
   resetAbilityUses();
-  renderSetupPanel();
   battleLedger = createBattleLedger();
   battleLedger.mapId = getActiveMapId();
   battleLedger.difficultyId = mode === "spectator" ? DEFAULT_DIFFICULTY_ID : getDifficultyId();
@@ -3464,7 +3457,6 @@ function checkBattleEnd() {
  * "even" when neither army was ahead. */
 function endBattle(victory, outcome, ending) {
   battleActive = false;
-  renderSetupPanel();
   gameState = STATE_ENDED;
   currentTurn = "ended";
   clearSelection();
@@ -3830,7 +3822,6 @@ function resetField(options) {
   initArmies();
   renderArmies();
   renderTerrain();
-  renderSetupPanel();
 
   $startButton.disabled = false;
   $startButton.textContent = "ENTER THE ARENA";
@@ -3906,85 +3897,9 @@ function updateSpectateButton() {
 
 /* 21. UI HELPERS */
 
-/* 21.1 PRE-BATTLE SELECTOR
- *
- * The selector is drawn from the same data the engine plays on, so a card
- * can never promise ground the battlefield does not have. Each map card
- * carries a small picture of its own terrain.
- */
-function renderSetupPanel() {
-  if (!$setupPanel) return;
-  renderDifficultyButtons();
-  renderMapCards();
-  /* The ground and the opponent are chosen between battles: the field must
-   * never change under a running fight — and never in the middle of a duel,
-   * which is fought on one ground from the first match to the last. */
-  $setupPanel.classList.toggle("locked", battleActive || (duel.active && !duel.finished));
-}
-
-function renderDifficultyButtons() {
-  if (!$difficultyRow) return;
-  const locked = battleActive;
-  $difficultyRow.innerHTML = "";
-  for (const id of DIFFICULTY_IDS) {
-    const profile = DIFFICULTY_PROFILES[id];
-    const button = document.createElement("button");
-    button.className = "difficulty-button" + (id === currentDifficultyId ? " selected" : "");
-    button.type = "button";
-    button.disabled = locked;
-    button.dataset.difficulty = id;
-    button.textContent = profile.label;
-    button.title = profile.hint;
-    button.addEventListener("click", () => selectDifficulty(id));
-    $difficultyRow.appendChild(button);
-  }
-  if ($difficultyHint) {
-    const profile = DIFFICULTY_PROFILES[currentDifficultyId] || DIFFICULTY_PROFILES.normal;
-    $difficultyHint.textContent = profile.hint;
-  }
-}
-
-function renderMapCards() {
-  if (!$mapRow) return;
-  const locked = battleActive;
-  $mapRow.innerHTML = "";
-  for (const map of MAP_REGISTRY) {
-    const card = document.createElement("button");
-    card.className = "map-card" + (map.id === activeMapId ? " selected" : "");
-    card.type = "button";
-    card.disabled = locked;
-    card.dataset.map = map.id;
-
-    const name = document.createElement("span");
-    name.className = "map-name";
-    name.textContent = map.name;
-    card.appendChild(name);
-
-    const tagline = document.createElement("span");
-    tagline.className = "map-tagline";
-    tagline.textContent = map.tagline;
-    card.appendChild(tagline);
-
-    const preview = document.createElement("span");
-    preview.className = "map-preview";
-    for (let row = 0; row < GRID_ROWS; row++) {
-      for (let col = 0; col < GRID_COLS; col++) {
-        const cell = document.createElement("span");
-        cell.className = `map-preview-cell terrain-${TERRAIN_LEGEND[map.terrain[row][col]] || "grass"}`;
-        preview.appendChild(cell);
-      }
-    }
-    card.appendChild(preview);
-
-    card.addEventListener("click", () => selectMap(map.id));
-    $mapRow.appendChild(card);
-  }
-}
-
 function selectDifficulty(id) {
   if (battleActive || (duel.active && !duel.finished)) return false;
   if (!setDifficulty(id)) return false;
-  renderSetupPanel();
   const profile = DIFFICULTY_PROFILES[id];
   logEvent(`Difficulty set to ${profile.label}.`, "system");
   return true;
@@ -3993,17 +3908,9 @@ function selectDifficulty(id) {
 function selectMap(id) {
   if (battleActive || (duel.active && !duel.finished)) return false;
   if (!setActiveMap(id)) return false;
-  renderSetupPanel();
   renderTerrain();
   logEvent(`Battlefield set to ${getActiveMap().name}.`, "system");
   return true;
-}
-
-function toggleSetupPanel() {
-  if (!$setupPanel || !$setupToggle) return;
-  const collapsed = $setupPanel.classList.contains("collapsed");
-  $setupPanel.classList.toggle("collapsed", !collapsed);
-  $setupToggle.textContent = collapsed ? "HIDE" : "SHOW";
 }
 
 /* 21.2 POST-BATTLE REPORT
@@ -4604,7 +4511,6 @@ function initGame() {
   initArmies();
   renderArmies();
   renderTerrain();
-  renderSetupPanel();
   updateProgressionUI();
   updateActionButtons();
 
@@ -4616,14 +4522,6 @@ function initGame() {
     $spectateButton.addEventListener("click", () => {
       startSpectatorBattle();
     });
-  }
-
-  if ($setupToggle) {
-    $setupToggle.addEventListener("click", () => toggleSetupPanel());
-  }
-
-  if ($battlefieldsButton) {
-    $battlefieldsButton.addEventListener("click", () => toggleSetupPanel());
   }
 
   if ($braceButton) {
@@ -4738,7 +4636,6 @@ if (typeof window !== "undefined") {
     getMapTerrainCounts,
     validateMap,
     selectMap,
-    renderSetupPanel,
 
     /* difficulty */
     getDifficultyProfiles,
