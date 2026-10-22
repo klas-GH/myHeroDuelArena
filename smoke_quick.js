@@ -1,4 +1,4 @@
-/* DOM SMOKE TEST — myHeroDuelArena v1.8.0
+/* DOM SMOKE TEST — myHeroDuelArena v1.8.7
  * Run: node smoke_quick.js
  *
  * Verifies the real game.js against a minimal DOM stub: every element id

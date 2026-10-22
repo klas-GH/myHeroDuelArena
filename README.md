@@ -12,6 +12,16 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.8.7 — the duel opens on the player's turn
+
+- Starting a duel no longer immediately ends the player's opening turn. The
+  start/end control now handles starting and ending through one click path.
+- The rule and DOM checks use the current `end-turn-button` control and cover
+  the opening player phase.
+- On compact screens, the footer uses full-width rows for turn status,
+  evenly spaced controls, and progression/combat log; hidden panels no longer
+  leave empty rows.
+
 ## v1.8.5 — footer fixes and the troop turn mode
 
 - The start button now reads "Enter Arena" (the JS no longer overwrites it back).
@@ -641,11 +651,13 @@ change to the saved profile.
 
 ## Tests
 
-All four suites run on Node without any dependency:
+The rule, DOM and asset checks run on Node without dependencies. The render
+suite additionally needs Microsoft Edge.
 
 ```
 node regression.js      # rules, terrain, maps, difficulty, progression, AI, round limit, spectator, tactical depth
 node smoke_quick.js     # DOM wiring, stylesheet contract, runtime flow, damage numbers
+node smoke_assets.js    # troop artwork and asset integrity
 node verify_render.js   # real rendering and real mouse input in headless Edge
 node balance.js         # seeded balance measurement, JSON out
 ```
@@ -659,6 +671,6 @@ panels, the responsive breakpoints, and a real mouse click on a unit —
 synthetic DOM events skip the hit test, and that is exactly how the selection
 bug of v1.2.0 survived the earlier suites.
 
-The suites expose their results as `=== Results: N passed, M failed ===` and
-exit with a non-zero status when something fails. The current counts are 784
-rule assertions, 171 DOM assertions and 170 render assertions.
+The verification suites expose their results as `=== Results: N passed, M
+failed ===` and exit with a non-zero status when something fails. The current
+counts are 823 rule assertions, 159 DOM assertions and 144 render assertions.

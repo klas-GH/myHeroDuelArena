@@ -1837,7 +1837,7 @@ section("53. Integration — battle flow and rewards");
   assert(api.getProgression().xp === xpAfterWin, "the victory bonus is only paid once");
 
   /* A rematch keeps the progression and does not pay the bonus again. */
-  doc.getElementById("start-button").dispatch("click");
+  doc.getElementById("end-turn-button").dispatch("click");
   assert(api.getProgression().xp === xpAfterWin, "a rematch does not pay the victory bonus again");
   assert(api.getProgression().wins === 1, "the rematch does not count as a second win");
   assert(api.getUnits().size === 14, "the rematch rebuilds both armies");
@@ -2563,8 +2563,9 @@ section("73. The spectator mode");
   const unit = doc.getElementById("blue-units").children[0];
   unit.dispatch("click");
   assert(api.getState().selectedUnitId === null, "a spectator cannot select a unit");
-  assert(doc.getElementById("end-turn-button").classList.contains("hidden"),
-    "the end turn button is hidden during a spectator battle");
+  assert(doc.getElementById("end-turn-button").disabled
+    && doc.getElementById("end-turn-button").textContent === "WATCHING",
+    "the end turn button is disabled and labelled WATCHING during a spectator battle");
 
   api.resetBattle();
   assert(api.getBattleMode() === "player", "a reset hands the game back to the player");

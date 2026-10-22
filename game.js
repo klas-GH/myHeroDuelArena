@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.8.5 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.8.7 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -3405,6 +3405,8 @@ function finishEnemyTurn() {
   $battlefield.classList.remove("ai-turn-active");
   $battlefield.classList.remove("ai-turn-blue-active");
 
+  if (!aiTurnOwnsRound) return;
+
   /* A spectator battle hands the field straight from one legion to the
    * other. The round is only closed once both have had their turn. */
   if (battleMode === "spectator") {
@@ -4591,12 +4593,6 @@ function initGame() {
       if (checkBattleEnd()) return;
     });
   }
-
-  $endTurnButton.addEventListener("click", () => {
-    if (currentTurn === "player" && !checkBattleEnd()) {
-      endPlayerTurn();
-    }
-  });
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {

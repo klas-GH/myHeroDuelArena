@@ -512,7 +512,7 @@ async function main() {
      * point at empty cells, so they are checked against the grid itself
      * rather than against unit positions. */
      const agree = await cdp.evaluate(`(() => {
-      document.getElementById('start-button').click();
+      document.getElementById('end-turn-button').click();
       const u = document.querySelector('.unit.blue');
       u.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
@@ -808,7 +808,7 @@ async function main() {
         const units = [...document.querySelectorAll('.unit')];
         const layer = document.getElementById('blue-units');
         const lr = layer.getBoundingClientRect();
-        const controls = ['start-button', 'end-turn-button', 'progression-strip', 'champion-panel', 'spectate-button']
+        const controls = ['end-turn-button', 'progression-strip', 'champion-panel', 'mode-button']
           .map(id => document.getElementById(id))
           .filter(Boolean)
           .map(el => {
@@ -1114,7 +1114,7 @@ async function main() {
     const beforeShow = await cdp.evaluate(`(async () => {
       const api = window.MyHeroDuelArena;
       api.resetBattle();
-      const button = document.getElementById('spectate-button');
+      const button = document.getElementById('mode-button');
       /* The control sits at the bottom of the page, so it is brought into
        * view before the pointer is aimed at it. */
       button.scrollIntoView({ block: 'center', inline: 'center' });
@@ -1125,7 +1125,7 @@ async function main() {
       return {
         buttonVisible: r.width > 0 && r.height > 0,
         buttonDisabled: button.disabled,
-        hitIsButton: !!(hit && hit.closest && hit.closest('#spectate-button')),
+        hitIsButton: !!(hit && hit.closest && hit.closest('#mode-button')),
         hitTag: hit ? (hit.className || hit.tagName) : null,
         x: r.left + r.width / 2,
         y: r.top + r.height / 2,
@@ -1144,6 +1144,13 @@ async function main() {
       `the hit test reaches the spectator control (hit ${beforeShow.hitTag}, rect ${JSON.stringify(beforeShow.rect)}, viewport ${JSON.stringify(beforeShow.viewport)})`);
 
     await cdp.mouseClick(beforeShow.x, beforeShow.y);
+    const showStart = await cdp.evaluate(`(() => {
+      const button = document.getElementById('end-turn-button');
+      button.scrollIntoView({ block: 'center', inline: 'center' });
+      const r = button.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    })()`);
+    await cdp.mouseClick(showStart.x, showStart.y);
     await new Promise(r => setTimeout(r, 1200));
 
     const watching = await cdp.evaluate(`(() => {
@@ -1151,7 +1158,8 @@ async function main() {
       const state = api.getState();
       const p = api.getProgression();
       const log = [...document.querySelectorAll('#combat-log .log-entry')].map(e => e.textContent);
-      const button = document.getElementById('spectate-button');
+      const button = document.getElementById('mode-button');
+      const endTurn = document.getElementById('end-turn-button');
       return {
         mode: state.battleMode,
         spectator: state.spectatorActive,
@@ -1159,7 +1167,8 @@ async function main() {
         turn: document.getElementById('turn-text').textContent,
         round: document.getElementById('round-text').textContent,
         bannerVisible: !document.getElementById('turn-banner').classList.contains('hidden'),
-        endTurnHidden: document.getElementById('end-turn-button').classList.contains('hidden'),
+        endTurnDisabled: endTurn.disabled,
+        endTurnText: endTurn.textContent,
         stripSpectating: document.getElementById('progression-strip').classList.contains('spectating'),
         buttonDisabled: button.disabled,
         log,
@@ -1178,7 +1187,8 @@ async function main() {
     assert(/AZURE LEGION|CRIMSON LEGION/.test(watching.turn),
       `the banner names the legion that is fighting (${watching.turn})`);
     assert(/^(MATCH \d+\/3 · )?ROUND \d+$/.test(watching.round), `the banner names the round (${watching.round})`);
-    assert(watching.endTurnHidden === true, "the end turn control is hidden during the show");
+    assert(watching.endTurnDisabled === true && watching.endTurnText === "WATCHING",
+      "the end turn control is disabled and labelled WATCHING during the show");
     assert(watching.stripSpectating === true, "the progression strip says that nothing is being earned");
     assert(watching.buttonDisabled === true, "the spectator control is locked while the show runs");
     assert(watching.log.some(t => /advances|attacks/.test(t)),
@@ -1195,7 +1205,7 @@ async function main() {
     const afterShow = await cdp.evaluate(`(() => ({
       mode: window.MyHeroDuelArena.getBattleMode(),
       stripSpectating: document.getElementById('progression-strip').classList.contains('spectating'),
-      buttonDisabled: document.getElementById('spectate-button').disabled
+      buttonDisabled: document.getElementById('mode-button').disabled
     }))()`);
 
     assert(afterShow.mode === "player", "a reset hands the game back to the player");

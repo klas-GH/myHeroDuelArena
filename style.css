@@ -1836,44 +1836,61 @@ body {
  * button keeps its full size: a bar of tiny buttons would be unreadable. */
 @media (max-width: 900px) {
   .hud-bar {
-    flex-wrap: wrap;
-    row-gap: 6px;
-    column-gap: 6px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "turn turn"
+      "actions actions"
+      "progression log"
+      "selection selection"
+      "abilities abilities";
+    gap: 6px;
   }
 
   .hud-turn {
-    order: 1;
-    flex: 1 1 40%;
+    grid-area: turn;
+    max-width: none;
     min-width: 0;
   }
 
   .hud-actions {
-    order: 2;
-    margin-left: auto;
-    flex: 1 1 100%;
-    max-width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    grid-area: actions;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    margin-left: 0;
+    justify-content: stretch;
+  }
+
+  .hud-actions > * {
+    justify-self: center;
+  }
+
+  .hud-selection:has(#selection-info.hidden),
+  .hud-abilities:has(.ability-wrap.hidden):has(.champion-panel.hidden) {
+    display: none;
   }
 
   .hud-selection {
-    order: 3;
-    flex: 1 1 100%;
+    grid-area: selection;
+    min-width: 0;
   }
 
   .hud-abilities {
-    order: 4;
-    flex: 1 1 100%;
+    grid-area: abilities;
+    min-width: 0;
   }
 
   .hud-progression {
-    order: 5;
+    grid-area: progression;
     flex: 0 0 auto;
   }
 
   .hud-log {
-    order: 6;
-    flex: 1 1 90px;
+    grid-area: log;
+    min-width: 0;
+    width: 100%;
   }
 
   .combat-log {
@@ -1905,16 +1922,18 @@ body {
   }
 
   #mode-button {
-    padding: 6px 10px;
+    padding: 5px 6px;
     font-size: 9px;
     white-space: normal;
-    max-width: 88px;
+    max-width: 100%;
   }
 
   .end-turn-button {
-    padding: 6px 10px;
+    padding: 6px 5px;
     font-size: 9px;
   }
+
+  .hud-actions { gap: 4px; }
 
   .move-indicator,
   .attack-indicator {
