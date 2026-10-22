@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.8.4 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.8.5 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.8.4";
+const APP_VERSION = "v1.8.5";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -700,6 +700,14 @@ function cycleTurnMode() {
   updateTurnLabel();
   logEvent(`Turn mode set to ${next}.`, "system");
   return true;
+}
+
+/* In troop mode each fighter acts alone: after one move or one blow the
+ * turn is handed over at once, as if the player had pressed END TURN. */
+function maybeAutoEndTurnForTroopMode() {
+  if (getTurnModeId() !== "troop") return;
+  if (currentTurn !== "player") return;
+  endPlayerTurn();
 }
 
 /* 5.2 TACTICAL DEPTH
@@ -2619,7 +2627,7 @@ function startBattle(options) {
   updateActionButtons();
 
   $startButton.disabled = true;
-  $startButton.textContent = mode === "spectator" ? "SPECTATING" : "ARENA READY";
+  $startButton.textContent = mode === "spectator" ? "SPECTATING" : "Enter Arena";
   $battleResult.classList.add("hidden");
   hideBattleReport();
   $turnBanner.classList.remove("hidden");
@@ -3884,7 +3892,7 @@ function resetField(options) {
   renderTerrain();
 
   $startButton.disabled = false;
-  $startButton.textContent = "ENTER THE ARENA";
+  $startButton.textContent = "Enter Arena";
   $battleResult.classList.add("hidden");
   $battleResult.className = "battle-result hidden";
   hideBattleReport();
@@ -3904,13 +3912,13 @@ function resetField(options) {
   updateSpectateButton();
 }
 
-/* The two action buttons always say what they are going to do.
+/* The start button always says what it is going to do.
  *
- *   ENTER THE ARENA   a duel against the crimson legion
- *   REMATCH           the same duel, fought again
- *   NEXT MATCH        the next match of a duel that is still open
- *   SPECTATE — AI vs AI   a show: the AI against itself
- *   REMATCH THE SHOW  the same show, fought again
+ *   Enter Arena   a duel against the crimson legion
+ *   REMATCH       the same duel, fought again
+ *   NEXT MATCH    the next match of a duel that is still open
+ *   AI vs AI      a show: the AI against itself
+ *   REMATCH SHOW  the same show, fought again
  *
  * The spectator control is only free while no battle is running. */
 function updateActionButtons() {
@@ -3920,10 +3928,10 @@ function updateActionButtons() {
 
   if (battleActive) {
     $startButton.disabled = true;
-    $startButton.textContent = showMode ? "SPECTATING" : "ARENA READY";
+    $startButton.textContent = showMode ? "SPECTATING" : "Enter Arena";
     if ($spectateButton) {
       $spectateButton.disabled = true;
-      $spectateButton.textContent = "SPECTATE — AI vs AI";
+      $spectateButton.textContent = "AI vs AI";
     }
     return;
   }
@@ -3934,7 +3942,7 @@ function updateActionButtons() {
     $startButton.textContent = "NEXT MATCH";
     if ($spectateButton) {
       $spectateButton.disabled = true;
-      $spectateButton.textContent = "SPECTATE — AI vs AI";
+      $spectateButton.textContent = "AI vs AI";
     }
     return;
   }
@@ -3942,11 +3950,11 @@ function updateActionButtons() {
   /* Between duels. */
   $startButton.disabled = false;
   $startButton.textContent = showMode
-    ? "ENTER THE ARENA"
-    : gameState === STATE_ENDED ? "REMATCH" : "ENTER THE ARENA";
+    ? "Enter Arena"
+    : gameState === STATE_ENDED ? "REMATCH" : "Enter Arena";
   if ($spectateButton) {
     $spectateButton.disabled = false;
-    $spectateButton.textContent = showMode ? "REMATCH THE SHOW" : "SPECTATE — AI vs AI";
+    $spectateButton.textContent = showMode ? "AI vs AI" : "AI vs AI";
   }
 }
 
@@ -4486,6 +4494,7 @@ function onMoveClick(unitId, col, row) {
     showAttackIndicators(unit);
     updateBattleStatus();
     updateEndTurnButton();
+    maybeAutoEndTurnForTroopMode();
   } else {
     logEvent(`Cannot reach (${col},${row}) — ${describeTerrain(col, row)}.`, "system");
   }
@@ -4560,6 +4569,7 @@ function executeAttack(attackerId, targetId) {
     actionLock = false;
     updateBattleStatus();
     updateEndTurnButton();
+    maybeAutoEndTurnForTroopMode();
 
     if (checkBattleEnd()) return;
   }, 550);

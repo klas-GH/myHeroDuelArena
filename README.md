@@ -12,6 +12,14 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.8.5 — footer fixes and the troop turn mode
+
+- The start button now reads "Enter Arena" (the JS no longer overwrites it back).
+- The spectator button now reads "AI vs AI" everywhere it is set.
+- The footer controls are arranged with tighter gaps and aligned labels.
+- Turn mode "Troop" auto-ends the turn after one unit move or one blow, so each
+  fighter acts alone until END TURN.
+
 ## v1.8.4 — the turn mode stacks next to difficulty
 
 - A `turn:` label with a cycle button (`Party → Troop → Party`) now sits on

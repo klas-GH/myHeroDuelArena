@@ -1221,7 +1221,9 @@ body {
 .hud-actions {
   flex: 0 0 auto;
   margin-left: auto;
-  gap: 6px;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 #status {
@@ -1344,15 +1346,14 @@ body {
   border-radius: 6px;
   background: rgba(41, 60, 48, 0.75);
   color: #d9e2c9;
-  padding: 4px 8px;
+  padding: 5px 10px;
   font-family: Georgia, serif;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: bold;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   cursor: pointer;
   white-space: normal;
   text-align: center;
-  max-width: 90px;
   line-height: 1.2;
 }
 
