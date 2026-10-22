@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.8.5";
+const APP_VERSION = "v1.8.7";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -828,8 +828,7 @@ function getCombatOptions() {
 /* 6. DOM ELEMENTS */
 
 const $status = document.getElementById("status");
-const $startButton = document.getElementById("start-button");
-const $spectateButton = document.getElementById("spectate-button");
+const $modeButton = document.getElementById("mode-button");
 const $selectionInfo = document.getElementById("selection-info");
 const $selectedName = document.getElementById("selected-name");
 const $selectedStats = document.getElementById("selected-stats");
@@ -858,7 +857,6 @@ const $progLevel = document.getElementById("prog-level");
 const $progXpFill = document.getElementById("prog-xp-fill");
 const $progXpText = document.getElementById("prog-xp-text");
 const $progPoints = document.getElementById("prog-points");
-const $resetProgressButton = document.getElementById("reset-progress-button");
 
 const $championPanel = document.getElementById("champion-panel");
 const $champLevel = document.getElementById("champ-level");
@@ -1510,10 +1508,10 @@ function refreshAllHealthBars() {
 /* 12. SELECTION */
 
 /* Draws the eye to the control that starts the battle. */
-function highlightStartButton() {
-  if (!$startButton) return;
-  $startButton.classList.add("attention");
-  later(() => $startButton.classList.remove("attention"), 1200);
+function highlightModeButton() {
+  if (!$modeButton) return;
+  $modeButton.classList.add("attention");
+  later(() => $modeButton.classList.remove("attention"), 1200);
 }
 
 function clearSelection() {
@@ -2626,13 +2624,11 @@ function startBattle(options) {
   suddenDeathActive = false;
   updateActionButtons();
 
-  $startButton.disabled = true;
-  $startButton.textContent = mode === "spectator" ? "SPECTATING" : "Enter Arena";
+  $modeButton.disabled = true;
   $battleResult.classList.add("hidden");
   hideBattleReport();
   $turnBanner.classList.remove("hidden");
-  $endTurnButton.disabled = false;
-  $endTurnButton.classList.toggle("hidden", mode === "spectator");
+  updateEndTurnButton();
   $selectionInfo.classList.add("hidden");
   $abilityWrap.classList.add("hidden");
   $combatLog.innerHTML = "";
@@ -3380,8 +3376,7 @@ function roundLeader() {
 function beginPlayerTurn() {
   currentTurn = "player";
   gameState = STATE_PLAYER_SELECTING;
-  $endTurnButton.disabled = false;
-  $endTurnButton.classList.remove("hidden");
+  updateEndTurnButton();
   logEvent("Your turn!", "system");
 }
 
@@ -3389,8 +3384,7 @@ function beginPlayerTurn() {
 function beginEnemyTurn(message) {
   currentTurn = "enemy";
   gameState = STATE_ENEMY_TURN;
-  $endTurnButton.disabled = true;
-  $endTurnButton.classList.add("hidden");
+  updateEndTurnButton();
   if (message) logEvent(message, "ai");
   runEnemyTurn();
 }
@@ -3549,7 +3543,7 @@ function endBattle(victory, outcome, ending) {
   gameState = STATE_ENDED;
   currentTurn = "ended";
   clearSelection();
-  $endTurnButton.classList.add("hidden");
+  updateEndTurnButton();
   $abilityWrap.classList.add("hidden");
   $turnBanner.classList.add("hidden");
   $battlefield.classList.remove("ai-turn-active");
@@ -3912,8 +3906,8 @@ function resetField(options) {
   renderArmies();
   renderTerrain();
 
-  $startButton.disabled = false;
-  $startButton.textContent = "Enter Arena";
+  $modeButton.disabled = false;
+  $modeButton.textContent = battleMode === "spectator" ? "AI vs AI" : "Hum vs AI";
   $battleResult.classList.add("hidden");
   $battleResult.className = "battle-result hidden";
   hideBattleReport();
@@ -3921,8 +3915,7 @@ function resetField(options) {
   $turnBanner.classList.remove("ai-turn-active");
   $battlefield.classList.remove("ai-turn-active");
   $battlefield.classList.remove("ai-turn-blue-active");
-  $endTurnButton.classList.add("hidden");
-  $endTurnButton.disabled = false;
+  updateEndTurnButton();
   $selectionInfo.classList.add("hidden");
   $abilityWrap.classList.add("hidden");
   $combatLog.innerHTML = "";
@@ -3930,58 +3923,28 @@ function resetField(options) {
   $status.textContent = "THE ARMIES AWAIT YOUR COMMAND";
   updateProgressionUI();
   updateChampionPanel();
-  updateSpectateButton();
-}
-
-/* The start button always says what it is going to do.
- *
- *   Enter Arena   a duel against the crimson legion
- *   REMATCH       the same duel, fought again
- *   NEXT MATCH    the next match of a duel that is still open
- *   AI vs AI      a show: the AI against itself
- *   REMATCH SHOW  the same show, fought again
- *
- * The spectator control is only free while no battle is running. */
-function updateActionButtons() {
-  if (!$startButton) return;
-  const showMode = battleMode === "spectator";
-  const duelOpen = duel.active && !duel.finished;
-
-  if (battleActive) {
-    $startButton.disabled = true;
-    $startButton.textContent = showMode ? "SPECTATING" : "Enter Arena";
-    if ($spectateButton) {
-      $spectateButton.disabled = true;
-      $spectateButton.textContent = "AI vs AI";
-    }
-    return;
-  }
-
-  if (duelOpen && gameState === STATE_ENDED) {
-    /* A match has been fought and the series goes on. */
-    $startButton.disabled = false;
-    $startButton.textContent = "NEXT MATCH";
-    if ($spectateButton) {
-      $spectateButton.disabled = true;
-      $spectateButton.textContent = "AI vs AI";
-    }
-    return;
-  }
-
-  /* Between duels. */
-  $startButton.disabled = false;
-  $startButton.textContent = showMode
-    ? "Enter Arena"
-    : gameState === STATE_ENDED ? "REMATCH" : "Enter Arena";
-  if ($spectateButton) {
-    $spectateButton.disabled = false;
-    $spectateButton.textContent = showMode ? "AI vs AI" : "AI vs AI";
-  }
-}
-
-/* The spectator control is only free while no battle is running. */
-function updateSpectateButton() {
   updateActionButtons();
+}
+
+/* The mode button lets the player pick how the next battle is fought:
+ * Hum vs AI starts a duel against the crimson legion, AI vs AI starts a
+ * spectator show. It toggles between the two states and is locked while a
+ * battle runs. */
+function updateActionButtons() {
+  if (!$modeButton) return;
+  $modeButton.disabled = battleActive;
+  $modeButton.textContent = battleMode === "spectator" ? "AI vs AI" : "Hum vs AI";
+  updateEndTurnButton();
+}
+
+/* Toggles the battle mode between Hum vs AI and AI vs AI. Only works when
+ * no battle is running. */
+function toggleBattleMode() {
+  if (battleActive) return false;
+  const next = battleMode === "spectator" ? "player" : "spectator";
+  setBattleMode(next);
+  updateActionButtons();
+  return true;
 }
 
 /* 21. UI HELPERS */
@@ -4164,13 +4127,25 @@ function updateBattleStatus() {
 }
 
 function updateEndTurnButton() {
+  if (!battleActive) {
+    $endTurnButton.textContent = "START";
+    $endTurnButton.disabled = false;
+    return;
+  }
+
+  if (battleMode === "spectator") {
+    $endTurnButton.textContent = "WATCHING";
+    $endTurnButton.disabled = true;
+    return;
+  }
+
+  $endTurnButton.textContent = "END TURN";
   const anyBlueCanAct = blueUnitIds.some(id => {
     const u = units.get(id);
     if (!u || !u.alive || u.defeated) return false;
     if (!u.hasMoved || !u.hasAttacked) return true;
     return getReadyAbilities(u).length > 0;
   });
-  $endTurnButton.textContent = "END TURN";
   $endTurnButton.disabled = !anyBlueCanAct;
 }
 
@@ -4371,26 +4346,6 @@ function showLevelUpBanner(level) {
  * The reset needs a second deliberate tap, and never fires in the middle of
  * an action.
  */
-let resetArmed = false;
-
-function onResetProgressClick() {
-  if (!resetArmed) {
-    resetArmed = true;
-    $resetProgressButton.textContent = "CONFIRM?";
-    $resetProgressButton.classList.add("armed");
-    later(() => {
-      resetArmed = false;
-      $resetProgressButton.textContent = "RESET";
-      $resetProgressButton.classList.remove("armed");
-    }, 3000);
-    return;
-  }
-  resetArmed = false;
-  $resetProgressButton.textContent = "RESET";
-  $resetProgressButton.classList.remove("armed");
-  resetChampionProgression();
-}
-
 /* 22. INDICATORS */
 
 function clearMoveIndicators() {
@@ -4448,8 +4403,8 @@ function onUnitClick(id) {
   if (!battleActive) {
     /* The armies are on the field before the battle starts, so a click in
      * that state has to say what to do next instead of doing nothing. */
-    logEvent("The battle has not begun — press ENTER THE ARENA.", "system");
-    highlightStartButton();
+    logEvent("The battle has not begun — press START.", "system");
+    highlightModeButton();
     return;
   }
   if (battleMode === "spectator") {
@@ -4608,15 +4563,13 @@ function initGame() {
   updateDifficultyLabel();
   updateTurnLabel();
 
-  $startButton.addEventListener("click", () => {
-    onStartButtonClick();
+  $modeButton.addEventListener("click", () => {
+    toggleBattleMode();
   });
 
-  if ($spectateButton) {
-    $spectateButton.addEventListener("click", () => {
-      startSpectatorBattle();
-    });
-  }
+  $endTurnButton.addEventListener("click", () => {
+    onStartEndButtonClick();
+  });
 
   if ($difficultyCycle) {
     $difficultyCycle.addEventListener("click", cycleDifficulty);
@@ -4645,28 +4598,35 @@ function initGame() {
     }
   });
 
-  $resetProgressButton.addEventListener("click", () => onResetProgressClick());
-
   window.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      onStartButtonClick();
+      onStartEndButtonClick();
     }
   });
 
   console.log(`${APP_NAME} ${APP_VERSION} initialized.`);
 }
 
-/* The start button does one of three things: it opens a duel against the
- * crimson legion, it opens the next match of a duel that is still running,
- * or it fights the duel again from the beginning. */
-function onStartButtonClick() {
-  if (duel.active && !duel.finished && gameState === STATE_ENDED) {
-    /* The duel is still open: the next match of the series. */
-    startNextDuelMatch();
+/* The start / end button does one of three things: before a battle it starts
+ * a duel (Hum vs AI) or a show (AI vs AI) in the currently selected mode, it
+ * opens the next match of a duel that is still running, or — once a battle is
+ * under way — it ends the player's turn. */
+function onStartEndButtonClick() {
+  if (!battleActive) {
+    if (duel.active && !duel.finished && gameState === STATE_ENDED) {
+      /* The duel is still open: the next match of the series. */
+      startNextDuelMatch();
+      return;
+    }
+    if (battleMode === "spectator") {
+      startSpectatorBattle();
+    } else {
+      startDuel({ mode: "player" });
+    }
     return;
   }
-  startDuel({ mode: "player" });
+  endPlayerTurn();
 }
 
 initGame();

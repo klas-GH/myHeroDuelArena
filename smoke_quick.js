@@ -167,15 +167,19 @@ if (loaded.error === null) {
   /* --- TEST 4: start button begins a battle --- */
   console.log("\n4. Runtime — battle flow");
 
-  const startButton = doc.getElementById("start-button");
+  const modeButton = doc.getElementById("mode-button");
   const turnBanner = doc.getElementById("turn-banner");
   const endTurnButton = doc.getElementById("end-turn-button");
   const combatLog = doc.getElementById("combat-log");
 
-  startButton.dispatch("click");
-  assert(startButton.disabled === true, "start button disables once the battle begins");
+  assert(modeButton.textContent === "Hum vs AI", "the mode button starts as Hum vs AI");
+  assert(endTurnButton.textContent === "START", "the end turn button starts as START");
+
+  endTurnButton.dispatch("click");
+  assert(modeButton.disabled === true, "the mode button locks once the battle begins");
   assert(turnBanner.classList.contains("hidden") === false, "turn banner becomes visible");
-  assert(endTurnButton.classList.contains("hidden") === false, "end turn button becomes visible");
+  assert(endTurnButton.classList.contains("hidden") === false, "end turn button stays visible");
+  assert(endTurnButton.textContent === "END TURN", "the end turn button reads END TURN");
   assert(combatLog.children.length > 0, "combat log records the battle start");
 
   const turnText = doc.getElementById("turn-text");
@@ -233,18 +237,6 @@ if (loaded.error === null) {
   const abilityActions = doc.getElementById("ability-actions");
   assert(abilityActions.children.length > 0, "a ready ability is offered as a quick action");
 
-  /* --- TEST 7: the reset control asks for confirmation --- */
-  console.log("\n7. Runtime — progression reset needs a confirmation");
-
-  const resetButton = doc.getElementById("reset-progress-button");
-  assert(resetButton.textContent === "RESET", "the reset control starts unarmed");
-  resetButton.dispatch("click");
-  assert(resetButton.textContent === "CONFIRM?", "the first tap arms the reset");
-  assert(api.getProgression().level === 1, "arming the reset does not change the profile");
-  resetButton.dispatch("click");
-  assert(resetButton.textContent === "RESET", "the control returns to its idle label after the reset");
-  assert(api.getProgression().level === 1, "the confirmed reset applies the default profile");
-
   /* --- TEST 8: end turn runs the AI without errors --- */
   console.log("\n8. Runtime — end turn and AI turn");
 
@@ -266,7 +258,7 @@ if (loaded.error === null) {
   let resetError = null;
   try {
     // Force the battle into the ended state, then reset.
-    startButton.dispatch("click");
+    endTurnButton.dispatch("click");
   } catch (err) {
     resetError = err;
   }
@@ -293,14 +285,14 @@ const requiredClasses = [
   "rally-button", "end-turn-button", "terrain-cell", "terrain-grass",
   "terrain-forest", "terrain-rock", "terrain-highground", "terrain-boulder",
   "progression-strip", "prog-xp-bar", "prog-xp-fill", "prog-level", "prog-points",
-  "reset-progress-button", "champion-panel", "champ-level", "ability-list",
+  "champion-panel", "champ-level", "ability-list",
   "ability-row", "ability-name", "ability-state", "ability-button", "level-up-banner",
   "setup-panel", "setup-title", "setup-toggle", "setup-label", "setup-hint",
   "difficulty-row", "difficulty-button", "map-row", "map-card", "map-name",
   "map-tagline", "map-preview", "map-preview-cell", "battle-report", "report-head",
   "report-outcome", "report-map", "report-difficulty", "report-grid", "report-cell",
   "report-label", "report-value", "report-breakdown", "report-level",
-  "spectate-button", "spectating", "draw", "ai-turn-blue-active"
+  "spectating", "draw", "ai-turn-blue-active"
 ];
 
 const missingClasses = requiredClasses.filter(c => !css.includes(`.${c}`));
@@ -308,10 +300,8 @@ assert(missingClasses.length === 0, `all required CSS classes exist${missingClas
 
 /* Every control button must be styled, by id or by class. */
 const buttonRules = [
-  { id: "start-button", cls: null },
-  { id: "end-turn-button", cls: "end-turn-button" },
-  { id: "reset-progress-button", cls: "reset-progress-button" },
-  { id: "spectate-button", cls: "spectate-button" }
+  { id: "mode-button", cls: null },
+  { id: "end-turn-button", cls: "end-turn-button" }
 ];
 const unstyledButtons = buttonRules.filter(b =>
   !css.includes(`#${b.id}`) && !(b.cls && css.includes(`.${b.cls}`)));
@@ -534,29 +524,35 @@ console.log("\n14. Runtime — the post-battle report");
   assert(report.classList.contains("hidden"), "the report is cleared for the next battle");
 }
 
-/* --- TEST 15: the spectator control --- */
+/* --- TEST 15: the mode button and spectator battles --- */
 
-console.log("\n15. Runtime — the spectator control");
+console.log("\n15. Runtime — the mode button and spectator battles");
 
 {
-  const button = doc.getElementById("spectate-button");
-  assert(!!button, "the spectator button exists");
-  assert(button.disabled === false, "the spectator button is free between battles");
+  const modeButton = doc.getElementById("mode-button");
+  const endTurnButton = doc.getElementById("end-turn-button");
+
+  assert(!!modeButton, "the mode button exists");
+  assert(modeButton.textContent === "Hum vs AI", "the mode button starts as Hum vs AI");
+  assert(modeButton.disabled === false, "the mode button is free between battles");
 
   api.resetBattle();
-  button.dispatch("click");
+  modeButton.dispatch("click");
+  assert(modeButton.textContent === "AI vs AI", "toggling the mode switches to AI vs AI");
+
+  endTurnButton.dispatch("click");
 
   const battlesBefore = api.getProgression().battles;
   const xpBefore = api.getProgression().xp;
 
-  assert(api.isSpectatorMode() === true, "the button starts a spectator battle");
+  assert(api.isSpectatorMode() === true, "the mode starts a spectator battle");
   assert(api.getState().battleActive === true, "the show is running");
   assert(api.getState().currentTurn === "blue", "the azure legion takes the first turn");
-  assert(doc.getElementById("end-turn-button").classList.contains("hidden"),
-    "the end turn button is hidden during the show");
+  assert(modeButton.disabled === true, "the mode button is locked while the show runs");
+  assert(endTurnButton.textContent === "WATCHING", "the end turn button reads WATCHING");
+  assert(endTurnButton.disabled === true, "the end turn button is locked during the show");
   assert(doc.getElementById("progression-strip").classList.contains("spectating"),
     "the progression strip says that nothing is being earned");
-  assert(button.disabled === true, "the spectator button is locked while the show runs");
   assert(doc.getElementById("turn-banner").classList.contains("hidden") === false,
     "the turn banner is on screen during the show");
 
@@ -567,7 +563,9 @@ console.log("\n15. Runtime — the spectator control");
   assert(api.getProgression().xp === xpBefore, "the show pays no experience to the profile");
 
   api.resetBattle();
-  assert(button.disabled === false, "the spectator button is free again");
+  assert(modeButton.textContent === "Hum vs AI", "a reset returns to Hum vs AI");
+  assert(modeButton.disabled === false, "the mode button is free again");
+  assert(endTurnButton.textContent === "START", "the end turn button returns to START");
   assert(!doc.getElementById("progression-strip").classList.contains("spectating"),
     "the progression strip comes back to normal");
   assert(api.isSpectatorMode() === false, "a reset hands the game back to the player");
