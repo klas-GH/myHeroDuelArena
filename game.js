@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.8.7 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.8.8 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.8.7";
+const APP_VERSION = "v1.8.8";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -1155,6 +1155,17 @@ const RED_FORMATION = BLUE_FORMATION.map(slot => ({
   row: slot.row
 }));
 
+const DEPLOYMENT_BOUNDARY = {
+  [TEAM_BLUE]: Math.min(...BLUE_FORMATION.map(slot => slot.col)),
+  [TEAM_RED]: Math.max(...RED_FORMATION.map(slot => slot.col))
+};
+
+function isInsideDeploymentBoundary(unit, col) {
+  return unit.team === TEAM_BLUE
+    ? col >= DEPLOYMENT_BOUNDARY[TEAM_BLUE]
+    : col <= DEPLOYMENT_BOUNDARY[TEAM_RED];
+}
+
 function createArmy(team) {
   const formation = team === TEAM_BLUE ? BLUE_FORMATION : RED_FORMATION;
   return formation.map((slot, i) => {
@@ -1675,6 +1686,7 @@ function isGroundTaken(col, row, excludeId) {
  * ground that is free. */
 function canStandAt(unit, col, row) {
   if (!isInBounds(col, row)) return false;
+  if (!isInsideDeploymentBoundary(unit, col)) return false;
   const dir = footprintDir(unit);
   const span = unit.footprint && unit.footprint > 1 ? unit.footprint : 1;
   for (let i = 0; i < span; i++) {
@@ -3245,6 +3257,10 @@ function performAiBrace(unit) {
 }
 
 function performAiMove(unit, destination) {
+  if (!canMoveTo(unit, destination.col, destination.row)) {
+    advanceAiTurn();
+    return;
+  }
   const from = { col: unit.col, row: unit.row };
   unit.col = destination.col;
   unit.row = destination.row;
@@ -4640,6 +4656,7 @@ if (typeof window !== "undefined") {
     GRID_ROWS,
     TEAM_BLUE,
     TEAM_RED,
+    DEPLOYMENT_BOUNDARY: Object.assign({}, DEPLOYMENT_BOUNDARY),
     UNIT_STATS,
     TERRAIN_TYPES,
     TERRAIN_MAP,

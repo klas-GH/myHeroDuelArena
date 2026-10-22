@@ -206,9 +206,72 @@ section("5. Movement range");
   assert(chevalier.move > footman.move, "chevalier has a larger move allowance than footman");
 }
 
+/* 5.1 DEPLOYMENT EDGE — troops may advance or reposition within their own
+ * edge, but cannot retreat behind the outermost starting column. */
+
+section("5.1. Deployment edge");
+
+{
+  const { api } = newGame();
+  const blueBoundary = api.DEPLOYMENT_BOUNDARY[TEAM_BLUE];
+  const redBoundary = api.DEPLOYMENT_BOUNDARY[TEAM_RED];
+  const blueStart = blueUnits(api);
+  const redStart = redUnits(api);
+
+  assert(blueBoundary === Math.min(...blueStart.map(u => u.col)),
+    `blue boundary is derived from its starting formation (${blueBoundary})`);
+  assert(redBoundary === Math.max(...redStart.map(u => u.col)),
+    `red boundary is derived from its starting formation (${redBoundary})`);
+
+  for (const team of [TEAM_BLUE, TEAM_RED]) {
+    const allies = api.getTeamUnits(team);
+    const moves = allies.flatMap(unit => api.getLegalActions(unit)
+      .filter(action => action.kind === "move"));
+    const valid = moves.every(action => team === TEAM_BLUE
+      ? action.cell.col >= blueBoundary
+      : action.cell.col <= redBoundary);
+    assert(valid, `${team} player/AI legal moves stay inside the deployment boundary`);
+  }
+
+  const blue = unitByType(api, TEAM_BLUE, "footman");
+  const red = unitByType(api, TEAM_RED, "footman");
+  assert(api.getReachableCells(blue).some(cell => cell.col > blue.col),
+    "blue can still advance toward the crimson legion");
+  assert(api.getReachableCells(red).some(cell => cell.col < red.col),
+    "red can still advance toward the azure legion");
+
+  blue.col = blueBoundary;
+  blue.hasMoved = false;
+  const bluePosition = { col: blue.col, row: blue.row };
+  const blueMoved = blue.hasMoved;
+  assert(!api.canStandAt(blue, blueBoundary - 1, blue.row),
+    "blue cannot stand behind its initial deployment edge");
+  assert(!api.getReachableCells(blue).some(cell => cell.col < blueBoundary),
+    "blue retreat cells behind the edge are not offered");
+  assert(!api.moveUnit(blue, blueBoundary - 1, blue.row),
+    "blue direct movement behind the edge is refused");
+  assert(blue.col === bluePosition.col && blue.row === bluePosition.row
+    && blue.hasMoved === blueMoved,
+    "a refused blue retreat changes neither position nor action flags");
+
+  red.col = redBoundary;
+  red.hasMoved = false;
+  const redPosition = { col: red.col, row: red.row };
+  const redMoved = red.hasMoved;
+  assert(!api.canStandAt(red, redBoundary + 1, red.row),
+    "red cannot stand behind its initial deployment edge");
+  assert(!api.getReachableCells(red).some(cell => cell.col > redBoundary),
+    "red retreat cells behind the edge are not offered");
+  assert(!api.moveUnit(red, redBoundary + 1, red.row),
+    "red direct movement behind the edge is refused");
+  assert(red.col === redPosition.col && red.row === redPosition.row
+    && red.hasMoved === redMoved,
+    "a refused red retreat changes neither position nor action flags");
+}
+
 /* 5.1 A DIAGONAL STEP MAY NOT SLIP PAST A CORNER */
 
-section("5.1. A diagonal step may not slip past a corner");
+section("5.2. A diagonal step may not slip past a corner");
 
 {
   const { api } = newGame();

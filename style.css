@@ -1,3 +1,4 @@
+.unit-image, img { image-rendering: pixelated; image-rendering: crisp-edges; }
 /* 1.2.0 TACTICAL BATTLEFIELD STYLES */
 
 /* 1. RESET & BASE */

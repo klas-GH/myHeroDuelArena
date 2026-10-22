@@ -12,7 +12,7 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
-## v1.8.7 — the duel opens on the player's turn
+## v1.8.8 — the duel opens on the player's turn
 
 - Starting a duel no longer immediately ends the player's opening turn. The
   start/end control now handles starting and ending through one click path.
