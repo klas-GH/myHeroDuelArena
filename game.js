@@ -1147,8 +1147,8 @@ const BLUE_FORMATION = [
   { type: "ballista",  col: 2, row: 1 },
   { type: "archer",    col: 2, row: 0 },
   { type: "footman",   col: 3, row: 2 },
-  { type: "footman",   col: 3, row: 1 },
-  { type: "chevalier", col: 3, row: 0 }
+  { type: "chevalier", col: 3, row: 1 },
+  { type: "footman",   col: 3, row: 0 }
 ];
 
 const RED_FORMATION = BLUE_FORMATION.map(slot => ({
@@ -3192,10 +3192,9 @@ function executeNextEnemyAction() {
   if (gameState === STATE_ENDED) return;
 
   if (aiActionIndex >= aiActionQueue.length) {
-    if (aiTurnOwnsRound) finishEnemyTurn();
+    finishEnemyTurn();
     return;
   }
-
   const unit = aiActionQueue[aiActionIndex];
   aiActionIndex++;
 
@@ -3206,7 +3205,7 @@ function executeNextEnemyAction() {
 
   const action = chooseEnemyAction(unit);
   if (!action) {
-    executeNextEnemyAction();
+    advanceAiTurn();
     return;
   }
 
@@ -3225,11 +3224,27 @@ function executeNextEnemyAction() {
   performAiMove(unit, action.cell);
 }
 
+/* Hands the AI turn over after exactly one unit action when the fight is in
+ * troop mode (one fighter acts at a time), and keeps chaining units in party
+ * mode (the whole legion plays its turn). Instant turns ignore the mode so
+ * the balance harness and suites still resolve a whole legion in one step. */
+function advanceAiTurn() {
+  if (instantTimers) {
+    executeNextEnemyAction();
+    return;
+  }
+  if (getTurnModeId() === "troop") {
+    finishEnemyTurn();
+  } else {
+    executeNextEnemyAction();
+  }
+}
+
 /* The AI braces: it gives up its action and its armour goes up. */
 function performAiBrace(unit) {
   makeDefenceStand(unit);
   later(() => {
-    executeNextEnemyAction();
+    advanceAiTurn();
   }, aiTiming().gap);
 }
 
@@ -3254,7 +3269,7 @@ function performAiMove(unit, destination) {
   later(() => {
     if (battleToken !== currentBattleToken) return;
     if (!unit.alive || unit.defeated) {
-      executeNextEnemyAction();
+      advanceAiTurn();
       return;
     }
     continueAiAction(unit);
@@ -3265,6 +3280,12 @@ function performAiMove(unit, destination) {
  * have something worth doing. */
 function continueAiAction(unit) {
   if (battleToken !== currentBattleToken) return;
+  /* In troop mode the move that just arrived is the one action this fighter
+   * gets: hand the turn over at once. */
+  if (getTurnModeId() === "troop") {
+    advanceAiTurn();
+    return;
+  }
   const follow = chooseEnemyAction(unit);
   if (follow && follow.kind === "attack") {
     performAiAttack(unit, follow.target);
@@ -3308,7 +3329,7 @@ function performAiAttack(unit, target) {
     if (checkBattleEnd()) return;
 
     later(() => {
-      executeNextEnemyAction();
+      advanceAiTurn();
     }, aiTiming().gap);
   }, aiTiming().attack);
 }
@@ -3316,7 +3337,7 @@ function performAiAttack(unit, target) {
 function performAiAbility(unit, ability, target) {
   const used = useAiAbility(unit, ability, target);
   if (!used) {
-    executeNextEnemyAction();
+    advanceAiTurn();
     return;
   }
   recordAction("ability", unit.team);
@@ -3329,7 +3350,7 @@ function performAiAbility(unit, ability, target) {
       continueAiAction(unit);
       return;
     }
-    later(() => { executeNextEnemyAction(); }, aiTiming().gap);
+    later(() => { advanceAiTurn(); }, aiTiming().gap);
   }, aiTiming().ability);
 }
 
