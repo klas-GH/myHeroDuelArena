@@ -1054,6 +1054,33 @@ function getBattleLedger() {
 
 /* Pending timers are tracked so a reset can cancel them safely. */
 const pendingTimers = new Set();
+let audioCtx = null;
+function getAudioCtx() {
+  if (audioCtx) return audioCtx;
+  try {
+    const Ctx = (typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext));
+    if (!Ctx) return null;
+    audioCtx = new Ctx();
+  } catch (e) { audioCtx = null; }
+  return audioCtx;
+}
+function playTone(freq, dur, type, vol) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || "square";
+    osc.frequency.value = freq;
+    gain.gain.value = vol || 0.08;
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    osc.stop(ctx.currentTime + dur);
+  } catch (e) {}
+}
+function playHit() { playTone(220, 0.15, "sawtooth", 0.1); playTone(110, 0.25, "square", 0.06); }
+function playMove() { playTone(440, 0.08, "triangle", 0.05); }
 
 /* When set, deferred work runs straight away instead of on a timer. The
  * verification suites use it to resolve a whole AI turn in one step, so a
@@ -2234,6 +2261,7 @@ function applyDamage(targetId, amount, options) {
     later(() => el.classList.remove("damaged"), HIT_FLASH_MS);
   }
   vibrateOnHit();
+  playHit();
 
   if (target.hp <= 0) {
     target.alive = false;
