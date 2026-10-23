@@ -991,6 +991,8 @@ body {
  * single row of ability chips.
  */
 .champion-panel {
+  overflow-y: auto;
+  max-height: 100%;
   display: flex;
   flex-direction: row;
   align-items: center;
