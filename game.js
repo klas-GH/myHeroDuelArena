@@ -494,10 +494,10 @@ const SUDDEN_DEATH_DAMAGE_MULTIPLIER = 1.5;
 
 /* The spectator show runs on a quicker clock than a player battle. */
 const SPECTATOR_TIMING = {
-  attack: 190,
-  move: 230,
-  ability: 170,
-  gap: 110
+  attack: 260,
+  move: 320,
+  ability: 240,
+  gap: 160
 };
 
 /* 4.1 THE DUEL
@@ -562,10 +562,10 @@ const AI_TUNING = {
 /* AI turn pacing. Short enough that a full turn does not feel like a wait,
  * long enough that each action is readable. */
 const AI_TIMING = {
-  attack: 320,
-  move: 380,
-  ability: 300,
-  gap: 200
+  attack: 460,
+  move: 520,
+  ability: 420,
+  gap: 280
 };
 
 /* The pacing of the running AI turn. A spectator battle is a show rather
@@ -2182,7 +2182,7 @@ function clearDefenceStand(unit) {
 
 /* How long the red aura and the shudder of a fighter that has been hit
  * last. */
-const HIT_FLASH_MS = 1000;
+const HIT_FLASH_MS = 1400;
 
 /* A device that can buzz is told about every blow, so the hit can be felt
  * as well as seen. Devices that cannot buzz are left alone. */
