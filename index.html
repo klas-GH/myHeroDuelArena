@@ -5,7 +5,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#17251c">
-  <title>myHeroDuelArena v1.9.0</title>
+  <title>myHeroDuelArena v1.10.0</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
@@ -15,7 +15,7 @@
 
     <header class="topbar">
       <div class="game-title">MY HERO DUEL ARENA</div>
-      <div class="version">v1.9.0 — RETRO PIXEL FANTASY TACTICS</div>
+      <div class="version">v1.10.0 — RETRO PIXEL FANTASY TACTICS</div>
     </header>
 
     <section class="landscape" id="battlefield" aria-label="Outdoor castle battlefield">
@@ -152,6 +152,18 @@
               <div class="health-bar"><div id="selected-health" class="health-fill"></div></div>
             </div>
             <div id="action-hints" class="action-hints"></div>
+            <!-- Quick action icons: Shield / Sword / Bow -->
+            <div id="action-icons" class="action-icons hidden" role="group" aria-label="Unit actions">
+              <button id="icon-defend" class="action-icon" type="button" title="Defence Stand" data-action="defend">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2L4 5v6c0 5.25 3.4 10.15 8 11.5 4.6-1.35 8-6.25 8-11.5V5l-8-3z"/></svg>
+              </button>
+              <button id="icon-melee" class="action-icon" type="button" title="Melee attack" data-action="melee">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.92 19.54L5.5 18.12l9.6-9.6 1.42 1.42-9.6 9.6zM19.07 4.93l-1.41-1.41 1.76-1.77 1.42 1.41-1.77 1.77zM14.12 4.5l1.41 1.41-8.13 8.13-1.41-1.41L14.12 4.5z"/></svg>
+              </button>
+              <button id="icon-ranged" class="action-icon" type="button" title="Ranged attack" data-action="ranged">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2v4h-1v2h1v4h-1v2h1v4h-1v2h1v4h2v-4h1v-2h-1v-4h1v-2h-1V8h1V6h-1V2h-2zm8 7l-1.5 1.5L20 12l-1.5 1.5L20 15l3-3-3-3zM4 9l-3 3 3 3 1.5-1.5L3.5 12 5.5 10.5 4 9z"/></svg>
+              </button>
+            </div>
             <button id="brace-button" class="brace-button hidden" type="button"
                     title="Give up your action and brace: your armour rises by 20% until you act again.">DEFENCE STAND</button>
           </div>

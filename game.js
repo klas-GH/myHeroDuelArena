@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.9.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.10.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.9.0";
+const APP_VERSION = "v1.10.0";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -835,6 +835,10 @@ const $selectedStats = document.getElementById("selected-stats");
 const $selectedHealth = document.getElementById("selected-health");
 const $actionHints = document.getElementById("action-hints");
 const $braceButton = document.getElementById("brace-button");
+const $actionIcons = document.getElementById("action-icons");
+const $iconDefend = document.getElementById("icon-defend");
+const $iconMelee = document.getElementById("icon-melee");
+const $iconRanged = document.getElementById("icon-ranged");
 const $battleResult = document.getElementById("battle-result");
 const $turnBanner = document.getElementById("turn-banner");
 const $turnText = document.getElementById("turn-text");
@@ -898,6 +902,7 @@ let battleActive = false;
 let currentTurn = "player";
 let roundNumber = 1;
 let selectedUnitId = null;
+let pendingAttackKind = null; /* "melee" | "ranged" | null — set by icon bar */
 let moveIndicators = [];
 let attackIndicators = [];
 let aiActionQueue = [];
@@ -1570,6 +1575,8 @@ function clearSelection() {
   $abilityWrap.classList.add("hidden");
   $actionHints.textContent = "";
   if ($braceButton) $braceButton.classList.add("hidden");
+  if ($actionIcons) $actionIcons.classList.add("hidden");
+  pendingAttackKind = null;
   updateChampionPanel();
 }
 
@@ -1612,13 +1619,10 @@ function selectUnit(id) {
   }
   $actionHints.textContent = hints.join(" · ");
 
-  /* The defence stand is offered to every fighter that can still act. */
-  if ($braceButton) {
-    const canBrace = unit.team === TEAM_BLUE
-      && currentTurn === "player"
-      && canDefenceStand(unit);
-    $braceButton.classList.toggle("hidden", !canBrace);
-  }
+  /* Legacy text brace button stays hidden; icons handle the actions. */
+  if ($braceButton) $braceButton.classList.add("hidden");
+
+  updateActionIcons(unit);
 
   if (unit.team === TEAM_BLUE && currentTurn === "player") {
     showMoveIndicators(unit);
@@ -1628,6 +1632,41 @@ function selectUnit(id) {
 
   updateChampionPanel();
   updateBattleStatus();
+}
+
+/* Show Shield / Sword / Bow icons for the selected blue fighter. */
+function updateActionIcons(unit) {
+  if (!$actionIcons) return;
+  if (!unit || unit.team !== TEAM_BLUE || currentTurn !== "player") {
+    $actionIcons.classList.add("hidden");
+    return;
+  }
+
+  $actionIcons.classList.remove("hidden");
+
+  const canBrace = canDefenceStand(unit);
+  const canMelee = !!unit.melee && !unit.hasAttacked;
+  const canRanged = (!!unit.shot || !unit.melee) && !unit.hasAttacked;
+
+  if ($iconDefend) {
+    $iconDefend.disabled = !canBrace;
+    $iconDefend.classList.toggle("is-disabled", !canBrace);
+    $iconDefend.classList.remove("is-armed");
+  }
+  if ($iconMelee) {
+    const showMelee = !!unit.melee;
+    $iconMelee.style.display = showMelee ? "" : "none";
+    $iconMelee.disabled = !canMelee;
+    $iconMelee.classList.toggle("is-disabled", !canMelee);
+    $iconMelee.classList.remove("is-armed");
+  }
+  if ($iconRanged) {
+    const showRanged = !!unit.shot || !unit.melee;
+    $iconRanged.style.display = showRanged ? "" : "none";
+    $iconRanged.disabled = !canRanged;
+    $iconRanged.classList.toggle("is-disabled", !canRanged);
+    $iconRanged.classList.remove("is-armed");
+  }
 }
 
 /* 13. MOVEMENT
@@ -1834,7 +1873,7 @@ function moveUnit(unit, col, row) {
   if (el) {
     positionUnit(el, unit);
     el.classList.add("moving");
-    later(() => el.classList.remove("moving"), 400);
+    later(() => el.classList.remove("moving"), MOVE_ANIM_MS);
   }
 
   logEvent(`${unit.displayName} moves to (${col},${row}).`, "player");
@@ -2214,6 +2253,11 @@ function clearDefenceStand(unit) {
 /* How long the red aura and the shudder of a fighter that has been hit
  * last. */
 const HIT_FLASH_MS = 1400;
+
+/* Combat animation pacing (v1.10). Long enough to read the lunge / arrow. */
+const ATTACK_ANIM_MS = 1600;
+const RANGED_FLIGHT_MS = 900;
+const MOVE_ANIM_MS = 1200;
 
 /* A device that can buzz is told about every blow, so the hit can be felt
  * as well as seen. Devices that cannot buzz are left alone. */
@@ -3351,11 +3395,26 @@ function continueAiAction(unit) {
 
 function performAiAttack(unit, target) {
   const attackerEl = unitElements.get(unit.id);
-  if (attackerEl) attackerEl.classList.add("attacking");
+  const kind = getAttackKind(unit, target);
+  const isRanged = kind === "ranged";
+  const animMs = isRanged ? RANGED_FLIGHT_MS : ATTACK_ANIM_MS;
+
+  unit.hasAttacked = true;
+  clearDefenceStand(unit);
+
+  if (isRanged) {
+    if (attackerEl) attackerEl.classList.add("shooting");
+    spawnProjectile(unit, target, unit.type === "ballista" ? "bolt" : "arrow");
+  } else if (attackerEl) {
+    attackerEl.classList.add("attacking");
+  }
 
   later(() => {
     if (battleToken !== currentBattleToken) return;
-    if (attackerEl) attackerEl.classList.remove("attacking");
+    if (attackerEl) {
+      attackerEl.classList.remove("attacking");
+      attackerEl.classList.remove("shooting");
+    }
 
     const damage = calculateDamage(unit, target);
     applyDamage(target.id, damage, { countDamage: true, team: unit.team });
@@ -3363,22 +3422,18 @@ function performAiAttack(unit, target) {
 
     logEvent(`${unit.displayName} attacks ${target.displayName} for ${damage} damage.`, "ai");
 
-    /* A fighter that is hit by a blade answers with a blade of its own. */
     riposteAgainst(target, unit);
 
     if (!target.alive || target.defeated) {
       logEvent(`${target.displayName} is defeated.`, "system");
     }
 
-    unit.hasAttacked = true;
-    clearDefenceStand(unit);
-
     if (checkBattleEnd()) return;
 
     later(() => {
       advanceAiTurn();
     }, aiTiming().gap);
-  }, aiTiming().attack);
+  }, animMs);
 }
 
 function performAiAbility(unit, ability, target) {
@@ -4567,13 +4622,16 @@ function onAttackClick(attackerId, targetId) {
     }
     return;
   }
-  executeAttack(attackerId, targetId);
+  const kind = pendingAttackKind || null;
+  pendingAttackKind = null;
+  executeAttack(attackerId, targetId, kind);
 }
 
 /* 24. COMBAT EXECUTION
  * The action lock prevents rapid taps from queueing multiple attacks.
+ * Animations run ~1.5–1.6 s so the lunge or flying arrow is readable.
  */
-function executeAttack(attackerId, targetId) {
+function executeAttack(attackerId, targetId, preferredKind) {
   if (actionLock) return;
 
   const attacker = units.get(attackerId);
@@ -4586,44 +4644,105 @@ function executeAttack(attackerId, targetId) {
 
   actionLock = true;
   attacker.hasAttacked = true;
-  /* A fighter that strikes is no longer standing its ground. */
   clearDefenceStand(attacker);
 
+  const kind = preferredKind || getAttackKind(attacker, target) || "melee";
   const attackerEl = unitElements.get(attackerId);
-  if (attackerEl) attackerEl.classList.add("attacking");
+  const isRanged = kind === "ranged" || kind === "shot" || (!attacker.melee && !preferredKind);
+
+  if (isRanged) {
+    if (attackerEl) attackerEl.classList.add("shooting");
+    spawnProjectile(attacker, target, attacker.type === "ballista" ? "bolt" : "arrow");
+    later(() => {
+      if (attackerEl) attackerEl.classList.remove("shooting");
+      finishAttackResolve(attacker, target, attackerId, targetId);
+    }, RANGED_FLIGHT_MS);
+  } else {
+    if (attackerEl) attackerEl.classList.add("attacking");
+    later(() => {
+      if (attackerEl) attackerEl.classList.remove("attacking");
+      finishAttackResolve(attacker, target, attackerId, targetId);
+    }, ATTACK_ANIM_MS);
+  }
+}
+
+function finishAttackResolve(attacker, target, attackerId, targetId) {
+  if (battleToken !== currentBattleToken) return;
+
+  const damage = calculateDamage(attacker, target);
+  applyDamage(targetId, damage, { countDamage: true, team: attacker.team });
+  recordAction("attack", attacker.team);
+
+  logEvent(`${attacker.displayName} attacks ${target.displayName} for ${damage} damage.`, "player");
+
+  riposteAgainst(target, attacker);
+
+  if (getTerrainDefBonus(target) > 0) {
+    logEvent(`${getTerrainAt(target.col, target.row).label} cover reduces the damage.`, "system");
+  }
+  if (getTerrainAimBonus(attacker) > 0) {
+    logEvent("High ground improves the shot.", "system");
+  }
+  if (!target.alive || target.defeated) {
+    logEvent(`${target.displayName} is defeated.`, "system");
+  }
+
+  clearSelection();
+  actionLock = false;
+  updateBattleStatus();
+  updateEndTurnButton();
+  maybeAutoEndTurnForTroopMode();
+  checkBattleEnd();
+}
+
+/* Spawn a simple arrow/bolt that flies from attacker to target. */
+function spawnProjectile(attacker, target, style) {
+  const field = document.getElementById("battlefield");
+  if (!field) return;
+  const aEl = unitElements.get(attacker.id);
+  const tEl = unitElements.get(target.id);
+  if (!aEl || !tEl) return;
+
+  const fieldRect = field.getBoundingClientRect();
+  const aRect = aEl.getBoundingClientRect();
+  const tRect = tEl.getBoundingClientRect();
+
+  const x0 = aRect.left + aRect.width / 2 - fieldRect.left;
+  const y0 = aRect.top + aRect.height * 0.4 - fieldRect.top;
+  const x1 = tRect.left + tRect.width / 2 - fieldRect.left;
+  const y1 = tRect.top + tRect.height * 0.4 - fieldRect.top;
+
+  const proj = document.createElement("div");
+  proj.className = "projectile" + (style === "bolt" ? " bolt" : "");
+  proj.style.left = x0 + "px";
+  proj.style.top = y0 + "px";
+
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+  proj.style.transform = `rotate(${angle}deg)`;
+
+  field.appendChild(proj);
+
+  /* Force layout then animate position. */
+  void proj.offsetWidth;
+  proj.style.transition = `left ${RANGED_FLIGHT_MS}ms linear, top ${RANGED_FLIGHT_MS}ms linear`;
+  proj.style.left = x1 + "px";
+  proj.style.top = y1 + "px";
 
   later(() => {
-    if (battleToken !== currentBattleToken) return;
-    if (attackerEl) attackerEl.classList.remove("attacking");
+    if (proj.parentNode) proj.parentNode.removeChild(proj);
+  }, RANGED_FLIGHT_MS + 40);
+}
 
-    const damage = calculateDamage(attacker, target);
-    applyDamage(targetId, damage, { countDamage: true, team: attacker.team });
-    recordAction("attack", attacker.team);
-
-    logEvent(`${attacker.displayName} attacks ${target.displayName} for ${damage} damage.`, "player");
-
-    /* A fighter that is hit by a blade answers with a blade of its own. */
-    riposteAgainst(target, attacker);
-
-    if (getTerrainDefBonus(target) > 0) {
-      logEvent(`${getTerrainAt(target.col, target.row).label} cover reduces the damage.`, "system");
-    }
-    if (getTerrainAimBonus(attacker) > 0) {
-      logEvent("High ground improves the shot.", "system");
-    }
-
-    if (!target.alive || target.defeated) {
-      logEvent(`${target.displayName} is defeated.`, "system");
-    }
-
-    clearSelection();
-    actionLock = false;
-    updateBattleStatus();
-    updateEndTurnButton();
-    maybeAutoEndTurnForTroopMode();
-
-    if (checkBattleEnd()) return;
-  }, 550);
+/* Which weapon the attacker would use against this target. */
+function getAttackKind(attacker, target) {
+  if (!attacker || !target) return null;
+  const aPos = { col: attacker.col, row: attacker.row };
+  const tPos = { col: target.col, row: target.row };
+  if (attacker.melee && meleeStrikeAllowed(attacker, aPos, tPos)) return "melee";
+  if (!attacker.melee || attacker.shot) return "ranged";
+  return "melee";
 }
 
 /* 25. INITIALISATION */
@@ -4667,6 +4786,17 @@ function initGame() {
     });
   }
 
+  /* Icon action bar: Shield / Sword / Bow */
+  if ($iconDefend) {
+    $iconDefend.addEventListener("click", () => onActionIconClick("defend"));
+  }
+  if ($iconMelee) {
+    $iconMelee.addEventListener("click", () => onActionIconClick("melee"));
+  }
+  if ($iconRanged) {
+    $iconRanged.addEventListener("click", () => onActionIconClick("ranged"));
+  }
+
   window.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -4676,6 +4806,41 @@ function initGame() {
 
   console.log(`${APP_NAME} ${APP_VERSION} initialized.`);
 }
+
+/* Handle clicks on the Shield / Sword / Bow icons. */
+function onActionIconClick(action) {
+  if (currentTurn !== "player" || gameState !== STATE_PLAYER_SELECTING || actionLock) return;
+  const unit = selectedUnitId ? units.get(selectedUnitId) : null;
+  if (!unit || unit.team !== TEAM_BLUE) return;
+
+  if (action === "defend") {
+    if (!makeDefenceStand(unit)) return;
+    clearSelection();
+    updateBattleStatus();
+    updateEndTurnButton();
+    maybeAutoEndTurnForTroopMode();
+    checkBattleEnd();
+    return;
+  }
+
+  /* Arm a weapon mode: next enemy click uses that kind of attack. */
+  if (action === "melee" || action === "ranged") {
+    if (unit.hasAttacked) {
+      logEvent(`${unit.displayName} has already attacked this turn.`, "system");
+      return;
+    }
+    pendingAttackKind = action;
+    if ($iconMelee) $iconMelee.classList.toggle("is-armed", action === "melee");
+    if ($iconRanged) $iconRanged.classList.toggle("is-armed", action === "ranged");
+    if ($iconDefend) $iconDefend.classList.remove("is-armed");
+    logEvent(action === "melee"
+      ? `${unit.displayName} ready to strike — click an enemy in reach.`
+      : `${unit.displayName} ready to shoot — click any living enemy.`, "system");
+    showAttackIndicators(unit);
+  }
+}
+
+/* pendingAttackKind is declared with the other game-state lets above. */
 
 /* The start / end button does one of three things: before a battle it starts
  * a duel (Hum vs AI) or a show (AI vs AI) in the currently selected mode, it

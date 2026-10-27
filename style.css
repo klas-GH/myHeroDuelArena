@@ -619,7 +619,7 @@ body {
   cursor: pointer;
   z-index: 3;
   transform: translate(-50%, -50%);
-  transition: left 0.35s ease, top 0.35s ease, opacity 0.3s ease;
+  transition: left 1.2s ease, top 1.2s ease, opacity 0.3s ease;
 }
 
 /* The art box carries the picture and everything that moves with it. */
@@ -1455,13 +1455,73 @@ body {
   white-space: nowrap;
 }
 
-/* 8.4b THE DEFENCE STAND BUTTON
+/* 8.4b ACTION ICONS (Shield / Sword / Bow)
  *
- * A fighter that braces gives up its action and its armour rises. The
- * button lives under the selection, so the order is read in the same place
- * as the rest of the choice.
+ * Compact icon row shown when a blue fighter is selected. Champion gets
+ * all three; pure melee or pure ranged units get Shield + their weapon.
  */
+.action-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.action-icons.hidden {
+  display: none;
+}
+
+.action-icon {
+  width: 32px;
+  height: 32px;
+  padding: 5px;
+  border: 1px solid #6a5a32;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #3a4a38, #243028);
+  color: #e9c66c;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.action-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.action-icon:hover:not(:disabled) {
+  border-color: #e9c66c;
+  background: linear-gradient(180deg, #4a5c46, #2e3c32);
+  transform: translateY(-1px);
+}
+
+.action-icon:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.action-icon:disabled,
+.action-icon.is-disabled {
+  opacity: 0.35;
+  cursor: default;
+  filter: grayscale(0.6);
+}
+
+.action-icon[data-action="defend"] { color: #9dc4e8; border-color: #4a6a88; }
+.action-icon[data-action="melee"]  { color: #f0b070; border-color: #8a6040; }
+.action-icon[data-action="ranged"] { color: #c8e090; border-color: #5a7040; }
+
+.action-icon.is-armed {
+  outline: 2px solid #e9c66c;
+  outline-offset: 1px;
+}
+
+/* Legacy text button kept for compatibility; hidden by default in v1.10. */
 .brace-button {
+  display: none;
   margin-top: 3px;
   border: 1px solid rgba(157, 190, 220, 0.5);
   border-radius: 5px;
@@ -1616,30 +1676,64 @@ body {
 
 /* Lunge animations use the independent `translate` property so they compose
  * with the red facing flip (`transform: scaleX(-1)`) instead of replacing it. */
+/* Melee lunge — longer so the charge is readable (≈1.6s total with JS). */
 @keyframes attack-lunge {
-  0%, 100% {
-    translate: 0 0;
-  }
-  50% {
-    translate: 18px 0;
-  }
+  0%   { translate: 0 0; }
+  35%  { translate: 28px 0; }
+  55%  { translate: 22px 0; }
+  100% { translate: 0 0; }
 }
 
 .unit.blue.attacking .unit-art {
-  animation: attack-lunge 0.5s ease-in-out both;
+  animation: attack-lunge 1.5s ease-in-out both;
 }
 
 @keyframes attack-lunge-red {
-  0%, 100% {
-    translate: 0 0;
-  }
-  50% {
-    translate: -18px 0;
-  }
+  0%   { translate: 0 0; }
+  35%  { translate: -28px 0; }
+  55%  { translate: -22px 0; }
+  100% { translate: 0 0; }
 }
 
 .unit.red.attacking .unit-art {
-  animation: attack-lunge-red 0.5s ease-in-out both;
+  animation: attack-lunge-red 1.5s ease-in-out both;
+}
+
+/* Ranged shoot pose — short draw-and-release bob. */
+@keyframes attack-shoot {
+  0%   { translate: 0 0; }
+  25%  { translate: -6px 0; }
+  45%  { translate: 4px 0; }
+  100% { translate: 0 0; }
+}
+
+.unit.blue.shooting .unit-art {
+  animation: attack-shoot 0.9s ease-out both;
+}
+
+.unit.red.shooting .unit-art {
+  animation: attack-shoot 0.9s ease-out both;
+}
+
+/* Flying arrow / bolt projectile. */
+.projectile {
+  position: absolute;
+  z-index: 8;
+  width: 22px;
+  height: 6px;
+  margin-left: -11px;
+  margin-top: -3px;
+  pointer-events: none;
+  background: linear-gradient(90deg, #c8a050 0%, #f0e0a0 40%, #fff8d0 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(255, 220, 120, 0.7);
+  transform-origin: center center;
+}
+
+.projectile.bolt {
+  width: 18px;
+  height: 5px;
+  background: linear-gradient(90deg, #8a8a90 0%, #d0d0d8 50%, #f0f0f4 100%);
 }
 
 /* A troop that has been hit shudders and glows red for a second: the blow

@@ -12,6 +12,14 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.10.0 — combat animation & action icons
+
+- **Attack animations (~1.5–1.6 s)**: melee units lunge toward the target; archers and ballistae fire a visible arrow/bolt that flies across the field before damage is applied.
+- **Action icon bar**: when a blue fighter is selected, compact icons appear — Shield (defence stand), Sword (melee), Bow (ranged). Champion gets all three; pure melee/ranged units get Shield + their weapon.
+- **Slower movement**: unit moves ease over ~1.2 s so the march is readable.
+- **Footer**: selection panel hosts the new icon row; legacy text “DEFENCE STAND” button is hidden.
+- Smoke + regression suites still fully green.
+
 ## v1.9.0 — polish pass (visual, Troop mode, atmosphere)
 
 - **Tighter ranks**: troop and champion art sizes reduced so front-line fighters no longer swallow the rank behind them; ranks stay readable on both desktop and phone.
