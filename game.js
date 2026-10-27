@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.8 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.9 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.8";
+const APP_VERSION = "v1.12.9";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -1882,7 +1882,7 @@ function moveUnit(unit, col, row) {
   unit.col = col;
   unit.row = row;
   unit.hasMoved = true;
-  /* One action only (v1.12.8): a march spends the activation — no blow after. */
+  /* One action only (v1.12.9): a march spends the activation — no blow after. */
   unit.hasAttacked = true;
   /* A fighter that walks is no longer standing its ground. */
   clearDefenceStand(unit);
@@ -2175,7 +2175,7 @@ function canAttack(attacker, target) {
   if (!units.has(target.id)) return false;
   if (attacker.team === target.team) return false;
   if (attacker.hasAttacked) return false;
-  /* One action only (v1.12.8): a march spends the activation — no blow after. */
+  /* One action only (v1.12.9): a march spends the activation — no blow after. */
   if (attacker.hasMoved) return false;
   if (hasReach(attacker, attacker, target)) return true;
   if (canChargeMelee(attacker, target)) return true;
@@ -2905,7 +2905,8 @@ function markTroopActed(unit) {
 function unitCanActThisRound(unit) {
   if (!unit || !unit.alive || unit.defeated) return false;
   if (getTurnModeId() === "troop") return !unit.hasActedThisRound;
-  return !unit.hasMoved || !unit.hasAttacked;
+  /* Party mode also uses one action only (v1.12.9). */
+  return !unit.hasMoved && !unit.hasAttacked;
 }
 
 function teamHasActors(team) {
@@ -3264,7 +3265,7 @@ function getLegalActions(unit) {
   const actions = [];
   if (!unit || !unit.alive || unit.defeated) return actions;
 
-  /* One action only (v1.12.8): attack OR move, never both in one activation. */
+  /* One action only (v1.12.9): attack OR move, never both in one activation. */
   if (!unit.hasMoved && !unit.hasAttacked) {
     for (const target of getValidTargets(unit)) {
       actions.push({ kind: "attack", unit, target });
@@ -3499,7 +3500,7 @@ function performAiMove(unit, destination) {
   unit.col = destination.col;
   unit.row = destination.row;
   unit.hasMoved = true;
-  /* One action only — march spends the activation (v1.12.8). */
+  /* One action only — march spends the activation (v1.12.9). */
   unit.hasAttacked = true;
   if (getTurnModeId() === "troop") markTroopActed(unit);
   /* Remember where the unit came from so it cannot shuffle back and forth. */
@@ -4763,7 +4764,7 @@ function showMoveIndicators(unit) {
 
 /* Red circles for attack targets. */
 function showAttackIndicators(unit) {
-  /* One action only — no blow after a march (v1.12.8). */
+  /* One action only — no blow after a march (v1.12.9). */
   if (unit.hasAttacked || unit.hasMoved) return;
   const targets = getValidTargets(unit);
 
@@ -4851,7 +4852,7 @@ function onMoveClick(unitId, col, row) {
     recordAction("move", unit.team);
     clearMoveIndicators();
     clearAttackIndicators();
-    /* No attack after a march (v1.12.8). */
+    /* No attack after a march (v1.12.9). */
     updateBattleStatus();
     updateEndTurnButton();
     maybeAutoEndTurnForTroopMode();
@@ -5295,6 +5296,16 @@ if (typeof window !== "undefined") {
     canMoveTo,
     getValidTargets,
     canAttack,
+    isChargeMelee,
+    canChargeMelee,
+    findMeleeApproachCell,
+    markTroopActed,
+    unitCanActThisRound,
+    teamHasActors,
+    allUnitsActedThisRound,
+    setTurnModeId,
+    getTurnModeId,
+    RIPOSTE_DAMAGE_FACTOR,
     calculateDamage,
     getUnitArmour,
     getUnitAtkBonus,

@@ -3159,5 +3159,182 @@ section("86. The duel is paid once");
   assert(api.getMatchOpener() === TEAM_RED, "the crimson legion opens the second match");
 }
 
+/* ========================================================================
+ * 87+  THOROUGH CHECK (v1.12.8 rules)
+ * One action, charge, troop mode, riposte, deployment boundary.
+ * ======================================================================== */
+
+section("87. One action only — move blocks attack");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+  const foot = unitByType(api, TEAM_BLUE, "footman");
+  const enemy = unitByType(api, TEAM_RED, "footman");
+  foot.col = 4; foot.row = 1;
+  enemy.col = 5; enemy.row = 1;
+  assert(api.canAttack(foot, enemy) === true, "fresh footman may strike an adjacent foe");
+
+  const cells = api.getReachableCells(foot);
+  assert(cells.length > 0, "fresh footman has somewhere to walk");
+  const step = cells[0];
+  assert(api.moveUnit(foot, step.col, step.row) === true, "footman may march once");
+  assert(foot.hasMoved === true && foot.hasAttacked === true,
+    "a march spends the whole activation");
+  assert(api.canAttack(foot, enemy) === false, "cannot strike after a march");
+  assert(api.getLegalActions(foot).every(a => a.kind !== "attack" && a.kind !== "move"),
+    "AI legal list has no move or attack after a march");
+}
+
+section("88. One action only — attack blocks move");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+  const foot = unitByType(api, TEAM_BLUE, "footman");
+  const enemy = unitByType(api, TEAM_RED, "footman");
+  foot.col = 4; foot.row = 1;
+  enemy.col = 5; enemy.row = 1;
+  assert(api.canAttack(foot, enemy) === true, "adjacent blow is legal before acting");
+
+  foot.hasAttacked = true;
+  foot.hasMoved = true;
+  assert(api.canAttack(foot, enemy) === false, "cannot strike twice");
+  assert(api.canMoveTo(foot, 3, 1) === false, "cannot march after a blow");
+}
+
+section("89. Charge — chevalier and champion");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+  const chevalier = unitByType(api, TEAM_BLUE, "chevalier");
+  const champion = unitByType(api, TEAM_BLUE, "champion");
+  const footman = unitByType(api, TEAM_BLUE, "footman");
+  const foe = unitByType(api, TEAM_RED, "archer");
+
+  assert(api.isChargeMelee(chevalier) === true, "chevalier is a charge unit");
+  assert(api.isChargeMelee(champion) === true, "champion is a charge unit");
+  assert(api.isChargeMelee(footman) === false, "footman is not a charge unit");
+
+  chevalier.col = 2; chevalier.row = 1;
+  champion.col = 2; champion.row = 2;
+  footman.col = 2; footman.row = 0;
+  foe.col = 7; foe.row = 1;
+  for (const u of api.getTeamUnits(TEAM_RED)) {
+    if (u.id === foe.id) continue;
+    u.alive = false;
+    u.defeated = true;
+  }
+
+  assert(api.fieldDistance(chevalier, foe) > api.MELEE_REACH,
+    "foe is beyond ordinary melee reach");
+  assert(api.canChargeMelee(chevalier, foe) === true, "chevalier may charge a distant foe");
+  assert(api.canAttack(chevalier, foe) === true, "charge makes the blow legal");
+  assert(api.canAttack(champion, foe) === true, "champion may charge or shoot");
+  assert(api.canAttack(footman, foe) === false, "footman cannot strike at that distance");
+
+  const approach = api.findMeleeApproachCell(chevalier, foe);
+  assert(approach !== null, "there is a free cell beside the foe");
+  assert(api.fieldDistance(approach, foe) === 1, "approach cell is adjacent to the foe");
+}
+
+section("90. Troop mode — one activation per unit per round");
+
+{
+  const { api } = newGame();
+  assert(api.setTurnModeId("troop") === true, "troop mode can be selected");
+  assert(api.getTurnModeId() === "troop", "troop mode is active");
+  api.startBattle();
+
+  const foot = unitByType(api, TEAM_BLUE, "footman");
+  assert(foot.hasActedThisRound === false, "fresh unit has not acted");
+  assert(api.unitCanActThisRound(foot) === true, "fresh unit may act");
+
+  api.markTroopActed(foot);
+  assert(foot.hasActedThisRound === true, "markTroopActed sets the flag");
+  assert(api.unitCanActThisRound(foot) === false, "acted unit is spent for the round");
+  assert(foot.hasMoved === true && foot.hasAttacked === true,
+    "troop activation spends move and attack");
+
+  const other = api.getTeamUnits(TEAM_BLUE).find(u => u.id !== foot.id && u.alive);
+  assert(other && api.unitCanActThisRound(other) === true,
+    "a different unit may still act this round");
+  assert(api.teamHasActors(TEAM_BLUE) === true, "azure still has actors");
+  assert(api.allUnitsActedThisRound() === false, "round is not over yet");
+
+  api.setTurnModeId("party");
+}
+
+section("91. Riposte — once per round at -25%");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+  const blade = unitByType(api, TEAM_BLUE, "footman");
+  const foe = unitByType(api, TEAM_RED, "footman");
+  blade.col = 4; blade.row = 1;
+  foe.col = 5; foe.row = 1;
+  foe.hasRipostedThisRound = false;
+  foe.hasAttacked = false;
+  foe.hasMoved = false;
+
+  assert(api.canRiposte(foe, blade) === true, "adjacent melee hit may be answered");
+  assert(api.RIPOSTE_DAMAGE_FACTOR === 0.75, "riposte factor is 75% (-25%)");
+
+  const hpBefore = blade.hp;
+  const full = api.calculateDamage(foe, blade);
+  assert(api.riposteAgainst(foe, blade) === true, "riposte lands");
+  const dealt = hpBefore - blade.hp;
+  assert(dealt <= full, "riposte does not exceed full damage");
+  assert(foe.hasRipostedThisRound === true, "riposte marks the round flag");
+  assert(api.canRiposte(foe, blade) === false, "second riposte in the same round is refused");
+}
+
+section("92. Deployment boundary still holds");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+  const blue = unitByType(api, TEAM_BLUE, "footman");
+  const red = unitByType(api, TEAM_RED, "footman");
+
+  assert(api.canStandAt(blue, 0, 1) === false, "blue cannot stand behind its rear (col 0)");
+  assert(api.canStandAt(blue, 1, 1) === false, "blue cannot stand behind its rear (col 1)");
+  assert(api.canStandAt(red, 8, 1) === false, "red cannot stand behind its rear (col 8)");
+  assert(api.canStandAt(red, 9, 1) === false, "red cannot stand behind its rear (col 9)");
+  assert(api.canStandAt(blue, 3, 1) === true || api.canStandAt(blue, 4, 1) === true,
+    "blue may stand on legal ground");
+}
+
+section("93. AI legal actions respect one-action rule");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+  const unit = unitByType(api, TEAM_RED, "footman");
+  const before = api.getLegalActions(unit);
+  assert(before.length > 0, "fresh AI unit has legal actions");
+
+  unit.hasMoved = true;
+  unit.hasAttacked = true;
+  const after = api.getLegalActions(unit);
+  assert(after.every(a => a.kind !== "move" && a.kind !== "attack"),
+    "spent AI unit has no move or attack left");
+}
+
+section("94. Party mode unitCanAct after one action");
+
+{
+  const { api } = newGame();
+  api.setTurnModeId("party");
+  api.startBattle();
+  const unit = unitByType(api, TEAM_BLUE, "archer");
+  assert(api.unitCanActThisRound(unit) === true, "fresh archer may act in party mode");
+  unit.hasMoved = true;
+  unit.hasAttacked = true;
+  assert(api.unitCanActThisRound(unit) === false, "spent archer may not act again");
+}
+
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);
