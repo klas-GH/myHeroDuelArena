@@ -3,6 +3,21 @@
 Newest first. Versions 1.12.3 – 1.12.9 are summarised from the commit log; the
 older notes are kept as they were written.
 
+## v1.12.11 — animations also with "reduce motion" on
+
+- **Fixed: no combat animations when the operating system asks for reduced
+  motion** (Windows "animation effects" off, macOS "reduce motion", many remote
+  desktops). The reduced-motion block switched off every animation of the acting
+  legion with `!important`, plus the slide transition, so marches jumped,
+  nothing swung and nothing was drawn or released. It now removes only the
+  decorative and looping effects (entrance, idle breathing, glows, thinking
+  pulse, selection pulse, hit-shake) and keeps the short, small movements that
+  tell the player what happened: the march slide, wind-up, lunge, bow draw and
+  release.
+- Arrows and bolts are about twice as big, with a trail and a stronger glow, so
+  a shot can be seen against the large troop pictures.
+- Tests: new section 97 (the reduced-motion rule). 891 rule assertions.
+
 ## v1.12.10 — bug-fix release
 
 - **Fixed: the acting legion's animations were invisible.** The "thinking"

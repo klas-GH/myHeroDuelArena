@@ -1811,21 +1811,24 @@ body {
 .projectile {
   position: absolute;
   z-index: 8;
-  width: 22px;
-  height: 6px;
-  margin-left: -11px;
-  margin-top: -3px;
+  width: 46px;
+  height: 8px;
+  margin-left: -23px;
+  margin-top: -4px;
   pointer-events: none;
-  background: linear-gradient(90deg, #c8a050 0%, #f0e0a0 40%, #fff8d0 100%);
-  border-radius: 2px;
-  box-shadow: 0 0 4px rgba(255, 220, 120, 0.7);
+  background: linear-gradient(90deg, rgba(200, 160, 80, 0) 0%, #c8a050 25%, #f0e0a0 60%, #fff8d0 100%);
+  border-radius: 3px;
+  box-shadow: 0 0 8px 2px rgba(255, 220, 120, 0.85);
   transform-origin: center center;
 }
 
 .projectile.bolt {
-  width: 18px;
-  height: 5px;
-  background: linear-gradient(90deg, #8a8a90 0%, #d0d0d8 50%, #f0f0f4 100%);
+  width: 42px;
+  height: 9px;
+  margin-left: -21px;
+  margin-top: -4.5px;
+  background: linear-gradient(90deg, rgba(138, 138, 144, 0) 0%, #8a8a90 25%, #d0d0d8 60%, #f0f0f4 100%);
+  box-shadow: 0 0 8px 2px rgba(220, 230, 255, 0.85);
 }
 
 /* A troop that has been hit shudders and glows red for a second: the blow
@@ -2033,21 +2036,28 @@ body {
   animation: ai-thinking 1.5s ease-in-out infinite;
 }
 
-/* 9.2 REDUCED MOTION */
+/* 9.2 REDUCED MOTION
+ *
+ * The preference removes what is decorative or looping: the entrance, the
+ * idle breathing, the glows, the thinking pulse, the selection pulse and the
+ * rapid hit-shake. It does NOT remove the short, small movements that tell
+ * the player what just happened: the march slide, the wind-up, the lunge, the
+ * bow draw and the release. Before v1.12.10 this block switched off every
+ * animation and the slide transition of the acting legion, so with "reduce
+ * animations" turned on in the operating system (the default on many
+ * Windows setups and remote desktops) a battle, and AI vs AI above all,
+ * looked frozen: units jumped from cell to cell and nothing swung or shot. */
 @media (prefers-reduced-motion: reduce) {
   .unit,
   .unit.selected .selection-ring,
   .unit.champion,
-  .unit.attacking .unit-art,
   .unit.damaged .unit-art,
   .unit.defeated .unit-art,
-  .unit.moving .unit-art,
   .unit.rallied .unit-art,
   .unit.guarded .unit-art,
-  .ai-turn-active .unit.red .unit-art,
-  .ai-turn-blue-active .unit.blue .unit-art {
+  .ai-turn-active .unit.red:not(.moving, .windup, .attacking, .drawing, .shooting) .unit-art,
+  .ai-turn-blue-active .unit.blue:not(.moving, .windup, .attacking, .drawing, .shooting) .unit-art {
     animation: none !important;
-    transition: none !important;
   }
 
   /* The number of a blow is still shown, but it does not fly around: it

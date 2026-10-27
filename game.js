@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.10 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.11 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.10";
+const APP_VERSION = "v1.12.11";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";

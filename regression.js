@@ -3293,6 +3293,27 @@ section("96. Acting legion keeps its action animations (v1.12.10)");
   }
 }
 
+section("97. Reduced motion keeps the combat feedback (v1.12.11)");
+
+{
+  const fs = require("fs");
+  const css = fs.readFileSync(__dirname + "/style.css", "utf8").replace(/\r\n/g, "\n");
+  const start = css.indexOf("@media (prefers-reduced-motion: reduce)");
+  assert(start >= 0, "a reduced-motion block exists");
+  /* The block ends at the first line that is a lone closing brace. */
+  const block = css.slice(start, css.indexOf("\n}\n", start));
+  /* Strip comments so only real selectors are inspected. */
+  const code = block.replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const cls of ["moving", "attacking", "windup", "drawing", "shooting"]) {
+    assert(!new RegExp("\\.unit\\." + cls + "\\s+\\.unit-art\\s*[,{]").test(code),
+      "reduced motion does not switch off the ." + cls + " animation");
+  }
+  assert(!/(^|\n)\s*\.unit,/.test(code) || !/\.unit,[^{]*\{[^}]*transition:\s*none/.test(code),
+    "reduced motion keeps the march slide (no transition: none on .unit)");
+  assert(/:not\([^)]*moving[^)]*attacking[^)]*\)/.test(code),
+    "the thinking pulse is only switched off for idle units");
+}
+
 section("90. Troop mode — one activation per unit per round");
 
 {
