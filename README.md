@@ -12,6 +12,14 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.11.0 — footer layout cleanup (no overlaps)
+
+- Removed the large champion panel from the footer (abilities still available as compact chips next to the unit).
+- Footer is five clear columns: turn · selection+icons · log · progression · actions.
+- Selection shows unit info on the left and Shield/Sword/Bow icons on the right — nothing stacks on top of the icons.
+- Progression strip has its own column and no longer covers the action icons.
+- Responsive grid updated (no empty “abilities” row).
+
 ## v1.10.0 — combat animation & action icons
 
 - **Attack animations (~1.5–1.6 s)**: melee units lunge toward the target; archers and ballistae fire a visible arrow/bolt that flies across the field before damage is applied.

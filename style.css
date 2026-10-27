@@ -1042,8 +1042,10 @@ body {
   box-sizing: border-box;
 }
 
+.champion-panel,
 .champion-panel.hidden {
-  display: none;
+  /* v1.11: panel removed from the footer layout; keep node for test IDs only */
+  display: none !important;
 }
 
 .champ-head {
@@ -1200,53 +1202,85 @@ body {
   border-top: 2px solid #806b3e;
 }
 
+/* v1.11 footer: five clear columns — turn | selection+icons | log | progression | actions
+ * Nothing is allowed to overlap; each cell has a fixed role and min size. */
 .hud-bar {
   display: flex;
-  align-items: stretch;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  max-width: 1240px;
+  max-width: 1280px;
+  flex-wrap: nowrap;
 }
 
 .hud-cell {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   min-width: 0;
+  flex-shrink: 1;
 }
 
 .hud-turn {
+  flex: 0 1 160px;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   gap: 2px;
-  min-width: 140px;
-  max-width: 220px;
+  max-width: 200px;
 }
 
 .hud-selection {
-  flex: 1 1 200px;
+  flex: 1 1 220px;
+  min-width: 180px;
+  max-width: 380px;
 }
 
-.hud-abilities {
-  flex: 1 1 200px;
-  min-width: 0;
+.hud-log {
+  flex: 0 1 200px;
+  min-width: 120px;
+  max-width: 240px;
 }
 
 .hud-progression {
   flex: 0 0 auto;
-}
-
-.hud-log {
-  flex: 0 1 240px;
+  flex-shrink: 0;
 }
 
 .hud-actions {
   flex: 0 0 auto;
+  flex-shrink: 0;
   margin-left: auto;
   gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+/* Selection block: text left, icons right — never stacked on top of each other */
+.selection-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.selection-info .sel-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.selection-info .action-icons {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+.selection-info .ability-wrap {
+  flex: 0 0 auto;
 }
 
 #status {
@@ -1385,22 +1419,24 @@ body {
   cursor: default;
 }
 
-/* 8.4 SELECTION INFO */
+/* 8.4 SELECTION INFO — text + icons side by side, never overlapping */
 .selection-info {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   padding: 4px 9px;
   border: 1px solid rgba(233, 198, 108, 0.3);
   border-radius: 6px;
   background: rgba(18, 34, 26, 0.5);
   min-width: 0;
   max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .selection-info.hidden {
-  display: none;
+  display: none !important;
 }
 
 .sel-head {
@@ -1464,11 +1500,12 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
+  margin-top: 0;
+  flex-shrink: 0;
 }
 
 .action-icons.hidden {
-  display: none;
+  display: none !important;
 }
 
 .action-icon {
@@ -1984,9 +2021,9 @@ body {
       "turn turn"
       "actions actions"
       "progression log"
-      "selection selection"
-      "abilities abilities";
+      "selection selection";
     gap: 6px;
+    flex-wrap: wrap;
   }
 
   .hud-turn {
@@ -2009,19 +2046,14 @@ body {
     justify-self: center;
   }
 
-  .hud-selection:has(#selection-info.hidden),
-  .hud-abilities:has(.ability-wrap.hidden):has(.champion-panel.hidden) {
+  .hud-selection:has(#selection-info.hidden) {
     display: none;
   }
 
   .hud-selection {
     grid-area: selection;
     min-width: 0;
-  }
-
-  .hud-abilities {
-    grid-area: abilities;
-    min-width: 0;
+    max-width: none;
   }
 
   .hud-progression {
@@ -2032,11 +2064,16 @@ body {
   .hud-log {
     grid-area: log;
     min-width: 0;
+    max-width: none;
     width: 100%;
   }
 
   .combat-log {
     max-height: 30px;
+  }
+
+  .selection-info {
+    flex-wrap: wrap;
   }
 }
 

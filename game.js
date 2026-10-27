@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.10.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.11.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.10.0";
+const APP_VERSION = "v1.11.0";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -4318,24 +4318,20 @@ function updateProgressionUI() {
 /* 21.2 CHAMPION PANEL */
 
 function updateChampionPanel() {
-  if (!$championPanel) return;
+  /* v1.11: champion panel is removed from the footer UI. Keep the node
+   * updated for tests / ability unlock flow, but never show it. */
+  if ($championPanel) $championPanel.classList.add("hidden");
   const champion = getPlayerChampion();
-  if (!champion) {
-    $championPanel.classList.add("hidden");
-    return;
+  if (!champion) return;
+
+  if ($champLevel) $champLevel.textContent = `LEVEL ${progression.level}`;
+  if ($champStats) {
+    const bonus = getLevelBonuses(progression.level);
+    $champStats.textContent =
+      `HP ${champion.hp}/${champion.maxHp} · ATK ${champion.atk} · DEF ${champion.def}` +
+      (champion.shot ? ` · BOW ${champion.shot.atk} ATK · FIELD` : "") +
+      (bonus.hp || bonus.atk || bonus.def ? ` (base +${bonus.hp} HP +${bonus.atk} ATK +${bonus.def} DEF)` : "");
   }
-
-  const show = selectedUnitId === champion.id;
-  $championPanel.classList.toggle("hidden", !show);
-  if (!show) return;
-
-  $champLevel.textContent = `LEVEL ${progression.level}`;
-  const bonus = getLevelBonuses(progression.level);
-  $champStats.textContent =
-    `HP ${champion.hp}/${champion.maxHp} · ATK ${champion.atk} · DEF ${champion.def}` +
-    (champion.shot ? ` · BOW ${champion.shot.atk} ATK · FIELD` : "") +
-    (bonus.hp || bonus.atk || bonus.def ? ` (base +${bonus.hp} HP +${bonus.atk} ATK +${bonus.def} DEF)` : "");
-
   renderAbilityList(champion);
 }
 

@@ -216,7 +216,7 @@ if (loaded.error === null) {
   const progPoints = doc.getElementById("prog-points");
   const progXpText = doc.getElementById("prog-xp-text");
 
-  assert(championPanel.classList.contains("hidden") === true, "the champion panel stays hidden until the champion is selected");
+  assert(championPanel.classList.contains("hidden") === true, "the champion panel stays hidden (removed from footer in v1.11)");
   assert(progLevel.textContent === "1", "the progression strip shows the champion level");
   assert(progPoints.textContent === "1", "the progression strip shows the unspent ability points");
   assert(/XP/.test(progXpText.textContent), "the progression strip shows the experience target");
@@ -224,14 +224,15 @@ if (loaded.error === null) {
   const championElement = blue.children.find(c => c.classList.contains("champion"));
   championElement.dispatch("click");
 
-  assert(championPanel.classList.contains("hidden") === false, "selecting the champion opens the champion panel");
+  /* v1.11: panel remains hidden; data still fills for unlock flow / tests */
+  assert(championPanel.classList.contains("hidden") === true, "selecting the champion keeps the panel hidden");
   assert(abilityList.children.length === 3, `every champion ability is listed (${abilityList.children.length})`);
   assert(abilityList.children.every(c => c.classList.contains("ability-row")), "ability rows are rendered");
   assert(abilityList.children.filter(c => c.classList.contains("locked")).length === 2,
     "abilities above the current level are shown as locked");
   assert(abilityList.children.some(c => c.classList.contains("ready")), "an unlocked ability is shown as ready");
-  assert(/LEVEL/.test(doc.getElementById("champ-level").textContent), "the champion panel shows the level");
-  assert(/HP/.test(doc.getElementById("champ-stats").textContent), "the champion panel shows the unit statistics");
+  assert(/LEVEL/.test(doc.getElementById("champ-level").textContent), "champion level data is still written");
+  assert(/HP/.test(doc.getElementById("champ-stats").textContent), "champion stats data is still written");
 
   /* The quick action buttons list the abilities the champion can use now. */
   const abilityActions = doc.getElementById("ability-actions");
