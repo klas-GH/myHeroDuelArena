@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.6 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.7 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.6";
+const APP_VERSION = "v1.12.7";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -1625,7 +1625,7 @@ function selectUnit(id) {
 
   const hints = [];
   if (unit.team === TEAM_BLUE && currentTurn === "player") {
-    if (!unit.hasMoved) hints.push("Can move");
+    if (!unit.hasMoved && !unit.hasAttacked) hints.push("Can move");
     if (!unit.hasAttacked) hints.push("Can attack");
     const ready = getReadyAbilities(unit);
     if (ready.length > 0) hints.push(`${ready.length} ability ready`);
@@ -1868,6 +1868,7 @@ function getReachableCells(unit) {
 }
 
 function canMoveTo(unit, col, row) {
+  if (!unit || unit.hasMoved || unit.hasAttacked) return false;
   if (!isInBounds(col, row)) return false;
   if (!canStandAt(unit, col, row)) return false;
   if (!isTerrainPassable(col, row)) return false;
@@ -3262,7 +3263,8 @@ function getLegalActions(unit) {
     actions.push({ kind: "attack", unit, target });
   }
 
-  if (!unit.hasMoved) {
+  /* No march after a blow (v1.12.7) — human and AI share the rule. */
+  if (!unit.hasMoved && !unit.hasAttacked) {
     for (const cell of getReachableCells(unit)) {
       actions.push({ kind: "move", unit, cell });
     }
@@ -3550,6 +3552,8 @@ function performAiAttack(unit, target) {
   const animMs = isRanged ? RANGED_FLIGHT_MS : ATTACK_ANIM_MS;
 
   unit.hasAttacked = true;
+  /* A blow ends the march — cannot walk after striking (v1.12.7). */
+  unit.hasMoved = true;
   if (getTurnModeId() === "troop") markTroopActed(unit);
   clearDefenceStand(unit);
 
@@ -4444,7 +4448,7 @@ function updateBattleStatus() {
     const unit = units.get(selectedUnitId);
     if (unit) {
       const parts = [];
-      if (!unit.hasMoved) parts.push("can move");
+      if (!unit.hasMoved && !unit.hasAttacked) parts.push("can move");
       if (!unit.hasAttacked) parts.push("can attack");
       const ready = getReadyAbilities(unit);
       if (ready.length > 0) parts.push(`${ready.length} ability ready`);
@@ -4702,7 +4706,7 @@ function showPreviewMoveIndicators() {
   const seen = new Set();
   for (const [, unit] of units) {
     if (unit.team !== TEAM_BLUE || !unit.alive || unit.defeated) continue;
-    if (unit.hasMoved) continue;
+    if (unit.hasMoved || unit.hasAttacked) continue;
     const cells = getReachableCells(unit);
     for (const cell of cells) {
       const key = `${cell.col},${cell.row}`;
@@ -4735,7 +4739,8 @@ function findBlueUnitThatCanReach(col, row) {
 /* Selected unit: green circles for that fighter's moves. */
 function showMoveIndicators(unit) {
   clearMoveIndicators();
-  if (unit.hasMoved) return;
+  /* Attack ends the march — no move after a blow (v1.12.7). */
+  if (unit.hasMoved || unit.hasAttacked) return;
   const cells = getReachableCells(unit);
 
   for (const cell of cells) {
@@ -4831,7 +4836,7 @@ function onUnitClick(id) {
 
 function onMoveClick(unitId, col, row) {
   const unit = units.get(unitId);
-  if (!unit || unit.hasMoved) return;
+  if (!unit || unit.hasMoved || unit.hasAttacked) return;
   if (!battleActive || currentTurn !== "player" || actionLock) return;
 
   if (canMoveTo(unit, col, row)) {
@@ -4886,6 +4891,8 @@ function executeAttack(attackerId, targetId, preferredKind) {
 
   actionLock = true;
   attacker.hasAttacked = true;
+  /* A blow ends the march — cannot walk after striking (v1.12.7). */
+  attacker.hasMoved = true;
   clearDefenceStand(attacker);
 
   let kind = preferredKind || getAttackKind(attacker, target) || "melee";
