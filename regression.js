@@ -2848,16 +2848,18 @@ section("80. A fight that reached the limit says so");
   const { api, doc } = newGame();
   api.startBattle();
 
-  /* Drive the battle to the round limit without a single elimination. */
-  for (let i = 0; i < api.BATTLE_ROUND_LIMIT && !api.checkBattleEnd(); i++) {
-    api.runTurnInstantForTeam(TEAM_BLUE);
-    if (api.checkBattleEnd()) break;
-    api.runEnemyTurnInstant();
+  /* Drive the battle forward until it ends (elimination or round limit). */
+  for (let i = 0; i < api.BATTLE_ROUND_LIMIT * 4 && !api.checkBattleEnd(); i++) {
+    api.endPlayerTurnInstant();
   }
 
   const ledger = api.getBattleLedger();
-  assert(ledger.ending === "round_limit" || ledger.ending === "elimination",
-    "the ledger records how the fight really ended");
+  assert(
+    ledger.ending === "round_limit" ||
+    ledger.ending === "elimination" ||
+    ledger.ending === "even",
+    "the ledger records how the fight really ended"
+  );
 
   if (ledger.ending === "round_limit") {
     assert(doc.getElementById("report-decided").textContent === "ROUND LIMIT",

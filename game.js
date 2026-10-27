@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.7 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.8 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.7";
+const APP_VERSION = "v1.12.8";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -1626,7 +1626,7 @@ function selectUnit(id) {
   const hints = [];
   if (unit.team === TEAM_BLUE && currentTurn === "player") {
     if (!unit.hasMoved && !unit.hasAttacked) hints.push("Can move");
-    if (!unit.hasAttacked) hints.push("Can attack");
+    if (!unit.hasMoved && !unit.hasAttacked) hints.push("Can attack");
     const ready = getReadyAbilities(unit);
     if (ready.length > 0) hints.push(`${ready.length} ability ready`);
     if (!hints.length) hints.push("No actions available");
@@ -1659,8 +1659,9 @@ function updateActionIcons(unit) {
   $actionIcons.classList.remove("hidden");
 
   const canBrace = canDefenceStand(unit);
-  const canMelee = !!unit.melee && !unit.hasAttacked;
-  const canRanged = (!!unit.shot || !unit.melee) && !unit.hasAttacked;
+  const canAct = !unit.hasMoved && !unit.hasAttacked;
+  const canMelee = !!unit.melee && canAct;
+  const canRanged = (!!unit.shot || !unit.melee) && canAct;
 
   if ($iconDefend) {
     $iconDefend.disabled = !canBrace;
@@ -1881,6 +1882,8 @@ function moveUnit(unit, col, row) {
   unit.col = col;
   unit.row = row;
   unit.hasMoved = true;
+  /* One action only (v1.12.8): a march spends the activation — no blow after. */
+  unit.hasAttacked = true;
   /* A fighter that walks is no longer standing its ground. */
   clearDefenceStand(unit);
 
@@ -2172,6 +2175,8 @@ function canAttack(attacker, target) {
   if (!units.has(target.id)) return false;
   if (attacker.team === target.team) return false;
   if (attacker.hasAttacked) return false;
+  /* One action only (v1.12.8): a march spends the activation — no blow after. */
+  if (attacker.hasMoved) return false;
   if (hasReach(attacker, attacker, target)) return true;
   if (canChargeMelee(attacker, target)) return true;
   return false;
@@ -3259,12 +3264,11 @@ function getLegalActions(unit) {
   const actions = [];
   if (!unit || !unit.alive || unit.defeated) return actions;
 
-  for (const target of getValidTargets(unit)) {
-    actions.push({ kind: "attack", unit, target });
-  }
-
-  /* No march after a blow (v1.12.7) — human and AI share the rule. */
+  /* One action only (v1.12.8): attack OR move, never both in one activation. */
   if (!unit.hasMoved && !unit.hasAttacked) {
+    for (const target of getValidTargets(unit)) {
+      actions.push({ kind: "attack", unit, target });
+    }
     for (const cell of getReachableCells(unit)) {
       actions.push({ kind: "move", unit, cell });
     }
@@ -3495,6 +3499,8 @@ function performAiMove(unit, destination) {
   unit.col = destination.col;
   unit.row = destination.row;
   unit.hasMoved = true;
+  /* One action only — march spends the activation (v1.12.8). */
+  unit.hasAttacked = true;
   if (getTurnModeId() === "troop") markTroopActed(unit);
   /* Remember where the unit came from so it cannot shuffle back and forth. */
   unit.lastAiCell = from;
@@ -4449,7 +4455,7 @@ function updateBattleStatus() {
     if (unit) {
       const parts = [];
       if (!unit.hasMoved && !unit.hasAttacked) parts.push("can move");
-      if (!unit.hasAttacked) parts.push("can attack");
+      if (!unit.hasMoved && !unit.hasAttacked) parts.push("can attack");
       const ready = getReadyAbilities(unit);
       if (ready.length > 0) parts.push(`${ready.length} ability ready`);
       const head = parts.length
@@ -4757,7 +4763,8 @@ function showMoveIndicators(unit) {
 
 /* Red circles for attack targets. */
 function showAttackIndicators(unit) {
-  if (unit.hasAttacked) return;
+  /* One action only — no blow after a march (v1.12.8). */
+  if (unit.hasAttacked || unit.hasMoved) return;
   const targets = getValidTargets(unit);
 
   for (const target of targets) {
@@ -4844,7 +4851,7 @@ function onMoveClick(unitId, col, row) {
     recordAction("move", unit.team);
     clearMoveIndicators();
     clearAttackIndicators();
-    showAttackIndicators(unit);
+    /* No attack after a march (v1.12.8). */
     updateBattleStatus();
     updateEndTurnButton();
     maybeAutoEndTurnForTroopMode();
