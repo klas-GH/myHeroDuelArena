@@ -3123,6 +3123,7 @@ function getLegalActions(unit) {
 
   if (unit.type === "champion") {
     for (const id of unit.abilities || []) {
+      if (id === "rally") continue;
       const ability = ABILITIES[id];
       if (!ability) continue;
       if (!isAbilityUnlocked(id)) continue;
@@ -4409,6 +4410,7 @@ function renderAbilityActions(unit) {
   }
   $abilityWrap.classList.remove("hidden");
   for (const ability of ready) {
+    if (ability.id === "rally") continue;
     const button = document.createElement("button");
     button.className = "ability-button";
     button.type = "button";
