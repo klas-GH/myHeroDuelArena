@@ -1769,24 +1769,42 @@ body {
   animation: attack-lunge-red 0.8s ease-in-out both;
 }
 
-/* Ranged shoot pose — full 1.2 s so it matches melee pacing. */
-@keyframes attack-shoot {
+/* Ranged draw — pull the string (v1.12.4), then release + arrow flight. */
+@keyframes attack-draw {
   0%   { translate: 0 0; }
-  15%  { translate: -10px 0; }
-  35%  { translate: 8px 0; }
-  55%  { translate: -5px 0; }
-  75%  { translate: 3px 0; }
+  100% { translate: -10px 0; }
+}
+@keyframes attack-draw-red {
+  0%   { translate: 0 0; }
+  100% { translate: 10px 0; }
+}
+
+.unit.blue.drawing .unit-art {
+  animation: attack-draw 0.4s ease-out both;
+}
+.unit.red.drawing .unit-art {
+  animation: attack-draw-red 0.4s ease-out both;
+}
+
+/* Ranged release shake — plays while the arrow flies (~0.8 s). */
+@keyframes attack-shoot {
+  0%   { translate: -10px 0; }
+  25%  { translate: 6px 0; }
+  55%  { translate: -3px 0; }
+  100% { translate: 0 0; }
+}
+@keyframes attack-shoot-red {
+  0%   { translate: 10px 0; }
+  25%  { translate: -6px 0; }
+  55%  { translate: 3px 0; }
   100% { translate: 0 0; }
 }
 
-.unit.blue.shooting .unit-art,
-.unit.red.shooting .unit-art {
-  animation: attack-shoot 1.2s ease-out both;
+.unit.blue.shooting .unit-art {
+  animation: attack-shoot 0.8s ease-out both;
 }
-
-/* Prefer shoot over lunge when both classes are present */
-.unit.shooting.attacking .unit-art {
-  animation: attack-shoot 1.2s ease-out both;
+.unit.red.shooting .unit-art {
+  animation: attack-shoot-red 0.8s ease-out both;
 }
 
 /* Flying arrow / bolt projectile. */

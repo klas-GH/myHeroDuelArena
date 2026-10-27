@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.3 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.4 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.3";
+const APP_VERSION = "v1.12.4";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -2265,11 +2265,14 @@ function clearDefenceStand(unit) {
  * last. */
 const HIT_FLASH_MS = 1400;
 
-/* Combat animation pacing (v1.12.3). Melee and ranged both ~1.2 s so the
- * wind-up and strike (or the flying arrow) are readable. */
+/* Combat animation pacing (v1.12.4). Melee and ranged both ~1.2 s total:
+ *   melee  — wind-up → lunge/strike
+ *   ranged — draw → release + arrow flight
+ */
 const ATTACK_ANIM_MS = 1200;
 const MELEE_WINDUP_MS = 400;
-const RANGED_FLIGHT_MS = 1200;
+const RANGED_DRAW_MS = 400;
+const RANGED_FLIGHT_MS = 800;
 const MOVE_ANIM_MS = 1200;
 /* Riposte deals this share of normal damage (once per round). */
 const RIPOSTE_DAMAGE_FACTOR = 0.75;
@@ -3426,6 +3429,7 @@ function performAiAttack(unit, target) {
       attackerEl.classList.remove("attacking");
       attackerEl.classList.remove("shooting");
       attackerEl.classList.remove("windup");
+      attackerEl.classList.remove("drawing");
     }
 
     const damage = calculateDamage(unit, target);
@@ -3448,12 +3452,17 @@ function performAiAttack(unit, target) {
   };
 
   if (isRanged) {
-    if (attackerEl) {
-      attackerEl.classList.add("shooting");
-      attackerEl.classList.add("attacking");
-    }
-    spawnProjectile(unit, target, unit.type === "ballista" ? "bolt" : "arrow");
-    later(resolveAiBlow, animMs);
+    /* Same two-phase ranged as the player: draw, then release + flight. */
+    if (attackerEl) attackerEl.classList.add("drawing");
+    later(() => {
+      if (battleToken !== currentBattleToken) return;
+      if (attackerEl) {
+        attackerEl.classList.remove("drawing");
+        attackerEl.classList.add("shooting");
+      }
+      spawnProjectile(unit, target, unit.type === "ballista" ? "bolt" : "arrow");
+      later(resolveAiBlow, RANGED_FLIGHT_MS);
+    }, RANGED_DRAW_MS);
   } else {
     /* Same two-phase melee as the player: wind-up, then strike. */
     if (attackerEl) attackerEl.classList.add("windup");
@@ -4724,18 +4733,20 @@ function executeAttack(attackerId, targetId, preferredKind) {
   const isRanged = kind === "ranged" || kind === "shot" || (!attacker.melee && !preferredKind);
 
   if (isRanged) {
-    if (attackerEl) {
-      attackerEl.classList.add("shooting");
-      attackerEl.classList.add("attacking");
-    }
-    spawnProjectile(attacker, target, attacker.type === "ballista" ? "bolt" : "arrow");
+    /* Two-phase ranged: draw, then release + flying arrow (total ~1.2 s). */
+    if (attackerEl) attackerEl.classList.add("drawing");
     later(() => {
+      if (battleToken !== currentBattleToken) return;
       if (attackerEl) {
-        attackerEl.classList.remove("shooting");
-        attackerEl.classList.remove("attacking");
+        attackerEl.classList.remove("drawing");
+        attackerEl.classList.add("shooting");
       }
-      finishAttackResolve(attacker, target, attackerId, targetId);
-    }, RANGED_FLIGHT_MS);
+      spawnProjectile(attacker, target, attacker.type === "ballista" ? "bolt" : "arrow");
+      later(() => {
+        if (attackerEl) attackerEl.classList.remove("shooting");
+        finishAttackResolve(attacker, target, attackerId, targetId);
+      }, RANGED_FLIGHT_MS);
+    }, RANGED_DRAW_MS);
   } else {
     /* Two-phase melee: wind-up, then lunge/strike (total ~1.2 s). */
     if (attackerEl) attackerEl.classList.add("windup");
