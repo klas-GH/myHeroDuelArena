@@ -1,0 +1,2420 @@
+.unit-image, img { image-rendering: pixelated; image-rendering: crisp-edges; }
+/* 1.2.0 TACTICAL BATTLEFIELD STYLES */
+
+/* 1. RESET & BASE */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  background: #17251c;
+  color: #fff5d7;
+  font-family: Georgia, serif;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100svh;
+  user-select: none;
+}
+
+#arena {
+  width: 100%;
+  min-height: 100svh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #18251c;
+}
+
+/* 2. LAYOUT & ARENA */
+.topbar {
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 12px;
+  background: linear-gradient(#293c30, #17251c);
+  border-bottom: 2px solid #806b3e;
+}
+
+.game-title {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #e9c66c;
+}
+
+.version {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+}
+
+/* 3. LANDSCAPE & BACKGROUND
+ *
+ * The scene is read from the top down: a shallow band of sky, the fortress
+ * on the horizon, the rolling ground, and the field itself, which takes the
+ * largest share of the height. The field top is a single number so that the
+ * ground, the markers and the troops always start on the same line.
+ */
+.landscape {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-height: 460px;
+  overflow: hidden;
+  background: linear-gradient(
+    to bottom,
+    #5c9ed1 0%,
+    #a8d4df 22%,
+    #cfe0b3 38%,
+    #6c984c 52%,
+    #355a2c 100%
+  );
+}
+
+/* Where the battlefield grid starts, as a share of the landscape. */
+:root {
+  --field-top: 28%;
+  /* Troop pictures sized against the field. Slightly tighter than v1.8 so
+   * ranks stay readable and front-line fighters no longer swallow the rank
+   * behind them. Champion stays larger but no longer dominates two full
+   * columns of space. */
+  --art-h: 36cqh;
+  --art-w: 14.5cqw;
+  --champ-art-h: 44cqh;
+  --champ-art-w: 21cqw;
+}
+
+/* 3.1 SKY & ATMOSPHERE */
+.sky {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 20%;
+  background: linear-gradient(
+    to bottom,
+    #7ec0ee 0%,
+    #5c9ed1 40%,
+    #a8d4df 100%
+  );
+  z-index: 0;
+}
+
+.sun {
+  position: absolute;
+  top: 5%;
+  right: 14%;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff0b1;
+  box-shadow: 0 0 30px rgba(255, 240, 177, 0.6);
+  z-index: 1;
+}
+
+.cloud {
+  position: absolute;
+  width: 70px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  z-index: 1;
+}
+
+.cloud::before,
+.cloud::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.cloud::before {
+  width: 26px;
+  height: 24px;
+  left: 12px;
+  top: -12px;
+}
+
+.cloud::after {
+  width: 32px;
+  height: 28px;
+  right: 10px;
+  top: -16px;
+}
+
+.cloud-one {
+  top: 4%;
+  left: 22%;
+}
+
+.cloud-two {
+  top: 10%;
+  right: 20%;
+  transform: scale(0.75);
+}
+
+/* 3.2 THE TWO STRONGHOLDS
+ *
+ * Each legion stands behind its own stronghold: the azure wall holds the
+ * left margin, the crimson wall the right one, and the two face each other
+ * across the field. A fortress runs from the top of the scene down to the
+ * ground, so the middle of the sky is free and the field can start higher
+ * up — which is where the room for the bigger army comes from.
+ */
+.mountains {
+  position: absolute;
+  z-index: 0;
+  top: 5%;
+  left: -12%;
+  width: 124%;
+  height: 15%;
+  background: #779b8a;
+  clip-path: polygon(
+    0 82%, 14% 32%, 26% 68%, 40% 10%,
+    55% 76%, 70% 24%, 82% 70%, 94% 36%,
+    100% 66%, 100% 100%, 0 100%
+  );
+}
+
+.citadel {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  width: 13%;
+  pointer-events: none;
+  --stone-light: #b3ad96;
+  --stone-dark: #817e70;
+  --stone-tower-light: #999789;
+  --stone-tower-dark: #686a61;
+}
+
+.citadel-blue {
+  left: 0;
+  --stone-light: #a9b7ca;
+  --stone-dark: #6d7d92;
+  --stone-tower-light: #93a2b4;
+  --stone-tower-dark: #5c6a7c;
+}
+
+.citadel-red {
+  right: 0;
+  /* The crimson stronghold is the same wall, turned to face the field. */
+  transform: scaleX(-1);
+  --stone-light: #c3a893;
+  --stone-dark: #8d6857;
+  --stone-tower-light: #b39481;
+  --stone-tower-dark: #74513f;
+}
+
+/* The long wall of the fortress. */
+.citadel-wall {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 64%;
+  border-right: 2px solid #6e6b60;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 20px,
+      #5f6058 21px 23px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--stone-light) 0 28px,
+      var(--stone-dark) 29px 31px
+    );
+  opacity: 0.94;
+}
+
+/* The battlements along the edge that looks at the field. */
+.citadel-battlements {
+  position: absolute;
+  right: -5px;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  background: repeating-linear-gradient(
+    0deg,
+    #aaa590 0 10px,
+    transparent 10px 16px
+  );
+  opacity: 0.9;
+}
+
+/* The tower that watches over the gate. */
+.citadel-tower {
+  position: absolute;
+  left: 8%;
+  top: 16%;
+  width: 76%;
+  height: 38%;
+  border: 2px solid #6b6b61;
+  background: repeating-linear-gradient(
+    0deg,
+    var(--stone-tower-light) 0 12px,
+    var(--stone-tower-dark) 13px 15px
+  );
+}
+
+.citadel-roof {
+  position: absolute;
+  left: -10%;
+  top: -16px;
+  width: 120%;
+  height: 16px;
+  background: #6e4c3a;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.citadel-window {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  width: 8px;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 5px 5px 0 0;
+  background: #333c3a;
+}
+
+/* The gate at the foot of the wall. */
+.citadel-gate {
+  position: absolute;
+  left: 14%;
+  bottom: 0;
+  width: 58%;
+  height: 19%;
+  border: 2px solid #554333;
+  border-bottom: none;
+  border-radius: 46px 46px 0 0;
+  background: repeating-linear-gradient(
+    90deg,
+    #604831 0 6px,
+    #94704b 7px 9px
+  );
+}
+
+/* 3.3 BATTLEFIELD GROUND */
+.ground-hill {
+  position: absolute;
+  z-index: 0;
+  top: 18%;
+  left: -18%;
+  width: 136%;
+  height: 26%;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(#719c4d, #527b37);
+}
+
+.grass {
+  position: absolute;
+  z-index: 1;
+  top: 38%;
+  bottom: 0;
+  width: 100%;
+  background:
+    repeating-linear-gradient(
+      105deg,
+      transparent 0 20px,
+      rgba(181, 200, 90, 0.18) 21px 23px
+    ),
+    linear-gradient(#527d38, #263f27);
+}
+
+/* The duel is fought in the middle of the field. */
+.battle-label {
+  position: absolute;
+  z-index: 2;
+  top: 24.5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  text-align: center;
+  color: #fff0c4;
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 3px #263f27;
+}
+
+.center-line {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 38%;
+  bottom: 0;
+  width: 1px;
+  background: rgba(232, 213, 161, 0.18);
+}
+
+/* 4. ARMIES & FORMATIONS
+ * The battlefield uses one shared coordinate space. Both unit layers and all
+ * marker layers span the full field width, so a unit can move from its own
+ * half into the neutral centre without breaking its layout.
+ */
+/* The name of each legion hangs on the stronghold behind it. */
+.army {
+  position: absolute;
+  top: 25.5%;
+  width: 15%;
+  height: 16px;
+  display: flex;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.army-blue {
+  left: 1%;
+  justify-content: flex-start;
+}
+
+.army-red {
+  right: 1%;
+  justify-content: flex-end;
+}
+
+.army-name {
+  padding: 3px 8px;
+  text-align: center;
+  font-size: clamp(8px, 2.5vw, 11px);
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 3px #17251c;
+  background: rgba(23, 37, 28, 0.55);
+  border-radius: 3px;
+}
+
+.army-blue .army-name {
+  color: #c5e3ff;
+}
+
+.army-red .army-name {
+  color: #ffd0bd;
+}
+
+/* 4.1 UNIT LAYERS — full field width, one cell per grid column
+ *
+ * The two layers are transparent containers that overlap completely, and the
+ * red layer comes later in the document, so it paints on top of the blue one.
+ * A container that accepts pointer events would therefore swallow every click
+ * aimed at a unit in the layer underneath it. The containers ignore pointer
+ * events and only the units themselves accept them, exactly like the marker
+ * layers below.
+ */
+.units-layer {
+  position: absolute;
+  top: var(--field-top);
+  bottom: 6px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 3;
+  /* The layer is the measuring box for the troop artwork: the pictures are
+   * sized against the field itself, so they grow with the battlefield and
+   * shrink gracefully on a small screen. */
+  container-type: size;
+  container-name: field;
+}
+
+.units-layer > .unit {
+  pointer-events: auto;
+}
+
+/* 4.2 MARKER LAYERS */
+.marker-layer {
+  position: absolute;
+  top: var(--field-top);
+  bottom: 6px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.marker-layer > * {
+  pointer-events: auto;
+}
+
+/* 4.3 TERRAIN LAYER
+ * The terrain is drawn under the units and never intercepts a click, so the
+ * battlefield stays easy to select on a touch screen.
+ */
+.terrain-layer {
+  position: absolute;
+  top: var(--field-top);
+  bottom: 6px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.terrain-cell {
+  position: absolute;
+  width: 10%;
+  height: 25%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Subtle cell tint so forest / rock / high ground read at a glance even
+ * when the decorative sprites are small on a phone. */
+.terrain-forest {
+  background: rgba(30, 70, 35, 0.22);
+  border-radius: 4px;
+}
+.terrain-rock {
+  background: rgba(110, 105, 90, 0.18);
+  border-radius: 3px;
+}
+.terrain-highground {
+  background: rgba(160, 190, 90, 0.16);
+  border-radius: 6px 6px 2px 2px;
+}
+.terrain-boulder {
+  background: rgba(60, 58, 50, 0.28);
+  border-radius: 4px;
+}
+
+/* Open grassland — a couple of faint tufts so the field reads as grass. */
+.terrain-grass::before {
+  content: "";
+  position: absolute;
+  left: 44%;
+  bottom: 14%;
+  width: 18px;
+  height: 9px;
+  background:
+    radial-gradient(circle at 4px 9px, rgba(198, 214, 128, 0.45) 2px, transparent 3px),
+    radial-gradient(circle at 12px 9px, rgba(198, 214, 128, 0.35) 2px, transparent 3px);
+}
+
+/* Forest — a clump of conifers that also blocks line of sight. */
+.terrain-forest::before,
+.terrain-forest::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 22px solid #2c5730;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
+}
+
+.terrain-forest::before {
+  left: 10%;
+  bottom: 16%;
+}
+
+.terrain-forest::after {
+  left: 34%;
+  bottom: 26%;
+  border-bottom-color: #3b7040;
+  border-left-width: 7px;
+  border-right-width: 7px;
+  border-bottom-width: 17px;
+}
+
+/* Rocky ground — angular stones; costly to cross but not impassable. */
+.terrain-rock::before {
+  content: "";
+  position: absolute;
+  left: 18%;
+  bottom: 18%;
+  width: 30%;
+  height: 24%;
+  background: #8d8b80;
+  clip-path: polygon(50% 0, 100% 58%, 78% 100%, 18% 100%, 0 52%);
+  opacity: 0.85;
+}
+
+.terrain-rock::after {
+  content: "";
+  position: absolute;
+  left: 52%;
+  bottom: 14%;
+  width: 22%;
+  height: 16%;
+  background: #6f6d63;
+  clip-path: polygon(40% 0, 100% 66%, 62% 100%, 0 76%);
+  opacity: 0.8;
+}
+
+/* High ground — a raised ridge the archers fight from. */
+.terrain-highground::before {
+  content: "";
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  bottom: 6%;
+  height: 64%;
+  background: linear-gradient(180deg, rgba(158, 196, 116, 0.6), rgba(92, 136, 66, 0.32));
+  border-top: 2px solid rgba(222, 240, 178, 0.6);
+  border-radius: 42% 42% 12% 12% / 58% 58% 10% 10%;
+}
+
+/* Rock formation — impassable, and it blocks shots. */
+.terrain-boulder::before {
+  content: "";
+  position: absolute;
+  left: 16%;
+  bottom: 12%;
+  width: 68%;
+  height: 52%;
+  background: linear-gradient(160deg, #7f7c6f, #4f4d45);
+  clip-path: polygon(18% 100%, 4% 46%, 26% 6%, 60% 0, 92% 28%, 100% 76%, 76% 100%);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.5);
+}
+
+.terrain-boulder::after {
+  content: "";
+  position: absolute;
+  left: 30%;
+  bottom: 40%;
+  width: 24%;
+  height: 10%;
+  background: rgba(226, 226, 210, 0.25);
+  clip-path: polygon(20% 100%, 0 20%, 60% 0, 100% 70%);
+}
+/* 4.1 BLUE UNITS (LEFT) — faces right */
+.unit.blue .unit-art {
+  transform: scaleX(1);
+}
+
+/* 4.2 RED UNITS (RIGHT) — faces left */
+.unit.red .unit-art {
+  transform: scaleX(-1);
+}
+
+/* 5. UNIT ARTWORK
+ *
+ * Every troop is a large illustration that stands on the ground line of its
+ * own row. The picture is sized against the battlefield, not against the
+ * screen, so the whole army keeps its proportions on a phone as well as on
+ * a desktop.
+ *
+ * The picture is taller than the cell it stands on: a troop rises out of
+ * its own square and leans over the lane behind it, which is what makes the
+ * army read as a mass of fighters instead of a row of tokens. The picture
+ * is wider than its cell as well, but never so wide that it swallows the
+ * column next to it.
+ */
+.unit {
+  position: absolute;
+  width: 10%;
+  height: 25cqh;
+  text-align: center;
+  text-shadow: 0 2px 3px #17251c;
+  cursor: pointer;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  transition: left 0.35s ease, top 0.35s ease, opacity 0.3s ease;
+}
+
+/* The art box carries the picture and everything that moves with it. */
+.unit-art {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: var(--art-w);
+  height: var(--art-h);
+  margin-left: calc(var(--art-w) / -2 + var(--art-shift, 0cqw));
+  pointer-events: none;
+}
+
+.unit.champion {
+  width: 20%;
+}
+
+/* The champion's picture fills its own cell: it is taller than the other
+ * troops and it stands between two columns, but it never reaches into the
+ * lane behind it. A picture that grew past its cell would be hidden by the
+ * troop standing behind, and it would be cut off by the edge of the field
+ * when the champion stood in the front lane. */
+.unit.champion .unit-art {
+  width: var(--champ-art-w);
+  height: var(--champ-art-h);
+  margin-left: calc(var(--champ-art-w) / -2 + var(--art-shift, 0cqw));
+}
+
+/* 5.1 THE EDGE SHIFT
+ *
+ * A picture is wider than the cell it stands on, so a troop in the first
+ * column would hang over the left edge of the field, and a troop in the
+ * last column over the right one. Each picture is nudged back inside by
+ * exactly the width it overhangs, so the army never leaves the ground it
+ * fights on. The nudge is worked out from the size of the picture itself,
+ * so a picture that grows later keeps its own edge.
+ */
+.unit[data-col="0"] {
+  --art-shift: calc((var(--art-w) - 10cqw) / 2);
+}
+
+.unit[data-col="9"] {
+  --art-shift: calc((10cqw - var(--art-w)) / 2);
+}
+
+/* The champion is drawn across two whole columns, so it overhangs by less. */
+.unit.champion[data-col="0"] {
+  --art-shift: calc((var(--champ-art-w) - 20cqw) / 2);
+}
+
+.unit.champion[data-col="9"] {
+  --art-shift: calc((20cqw - var(--champ-art-w)) / 2);
+}
+
+/* 4.4 OVERLAY LAYER
+ *
+ * The name and the health bar of a troop are drawn above every picture, so
+ * that a large figure never hides the numbers of the fighter behind it.
+ */
+.overlay-layer {
+  position: absolute;
+  top: var(--field-top);
+  bottom: 6px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 4;
+  /* The layer measures itself the same way the troops do, so that a name
+   * and a health bar keep the size of the field they belong to. */
+  container-type: size;
+  container-name: field;
+}
+
+.unit-overlay {
+  position: absolute;
+  width: 10%;
+  height: 25cqh;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: left 0.35s ease, top 0.35s ease;
+  --own-art-h: var(--art-h);
+}
+
+.unit-overlay.champion {
+  width: 20%;
+  --own-art-h: var(--champ-art-h);
+}
+
+.unit-overlay.defeated {
+  opacity: 0.35;
+}
+
+/* 5.0 DAMAGE NUMBERS — the number of a blow, shown on the field
+ *
+ * The number sits over the unit that was hit, so the player can read a
+ * fight without following the log. It is decoration only: it never changes
+ * a rule, and it takes itself away when the animation is over.
+ */
+.damage-pop {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1;
+  color: #ffe9a8;
+  text-shadow: 0 1px 2px #17251c, 0 0 6px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+  z-index: 4;
+  white-space: nowrap;
+  animation: damage-pop 0.9s ease-out forwards;
+}
+
+/* A blow that fells the unit is written larger and in the colour of the
+ * falling legion, so a kill reads at a glance. */
+.damage-pop-kill {
+  font-size: 16px;
+  color: #ffb3a0;
+}
+
+@keyframes damage-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.75);
+  }
+  18% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px) scale(1);
+  }
+}
+
+/* The inline SVG is the fallback: it is only seen when a picture cannot be
+ * loaded. It fills the art box, so the troop keeps its place on the field. */
+.unit-silhouette {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+}
+
+/* The troop picture itself. It stands on the bottom of the art box, so the
+ * feet of the figure never float above the ground. Stronger shadow + soft
+ * ground contact so the ranks read as a mass of fighters on the field. */
+.unit-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.62))
+          drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4))
+          contrast(1.08) saturate(1.06);
+  pointer-events: none;
+}
+
+/* Soft ground contact shadow under every fighter so they sit on the grass
+ * instead of floating. */
+.unit-art::before {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 1%;
+  height: 10%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.38) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* A picture that failed to load steps aside for the inline silhouette. */
+.unit-image-missing {
+  display: none;
+}
+
+/* The <svg> wrapper must fill the silhouette box for the <use> to scale. */
+.unit-glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.unit-silhouette use,
+.unit-silhouette symbol * {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.unit-label {
+  position: absolute;
+  left: 50%;
+  top: calc(-1 * (var(--own-art-h) - 25cqh) - 19px);
+  transform: translateX(-50%);
+  font-family: Arial, sans-serif;
+  font-size: clamp(7px, 1.8vw, 10px);
+  font-weight: bold;
+  color: #fff3d4;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0.92;
+  text-shadow: 0 1px 3px #17251c, 0 0 5px rgba(0, 0, 0, 0.8);
+}
+
+.unit-health {
+  position: absolute;
+  top: calc(-1 * (var(--own-art-h) - 25cqh) - 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 62%;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0.85;
+  pointer-events: none;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+}
+
+.unit-overlay.champion .unit-health {
+  width: 40%;
+  height: 6px;
+}
+
+.health-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 2px;
+  transition: width 0.25s ease, background-color 0.2s ease;
+}
+
+/* The ring of the selected unit stands on the ground around its feet. */
+.selection-ring {
+  position: absolute;
+  left: 50%;
+  bottom: 1cqh;
+  width: 12cqw;
+  height: 12cqw;
+  border: 2px solid #e9c66c;
+  border-radius: 50%;
+  transform: translateX(-50%) scale(0.92);
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(233, 198, 108, 0.55);
+  z-index: 2;
+}
+
+.unit.champion .selection-ring {
+  width: 16cqw;
+  height: 16cqw;
+}
+
+/* 6. TEAM IDENTITY & COLORS */
+.unit.blue .unit-silhouette {
+  color: #c5e3ff;
+}
+
+.unit.red .unit-silhouette {
+  color: #ffc4ad;
+}
+
+.unit-overlay.blue .health-fill {
+  background: #60a5fa;
+}
+
+.unit-overlay.red .health-fill {
+  background: #f87171;
+}
+
+.unit-overlay.champion .unit-label {
+  font-size: clamp(8px, 2vw, 11px);
+  color: #e9c66c;
+}
+
+.unit-overlay.champion .health-fill {
+  height: 6px;
+}
+
+/* 7. TACTICAL INDICATORS */
+
+/* Movement destination markers */
+.move-indicator {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #60a5fa;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.18);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.move-indicator.target-red {
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.18);
+}
+
+/* Attack target markers — ring colour follows the team being attacked */
+.attack-indicator {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 2px solid #f87171;
+  border-radius: 50%;
+  background: rgba(248, 113, 113, 0.22);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.attack-indicator.target-blue {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.22);
+}
+
+.move-indicator:hover,
+.attack-indicator:hover {
+  opacity: 0.85;
+}
+
+/* 7.1 ABILITY TARGET MARKER */
+.attack-indicator.ability-target {
+  border-color: #e9c66c;
+  background: rgba(233, 198, 108, 0.25);
+  width: 30px;
+  height: 30px;
+}
+
+/* 8.8 PROGRESSION STRIP
+ * A compact cell of the control bar: level, experience, unspent ability
+ * points and the reset.
+ */
+.progression-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  border: 1px solid rgba(233, 198, 108, 0.25);
+  border-radius: 5px;
+  background: rgba(18, 34, 26, 0.5);
+  white-space: nowrap;
+}
+
+/* A spectator battle pays nothing, so the progression strip steps back and
+ * says so. */
+.progression-strip.spectating {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.prog-level-badge,
+.prog-points-badge {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+  white-space: nowrap;
+}
+
+.prog-level-badge span,
+.prog-points-badge span {
+  color: #e9c66c;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.prog-xp-block {
+  width: 88px;
+  flex: 0 0 auto;
+}
+
+.prog-xp-bar {
+  height: 5px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.prog-xp-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #c99f3f, #e9c66c);
+  transition: width 0.3s ease;
+}
+
+.prog-xp-text {
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: #aab7a3;
+  line-height: 1.3;
+}
+
+/* 8.9 CHAMPION PANEL
+ * Shown only while the player's champion is selected, so the battlefield
+ * keeps as much room as possible on a phone. Inside the control bar it is a
+ * single row of ability chips.
+ */
+.champion-panel {
+  overflow-y: auto;
+  max-height: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 8px;
+  border: 1px solid rgba(233, 198, 108, 0.3);
+  border-radius: 6px;
+  background: rgba(18, 34, 26, 0.5);
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+}
+
+.champion-panel.hidden {
+  display: none;
+}
+
+.champ-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.champ-title {
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  color: #e9c66c;
+  white-space: nowrap;
+}
+
+.champ-level {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+  white-space: nowrap;
+}
+
+.champ-stats {
+  font-size: 7px;
+  color: #aab7a3;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.ability-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ability-row {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    "name button"
+    "state button";
+  align-items: center;
+  gap: 0 6px;
+  padding: 3px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.ability-row.locked {
+  opacity: 0.62;
+}
+
+.ability-row.ready {
+  border-color: rgba(233, 198, 108, 0.5);
+}
+
+.ability-name {
+  grid-area: name;
+  font-size: 8px;
+  font-weight: bold;
+  color: #fff4d0;
+  white-space: nowrap;
+}
+
+/* The full description of an ability lives in the tooltip of its row: the
+ * control bar has no room for a paragraph. */
+.ability-desc {
+  display: none;
+}
+
+.ability-state {
+  grid-area: state;
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: #e9c66c;
+  white-space: nowrap;
+}
+
+.ability-row.locked .ability-state {
+  color: #f87171;
+}
+
+.ability-button {
+  grid-area: button;
+  border: 1px solid #e9c66c;
+  border-radius: 4px;
+  background: linear-gradient(#b9944b, #75552a);
+  color: #fff4d0;
+  padding: 6px 8px;
+  font-family: Arial, sans-serif;
+  font-size: 7px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  min-width: 52px;
+}
+
+.ability-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ability-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* 8.10 LEVEL UP BANNER */
+.level-up-banner {
+  position: absolute;
+  z-index: 6;
+  top: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border: 2px solid #e9c66c;
+  border-radius: 8px;
+  background: rgba(24, 37, 28, 0.92);
+  color: #e9c66c;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  box-shadow: 0 0 18px rgba(233, 198, 108, 0.45);
+}
+
+.level-up-banner.hidden {
+  display: none;
+}
+
+/* 8.11 COMBAT UI (BOTTOM PANEL)
+ *
+ * One compact control bar. The battlefield is the main thing on the screen,
+ * so everything the player has to read or press lives in a single strip
+ * along the bottom edge: the turn, the selected unit, the champion's
+ * abilities, the progression, the log and the actions.
+ */
+.bottom-panel {
+  z-index: 5;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 10px 8px;
+  background: linear-gradient(#293c30, #111c16);
+  border-top: 2px solid #806b3e;
+}
+
+.hud-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  max-width: 1240px;
+}
+
+.hud-cell {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.hud-turn {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-width: 140px;
+  max-width: 220px;
+}
+
+.hud-selection {
+  flex: 1 1 200px;
+}
+
+.hud-abilities {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.hud-progression {
+  flex: 0 0 auto;
+}
+
+.hud-log {
+  flex: 0 1 240px;
+}
+
+.hud-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#status {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-align: left;
+  color: #e9c66c;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 8.1 TURN BANNER */
+.turn-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  background: rgba(233, 198, 108, 0.12);
+  border: 1px solid rgba(233, 198, 108, 0.3);
+}
+
+.turn-banner.hidden {
+  display: none;
+}
+
+#turn-text {
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  color: #e9c66c;
+}
+
+#round-text {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+}
+
+/* 8.2 COMBAT LOG */
+.combat-log {
+  width: 100%;
+  max-height: 42px;
+  overflow-y: auto;
+  font-family: Arial, sans-serif;
+  font-size: 8px;
+  line-height: 1.3;
+  color: #aab7a3;
+  text-align: left;
+  padding: 3px 7px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.combat-log .log-entry {
+  display: block;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combat-log .log-entry.player {
+  color: #c5e3ff;
+}
+
+.combat-log .log-entry.ai {
+  color: #ffd0bd;
+}
+
+.combat-log .log-entry.system {
+  color: #e9c66c;
+}
+
+/* 8.3 MODE BUTTON
+ *
+ * One button, two states: Hum vs AI starts a duel against the crimson
+ * legion, AI vs AI starts a spectator show. The button toggles between them
+ * and is locked while a battle runs.
+ */
+#mode-button {
+  border: 2px solid #f1d58a;
+  border-radius: 6px;
+  background: linear-gradient(#b9944b, #75552a);
+  color: #fff4d0;
+  padding: 5px 10px;
+  font-family: Georgia, serif;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: normal;
+  text-align: center;
+  max-width: 90px;
+  line-height: 1.2;
+}
+
+#mode-button:active {
+  transform: scale(0.97);
+}
+
+#mode-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 8.3a END TURN BUTTON
+ *
+ * Before a battle it reads START and begins the fight. Once the battle is
+ * under way it reads END TURN and hands the round to the other legion. It
+ * stays on screen the whole time.
+ */
+.end-turn-button {
+  border: 2px solid #f1d58a;
+  border-radius: 6px;
+  background: linear-gradient(#c94a3f, #7a2d2a);
+  color: #fff4d0;
+  padding: 8px 18px;
+  font-family: Georgia, serif;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.end-turn-button:active {
+  transform: scale(0.97);
+}
+
+.end-turn-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 8.4 SELECTION INFO */
+.selection-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 9px;
+  border: 1px solid rgba(233, 198, 108, 0.3);
+  border-radius: 6px;
+  background: rgba(18, 34, 26, 0.5);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.selection-info.hidden {
+  display: none;
+}
+
+.sel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sel-label {
+  font-size: 7px;
+  letter-spacing: 1.5px;
+  color: #aab7a3;
+  text-transform: uppercase;
+}
+
+.sel-name {
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  color: #fff4d0;
+  white-space: nowrap;
+}
+
+.sel-stats {
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: #aab7a3;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.health-bar-wrap {
+  width: 84px;
+  flex: 0 0 auto;
+}
+
+.health-bar-wrap .health-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.action-hints {
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: #aab7a3;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* 8.4b THE DEFENCE STAND BUTTON
+ *
+ * A fighter that braces gives up its action and its armour rises. The
+ * button lives under the selection, so the order is read in the same place
+ * as the rest of the choice.
+ */
+.brace-button {
+  margin-top: 3px;
+  border: 1px solid rgba(157, 190, 220, 0.5);
+  border-radius: 5px;
+  background: rgba(41, 60, 78, 0.8);
+  color: #cfe0f2;
+  padding: 4px 10px;
+  font-family: Georgia, serif;
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.brace-button:active {
+  transform: scale(0.97);
+}
+
+.brace-button.hidden {
+  display: none;
+}
+
+/* 8.5 ABILITY BUTTON */
+.ability-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+  display: flex;
+  justify-content: center;
+}
+
+.ability-wrap.hidden {
+  display: none;
+}
+
+.rally-button {
+  border: 2px solid #e9c66c;
+  border-radius: 6px;
+  background: linear-gradient(#b9944b, #75552a);
+  color: #fff4d0;
+  padding: 8px 16px;
+  font-family: Georgia, serif;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.rally-button:active {
+  transform: scale(0.97);
+}
+
+.rally-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 8.6 END TURN BUTTON */
+.end-turn-button {
+  border: 2px solid #f1d58a;
+  border-radius: 6px;
+  background: linear-gradient(#c94a3f, #7a2d2a);
+  color: #fff4d0;
+  padding: 8px 18px;
+  font-family: Georgia, serif;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.end-turn-button:active {
+  transform: scale(0.97);
+}
+
+/* 8.7 BATTLE RESULT */
+.battle-result {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  text-align: center;
+  color: #e9c66c;
+  min-height: 0;
+}
+
+.battle-result.hidden {
+  display: none;
+}
+
+.battle-result.victory {
+  color: #86efac;
+}
+
+.battle-result.defeat {
+  color: #f87171;
+}
+
+.battle-result.draw {
+  color: #d0d3b9;
+}
+
+/* 9. ANIMATIONS */
+/* The unit box is centred on its grid cell with translate(-50%, -50%).
+ * Every keyframe that animates `transform` must repeat that translate,
+ * otherwise the animation replaces the centring and the unit drifts to the
+ * top-left corner of its cell. */
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 14px)) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.unit {
+  animation: arrive 0.55s ease-out both;
+}
+
+@keyframes idle-breathe {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, calc(-50% - 2px)) scale(1.015);
+  }
+}
+
+.unit.champion {
+  animation: idle-breathe 3.5s ease-in-out infinite;
+}
+
+@keyframes select-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translateX(-50%) scale(0.92);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translateX(-50%) scale(1.06);
+  }
+}
+
+.unit.selected .selection-ring {
+  opacity: 1;
+  animation: select-pulse 2s ease-in-out infinite;
+}
+
+/* Lunge animations use the independent `translate` property so they compose
+ * with the red facing flip (`transform: scaleX(-1)`) instead of replacing it. */
+@keyframes attack-lunge {
+  0%, 100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 18px 0;
+  }
+}
+
+.unit.blue.attacking .unit-art {
+  animation: attack-lunge 0.5s ease-in-out both;
+}
+
+@keyframes attack-lunge-red {
+  0%, 100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: -18px 0;
+  }
+}
+
+.unit.red.attacking .unit-art {
+  animation: attack-lunge-red 0.5s ease-in-out both;
+}
+
+/* A troop that has been hit shudders and glows red for a second: the blow
+ * has to be felt, not only counted. */
+@keyframes hit-shake {
+  0%, 100% {
+    translate: 0 0;
+  }
+  10% {
+    translate: -6px 0;
+  }
+  20% {
+    translate: 6px 0;
+  }
+  30% {
+    translate: -5px 0;
+  }
+  40% {
+    translate: 5px 0;
+  }
+  50% {
+    translate: -4px 0;
+  }
+  60% {
+    translate: 4px 0;
+  }
+  70% {
+    translate: -3px 0;
+  }
+  80% {
+    translate: 3px 0;
+  }
+  90% {
+    translate: -2px 0;
+  }
+}
+
+@keyframes hit-aura {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  55% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.unit.damaged .unit-art {
+  animation: hit-shake 0.85s ease-in-out both;
+  filter: drop-shadow(0 0 14px rgba(255, 80, 80, 1))
+          drop-shadow(0 0 6px rgba(255, 40, 40, 0.8));
+}
+
+/* The red aura around a fighter that has been hit. */
+.unit.damaged::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 0;
+  width: var(--art-w);
+  height: var(--art-h);
+  margin-left: calc(var(--art-w) / -2 + var(--art-shift, 0cqw));
+  background: radial-gradient(
+    ellipse at 50% 65%,
+    rgba(255, 70, 70, 0.75),
+    rgba(255, 40, 40, 0.28) 50%,
+    rgba(255, 40, 40, 0) 78%
+  );
+  animation: hit-aura 0.9s ease-out both;
+  pointer-events: none;
+}
+
+.unit.champion.damaged::after {
+  width: var(--champ-art-w);
+  height: var(--champ-art-h);
+  margin-left: calc(var(--champ-art-w) / -2 + var(--art-shift, 0cqw));
+}
+  height: var(--champ-art-h);
+  margin-left: calc(var(--champ-art-w) / -2 + var(--art-shift, 0cqw));
+}
+
+/* 5.2 THE DEFENCE STAND
+ *
+ * A fighter that braces is drawn behind a shield: a pale arc in front of the
+ * picture, so the stance is read on the field and not only in the log.
+ */
+@keyframes brace-glow {
+  0%, 100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.unit.braced::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 0;
+  width: var(--art-w);
+  height: var(--art-h);
+  margin-left: calc(var(--art-w) / -2 + var(--art-shift, 0cqw));
+  background: radial-gradient(
+    ellipse at 50% 80%,
+    rgba(157, 190, 220, 0.5),
+    rgba(157, 190, 220, 0.12) 60%,
+    rgba(157, 190, 220, 0) 78%
+  );
+  animation: brace-glow 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.unit.champion.braced::before {
+  width: var(--champ-art-w);
+  height: var(--champ-art-h);
+  margin-left: calc(var(--champ-art-w) / -2 + var(--art-shift, 0cqw));
+}
+
+@keyframes defeat-fade {
+  to {
+    opacity: 0;
+    translate: 0 16px;
+    scale: 0.75;
+  }
+}
+
+.unit.defeated {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.unit.defeated .unit-art {
+  animation: defeat-fade 0.55s ease-in both forwards;
+}
+
+/* 9.1 MOVEMENT & ABILITY ANIMATIONS */
+@keyframes move-hop {
+  0%, 100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -5px;
+  }
+}
+
+.unit.moving .unit-art {
+  animation: move-hop 0.4s ease-out both;
+}
+
+@keyframes rally-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 rgba(233, 198, 108, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(233, 198, 108, 0.8));
+  }
+}
+
+.unit.rallied .unit-art {
+  animation: rally-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes guard-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 rgba(126, 186, 255, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(126, 186, 255, 0.8));
+  }
+}
+
+.unit.guarded .unit-art {
+  animation: guard-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes ai-thinking {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.ai-turn-active .unit.red .unit-art {
+  animation: ai-thinking 1.5s ease-in-out infinite;
+}
+
+/* In a spectator battle the azure legion holds the field while it thinks,
+ * so the pulse has to follow the team that is actually acting. */
+.ai-turn-blue-active .unit.blue .unit-art {
+  animation: ai-thinking 1.5s ease-in-out infinite;
+}
+
+/* 9.2 REDUCED MOTION */
+@media (prefers-reduced-motion: reduce) {
+  .unit,
+  .unit.selected .selection-ring,
+  .unit.champion,
+  .unit.attacking .unit-art,
+  .unit.damaged .unit-art,
+  .unit.defeated .unit-art,
+  .unit.moving .unit-art,
+  .unit.rallied .unit-art,
+  .unit.guarded .unit-art,
+  .ai-turn-active .unit.red .unit-art,
+  .ai-turn-blue-active .unit.blue .unit-art {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* The number of a blow is still shown, but it does not fly around: it
+   * stands still and is taken away by the same timer as before. */
+  .damage-pop {
+    animation: none !important;
+  }
+
+  .unit.selected .selection-ring {
+    opacity: 1;
+  }
+
+  .unit.defeated {
+    opacity: 0.4;
+  }
+
+  .health-fill {
+    transition: none;
+  }
+}
+
+/* 10. RESPONSIVE LAYOUT */
+
+/* On a narrow screen the control bar folds into a few short rows. Every
+ * button keeps its full size: a bar of tiny buttons would be unreadable. */
+@media (max-width: 900px) {
+  .hud-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "turn turn"
+      "actions actions"
+      "progression log"
+      "selection selection"
+      "abilities abilities";
+    gap: 6px;
+  }
+
+  .hud-turn {
+    grid-area: turn;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .hud-actions {
+    grid-area: actions;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    margin-left: 0;
+    justify-content: stretch;
+  }
+
+  .hud-actions > * {
+    justify-self: center;
+  }
+
+  .hud-selection:has(#selection-info.hidden),
+  .hud-abilities:has(.ability-wrap.hidden):has(.champion-panel.hidden) {
+    display: none;
+  }
+
+  .hud-selection {
+    grid-area: selection;
+    min-width: 0;
+  }
+
+  .hud-abilities {
+    grid-area: abilities;
+    min-width: 0;
+  }
+
+  .hud-progression {
+    grid-area: progression;
+    flex: 0 0 auto;
+  }
+
+  .hud-log {
+    grid-area: log;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .combat-log {
+    max-height: 30px;
+  }
+}
+
+@media (max-height: 680px) {
+  .landscape {
+    min-height: 430px;
+  }
+
+  .bottom-panel {
+    padding: 5px 8px 6px;
+  }
+
+  .combat-log {
+    max-height: 24px;
+  }
+}
+
+@media (max-width: 420px) {
+  .army-name {
+    font-size: 8px;
+  }
+
+  .battle-label {
+    font-size: 8px;
+  }
+
+  #mode-button {
+    padding: 5px 6px;
+    font-size: 9px;
+    white-space: normal;
+    max-width: 100%;
+  }
+
+  .end-turn-button {
+    padding: 6px 5px;
+    font-size: 9px;
+  }
+
+  .hud-actions { gap: 4px; }
+
+  .move-indicator,
+  .attack-indicator {
+    width: 18px;
+    height: 18px;
+  }
+
+  .attack-indicator.ability-target {
+    width: 24px;
+    height: 24px;
+  }
+
+  .combat-log {
+    font-size: 7px;
+  }
+
+  .terrain-forest::before,
+  .terrain-forest::after {
+    border-left-width: 7px;
+    border-right-width: 7px;
+    border-bottom-width: 16px;
+  }
+
+  .terrain-forest::after {
+    border-bottom-width: 13px;
+  }
+
+  .ability-desc {
+    display: none;
+  }
+}
+
+@media (max-width: 340px) {
+  .move-indicator,
+  .attack-indicator {
+    width: 16px;
+    height: 16px;
+  }
+}
+/* ======================================================================
+   v1.5.0 — PRE-BATTLE SELECTOR, POST-BATTLE REPORT & SPECTATOR SHOW
+   ====================================================================== */
+
+/* 1. SETUP PANEL
+ *
+ * The selector is a drawer that opens above the control bar, so the whole
+ * top of the screen belongs to the battlefield. It is drawn from the same
+ * map data the engine plays on, so a card can never promise ground the
+ * battlefield does not have.
+ */
+.setup-panel {
+  position: absolute;
+  z-index: 6;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  padding: 8px 12px 10px;
+  background: linear-gradient(#1f2f24, #17251c);
+  border-top: 2px solid #806b3e;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.5);
+}
+
+/* The drawer is closed until the BATTLEFIELDS button opens it. When closed
+ * only the header stays visible, so the selector keeps a small footprint
+ * instead of eating the screen. */
+.setup-panel.collapsed .setup-block {
+  display: none;
+}
+
+/* The ground and the opponent are chosen between battles. During a fight
+ * the selector is locked, so the field can never change under the units. */
+.setup-panel.locked .difficulty-button,
+.setup-panel.locked .map-card {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.setup-panel.locked .setup-title::after {
+  content: " — LOCKED DURING THE BATTLE";
+  color: #9fb08a;
+  letter-spacing: 1px;
+}
+
+.setup-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.setup-title {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #e9c66c;
+}
+
+.setup-toggle {
+  padding: 3px 12px;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+  background: #293c30;
+  border: 1px solid #806b3e;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.setup-block {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.setup-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #9fb08a;
+  min-width: 74px;
+}
+
+.setup-hint {
+  font-size: 9px;
+  color: #b7bd9a;
+  font-style: italic;
+}
+
+/* 2. DIFFICULTY BUTTONS */
+.difficulty-row {
+  display: flex;
+  gap: 6px;
+}
+
+.difficulty-button {
+  padding: 5px 16px;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+  background: #22332a;
+  border: 1px solid #4c6349;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.difficulty-button.selected {
+  color: #17251c;
+  background: #e9c66c;
+  border-color: #f0dc9c;
+  font-weight: bold;
+}
+
+/* 2.2 DIFFICULTY CYCLE
+ *
+ * The small control in the footer that lets the player cycle the AI
+ * difficulty before a battle: Easy → Normal → Hard → Easy. */
+.difficulty-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.difficulty-label {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.difficulty-cycle-button {
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+  background: #22332a;
+  border: 1px solid #4c6349;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.difficulty-cycle-button:active {
+  transform: scale(0.97);
+}
+
+/* 2.2b TURN MODE
+ *
+ * The turn mode selects how the blue legion acts: "Party" moves every blue
+ * fighter in one go, while "Troop" hands out one move per fighter per round
+ * (a Heroes of Might & Magic style, to be filled out later). Default is
+ * Party. */
+.turn-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-right: 8px;
+}
+
+.turn-label {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aab7a3;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.turn-cycle-button {
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #d0d3b9;
+  background: #22332a;
+  border: 1px solid #4c6349;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.turn-cycle-button:active {
+  transform: scale(0.97);
+}
+
+/* 3. MAP CARDS */
+.map-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.map-card {
+  flex: 1 1 160px;
+  max-width: 230px;
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  font-family: inherit;
+  text-align: left;
+  color: #d0d3b9;
+  background: #22332a;
+  border: 1px solid #4c6349;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.map-card.selected {
+  border-color: #e9c66c;
+  background: #2b3d2f;
+  box-shadow: 0 0 0 1px rgba(233, 198, 108, 0.35);
+}
+
+.map-name {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  color: #e9c66c;
+}
+
+.map-tagline {
+  font-size: 8px;
+  line-height: 1.35;
+  color: #a8b194;
+}
+
+/* The little picture of the ground. */
+.map-preview {
+  display: grid;
+  grid-template-rows: repeat(4, 6px);
+  grid-auto-flow: column;
+  grid-auto-columns: 6px;
+  gap: 1px;
+  margin-top: 3px;
+}
+
+.map-preview-cell {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+}
+
+/* The preview carries the same terrain class names as the battlefield, but
+ * without the drawn decorations — the colour is enough at this size. */
+.map-preview-cell::before,
+.map-preview-cell::after {
+  content: none;
+}
+
+.map-preview-cell.terrain-grass { background: #6c984c; }
+.map-preview-cell.terrain-forest { background: #2c5730; }
+.map-preview-cell.terrain-rock { background: #8d8b80; }
+.map-preview-cell.terrain-highground { background: #b9c06a; }
+.map-preview-cell.terrain-boulder { background: #4f4d45; }
+
+/* 4. POST-BATTLE REPORT
+ *
+ * The report is written from the battle ledger, so the numbers always match
+ * the rewards that were actually paid out.
+ */
+.battle-report {
+  margin: 8px auto 4px;
+  padding: 9px 11px;
+  width: min(560px, 96%);
+  text-align: left;
+  background: rgba(23, 37, 28, 0.92);
+  border: 1px solid #806b3e;
+  border-radius: 4px;
+}
+
+.report-head {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(128, 107, 62, 0.5);
+}
+
+.report-outcome {
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #e9c66c;
+}
+
+.report-outcome.defeat { color: #f87171; }
+.report-outcome.stalemate { color: #d0d3b9; }
+.report-outcome.draw { color: #d0d3b9; }
+
+.report-map {
+  font-size: 10px;
+  color: #d0d3b9;
+}
+
+.report-difficulty {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #9fb08a;
+}
+
+/* Whether the fight was a player battle or a watched one. The word is
+ * written out, so the mode never depends on colour alone. */
+.report-mode {
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 1px 5px;
+  border: 1px solid rgba(159, 176, 138, 0.45);
+  border-radius: 3px;
+  color: #9fb08a;
+}
+
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 8px;
+}
+
+.report-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.report-label {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #9fb08a;
+}
+
+.report-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff5d7;
+}
+
+.report-breakdown {
+  margin-top: 7px;
+  font-size: 9px;
+  color: #d0d3b9;
+}
+
+.report-level {
+  margin-top: 3px;
+  font-size: 9px;
+  font-style: italic;
+  color: #b7bd9a;
+}
+
+@media (max-width: 560px) {
+  .setup-label {
+    min-width: 100%;
+  }
+
+  .setup-panel {
+    gap: 4px;
+    padding: 6px 8px 8px;
+  }
+
+  .map-card {
+    flex: 1 1 44%;
+    max-width: none;
+    padding: 5px 6px 6px;
+  }
+
+  .map-tagline {
+    display: none;
+  }
+
+  .map-preview {
+    grid-template-rows: repeat(4, 4px);
+    grid-auto-columns: 4px;
+  }
+
+  .map-preview-cell {
+    width: 4px;
+    height: 4px;
+  }
+
+  .report-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

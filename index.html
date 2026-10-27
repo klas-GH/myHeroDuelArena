@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17251c">
+  <title>myHeroDuelArena v1.9.0</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+  <main id="arena">
+
+    <header class="topbar">
+      <div class="game-title">MY HERO DUEL ARENA</div>
+      <div class="version">v1.9.0 — RETRO PIXEL FANTASY TACTICS</div>
+    </header>
+
+    <section class="landscape" id="battlefield" aria-label="Outdoor castle battlefield">
+
+      <div class="sky"></div>
+      <div class="sun"></div>
+      <div class="cloud cloud-one"></div>
+      <div class="cloud cloud-two"></div>
+
+      <div class="mountains"></div>
+
+      <div class="citadel citadel-blue" aria-hidden="true">
+        <div class="citadel-wall">
+          <div class="citadel-battlements"></div>
+          <div class="citadel-tower">
+            <div class="citadel-roof"></div>
+            <div class="citadel-window"></div>
+          </div>
+          <div class="citadel-gate"></div>
+        </div>
+      </div>
+
+      <div class="citadel citadel-red" aria-hidden="true">
+        <div class="citadel-wall">
+          <div class="citadel-battlements"></div>
+          <div class="citadel-tower">
+            <div class="citadel-roof"></div>
+            <div class="citadel-window"></div>
+          </div>
+          <div class="citadel-gate"></div>
+        </div>
+      </div>
+
+      <div class="ground-hill"></div>
+      <div class="grass"></div>
+
+      <div class="battle-label">THE CHAMPIONS' FIELD</div>
+
+      <section class="army army-blue">
+        <div class="army-name">AZURE LEGION</div>
+      </section>
+
+      <section class="army army-red">
+        <div class="army-name">CRIMSON LEGION</div>
+      </section>
+
+      <div class="terrain-layer" id="terrain-layer"></div>
+
+      <div class="units-layer" id="blue-units"></div>
+      <div class="units-layer" id="red-units"></div>
+
+      <div class="overlay-layer" id="overlay-layer"></div>
+
+      <div class="marker-layer" id="move-indicators"></div>
+      <div class="marker-layer" id="attack-indicators"></div>
+      <div class="center-line"></div>
+
+      <div id="level-up-banner" class="level-up-banner hidden">
+        <span id="level-up-text">CHAMPION LEVEL 2</span>
+      </div>
+
+      <div id="battle-report" class="battle-report hidden">
+        <div class="report-head">
+          <span id="report-outcome" class="report-outcome">VICTORY</span>
+          <span id="report-map" class="report-map">The Old Frontier</span>
+          <span id="report-difficulty" class="report-difficulty">Normal</span>
+          <span id="report-mode" class="report-mode">PLAYER</span>
+        </div>
+        <div class="report-grid">
+          <div class="report-cell">
+            <span class="report-label">ROUNDS</span>
+            <span id="report-rounds" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">DAMAGE DEALT</span>
+            <span id="report-damage" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">DAMAGE TAKEN</span>
+            <span id="report-taken" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">ENEMIES FELLED</span>
+            <span id="report-kills" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">UNITS LOST</span>
+            <span id="report-losses" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">XP EARNED</span>
+            <span id="report-xp" class="report-value">0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">SURVIVORS</span>
+            <span id="report-survivors" class="report-value">0 / 0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">HEALTH LEFT</span>
+            <span id="report-health" class="report-value">0 / 0</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">DECIDED BY</span>
+            <span id="report-decided" class="report-value">ELIMINATION</span>
+          </div>
+          <div class="report-cell">
+            <span class="report-label">DUEL SCORE</span>
+            <span id="report-duel" class="report-value">—</span>
+          </div>
+        </div>
+        <div id="report-breakdown" class="report-breakdown"></div>
+        <div id="report-level" class="report-level"></div>
+      </div>
+    </section>
+
+    <footer class="bottom-panel">
+      <div class="hud-bar">
+        <div class="hud-cell hud-turn">
+          <div id="turn-banner" class="turn-banner hidden">
+            <span id="turn-text">PLAYER TURN</span>
+            <span id="round-text">ROUND 1</span>
+          </div>
+          <div id="status">THE ARMIES AWAIT YOUR COMMAND</div>
+        </div>
+
+        <div class="hud-cell hud-selection">
+          <div id="selection-info" class="selection-info hidden">
+            <div class="sel-head">
+              <span class="sel-label">SELECTED</span>
+              <span id="selected-name" class="sel-name">--</span>
+            </div>
+            <div id="selected-stats" class="sel-stats"></div>
+            <div class="health-bar-wrap">
+              <div class="health-bar"><div id="selected-health" class="health-fill"></div></div>
+            </div>
+            <div id="action-hints" class="action-hints"></div>
+            <button id="brace-button" class="brace-button hidden" type="button"
+                    title="Give up your action and brace: your armour rises by 20% until you act again.">DEFENCE STAND</button>
+          </div>
+        </div>
+
+        <div class="hud-cell hud-abilities">
+          <div id="ability-button-wrap" class="ability-wrap hidden">
+            <div id="ability-actions" class="ability-actions"></div>
+          </div>
+
+          <div id="champion-panel" class="champion-panel hidden">
+            <div class="champ-head">
+              <span class="champ-title">AZURE CHAMPION</span>
+              <span id="champ-level" class="champ-level">LEVEL 1</span>
+            </div>
+            <div id="champ-stats" class="champ-stats"></div>
+            <div id="ability-list" class="ability-list"></div>
+          </div>
+        </div>
+
+        <div class="hud-cell hud-progression">
+          <div id="progression-strip" class="progression-strip">
+            <div class="prog-level-badge">LV <span id="prog-level">1</span></div>
+            <div class="prog-xp-block">
+              <div class="prog-xp-bar"><div id="prog-xp-fill" class="prog-xp-fill"></div></div>
+              <div id="prog-xp-text" class="prog-xp-text">0 / 100 XP</div>
+            </div>
+            <div class="prog-points-badge">AP <span id="prog-points">1</span></div>
+          </div>
+        </div>
+
+        <div class="hud-cell hud-log">
+          <div id="combat-log" class="combat-log"></div>
+        </div>
+
+        <div class="hud-cell hud-actions">
+          <div class="turn-group">
+            <span id="turn-label" class="turn-label">turn:</span>
+            <button id="turn-cycle" class="turn-cycle-button" type="button"
+                    title="Cycle the turn mode: Party (all troops at once) or Troop (one troop at a time).">Party</button>
+          </div>
+          <div class="difficulty-group">
+            <span id="difficulty-label" class="difficulty-label">Difficulty:</span>
+            <button id="difficulty-cycle" class="difficulty-cycle-button" type="button"
+                    title="Cycle the AI difficulty: Easy, Normal, Hard.">Normal</button>
+          </div>
+          <button id="mode-button" type="button"
+                  title="Toggle the fight: Human vs AI or AI vs AI.">Hum vs AI</button>
+          <button id="end-turn-button" class="end-turn-button" type="button">START</button>
+        </div>
+      </div>
+
+      <div id="battle-result" class="battle-result hidden"></div>
+    </footer>
+
+  </main>
+
+  <!-- 5. UNIT SILHOUETTE TEMPLATES (embedded SVG, no external assets) -->
+  <svg id="unit-silhouettes" style="display: none">
+    <symbol id="sil-archer" viewBox="0 0 100 100">
+      <circle cx="50" cy="18" r="7"/>
+      <rect x="46" y="26" width="8" height="26"/>
+      <path d="M 36 36 Q 28 20 28 52" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 54 32 L 66 46 L 54 60" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 46 52 L 42 70 L 54 52 L 58 70" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="sil-footman" viewBox="0 0 100 100">
+      <rect x="44" y="14" width="12" height="10"/>
+      <rect x="45" y="26" width="10" height="24"/>
+      <ellipse cx="50" cy="50" rx="16" ry="20"/>
+      <path d="M 56 30 L 74 20 L 76 26 L 58 36 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 34 50 L 44 50 M 66 50 L 76 50" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="sil-ballista" viewBox="0 0 100 100">
+      <rect x="28" y="52" width="44" height="10"/>
+      <circle cx="40" cy="66" r="8"/>
+      <circle cx="60" cy="66" r="8"/>
+      <rect x="44" y="32" width="12" height="22"/>
+      <path d="M 50 32 L 50 16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 50 24 L 62 20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="sil-chevalier" viewBox="0 0 100 100">
+      <rect x="30" y="54" width="40" height="14"/>
+      <path d="M 68 50 Q 82 46 80 58 Q 70 60 68 54" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="48" y="26" width="8" height="20"/>
+      <circle cx="52" cy="22" r="7"/>
+      <path d="M 52 18 L 52 12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 56 26 L 70 16 L 72 22 L 58 32 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="sil-champion" viewBox="0 0 100 100">
+      <circle cx="50" cy="16" r="8"/>
+      <path d="M 44 14 L 44 8 L 50 4 L 56 8 L 56 14 Z"/>
+      <rect x="42" y="24" width="16" height="30"/>
+      <rect x="45" y="40" width="10" height="14"/>
+      <circle cx="50" cy="38" r="5" fill="#e9c66c"/>
+      <path d="M 56 34 L 78 22 L 82 30 L 60 42 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 40 56 L 40 74 L 50 80 L 60 74 L 60 56 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <script src="game.js"></script>
+</body>
+</html>

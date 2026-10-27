@@ -1,0 +1,6353 @@
+{
+  "engine": "v1.7.0",
+  "generatedAt": "2026-10-20T18:01:40.605Z",
+  "options": {
+    "seeds": 20,
+    "seedStart": 1,
+    "variance": 0,
+    "jitter": 0,
+    "maxRounds": 40,
+    "timeoutMs": 5000,
+    "difficulties": [
+      "easy",
+      "normal",
+      "hard"
+    ],
+    "maps": [
+      "old_frontier",
+      "forest_march",
+      "broken_pass",
+      "high_ground"
+    ]
+  },
+  "determinism": {
+    "reproducibleChecked": 12,
+    "reproducibleIdentical": 10,
+    "sensitiveChecked": 12,
+    "sensitiveDifferent": 1,
+    "failures": [
+      {
+        "proof": "sensitive",
+        "difficulty": "easy",
+        "map": "old_frontier",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "easy",
+        "map": "forest_march",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "easy",
+        "map": "broken_pass",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "easy",
+        "map": "high_ground",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "normal",
+        "map": "old_frontier",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "normal",
+        "map": "forest_march",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "normal",
+        "map": "broken_pass",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "normal",
+        "map": "high_ground",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "hard",
+        "map": "old_frontier",
+        "seed": 1
+      },
+      {
+        "proof": "reproducible",
+        "difficulty": "hard",
+        "map": "forest_march",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "hard",
+        "map": "broken_pass",
+        "seed": 1
+      },
+      {
+        "proof": "reproducible",
+        "difficulty": "hard",
+        "map": "high_ground",
+        "seed": 1
+      },
+      {
+        "proof": "sensitive",
+        "difficulty": "hard",
+        "map": "high_ground",
+        "seed": 1
+      }
+    ]
+  },
+  "configurations": [
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "battles": 20,
+      "enemyWins": 0,
+      "referenceWins": 15,
+      "stalemates": 5,
+      "limits": 0,
+      "timeouts": 5,
+      "enemyWinRate": 0,
+      "averageRounds": 10.05,
+      "averageDurationMs": 2955,
+      "averageDamageDealt": 342.1,
+      "averageDamageTaken": 277.9,
+      "averageUnitsLost": 4.6,
+      "averageEnemiesFelled": 6.05,
+      "averageXp": 292.5,
+      "averageDamageXp": 58.5,
+      "averageKillXp": 196.5
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "battles": 20,
+      "enemyWins": 0,
+      "referenceWins": 20,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 0,
+      "averageRounds": 11,
+      "averageDurationMs": 835,
+      "averageDamageDealt": 390,
+      "averageDamageTaken": 293,
+      "averageUnitsLost": 4,
+      "averageEnemiesFelled": 7,
+      "averageXp": 363,
+      "averageDamageXp": 78,
+      "averageKillXp": 235
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "battles": 20,
+      "enemyWins": 0,
+      "referenceWins": 20,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 0,
+      "averageRounds": 11,
+      "averageDurationMs": 750,
+      "averageDamageDealt": 390,
+      "averageDamageTaken": 301,
+      "averageUnitsLost": 5,
+      "averageEnemiesFelled": 7,
+      "averageXp": 363,
+      "averageDamageXp": 78,
+      "averageKillXp": 235
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "battles": 20,
+      "enemyWins": 0,
+      "referenceWins": 20,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 0,
+      "averageRounds": 11,
+      "averageDurationMs": 541,
+      "averageDamageDealt": 390,
+      "averageDamageTaken": 282,
+      "averageUnitsLost": 5,
+      "averageEnemiesFelled": 7,
+      "averageXp": 363,
+      "averageDamageXp": 78,
+      "averageKillXp": 235
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "battles": 20,
+      "enemyWins": 20,
+      "referenceWins": 0,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 1,
+      "averageRounds": 11,
+      "averageDurationMs": 820,
+      "averageDamageDealt": 262,
+      "averageDamageTaken": 390,
+      "averageUnitsLost": 7,
+      "averageEnemiesFelled": 5,
+      "averageXp": 172,
+      "averageDamageXp": 52,
+      "averageKillXp": 120
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "battles": 20,
+      "enemyWins": 20,
+      "referenceWins": 0,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 1,
+      "averageRounds": 11,
+      "averageDurationMs": 737,
+      "averageDamageDealt": 274,
+      "averageDamageTaken": 390,
+      "averageUnitsLost": 7,
+      "averageEnemiesFelled": 4,
+      "averageXp": 159,
+      "averageDamageXp": 54,
+      "averageKillXp": 105
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "battles": 20,
+      "enemyWins": 20,
+      "referenceWins": 0,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 1,
+      "averageRounds": 13,
+      "averageDurationMs": 729,
+      "averageDamageDealt": 357,
+      "averageDamageTaken": 390,
+      "averageUnitsLost": 7,
+      "averageEnemiesFelled": 6,
+      "averageXp": 206,
+      "averageDamageXp": 71,
+      "averageKillXp": 135
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "battles": 20,
+      "enemyWins": 0,
+      "referenceWins": 20,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 0,
+      "averageRounds": 11,
+      "averageDurationMs": 752,
+      "averageDamageDealt": 390,
+      "averageDamageTaken": 316,
+      "averageUnitsLost": 6,
+      "averageEnemiesFelled": 7,
+      "averageXp": 363,
+      "averageDamageXp": 78,
+      "averageKillXp": 235
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "battles": 20,
+      "enemyWins": 20,
+      "referenceWins": 0,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 1,
+      "averageRounds": 11,
+      "averageDurationMs": 591,
+      "averageDamageDealt": 248,
+      "averageDamageTaken": 390,
+      "averageUnitsLost": 7,
+      "averageEnemiesFelled": 5,
+      "averageXp": 169,
+      "averageDamageXp": 49,
+      "averageKillXp": 120
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "battles": 20,
+      "enemyWins": 20,
+      "referenceWins": 0,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 1,
+      "averageRounds": 8,
+      "averageDurationMs": 619,
+      "averageDamageDealt": 256,
+      "averageDamageTaken": 390,
+      "averageUnitsLost": 7,
+      "averageEnemiesFelled": 4,
+      "averageXp": 141,
+      "averageDamageXp": 51,
+      "averageKillXp": 90
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "battles": 20,
+      "enemyWins": 0,
+      "referenceWins": 20,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 0,
+      "averageRounds": 11,
+      "averageDurationMs": 651,
+      "averageDamageDealt": 390,
+      "averageDamageTaken": 350,
+      "averageUnitsLost": 6,
+      "averageEnemiesFelled": 7,
+      "averageXp": 363,
+      "averageDamageXp": 78,
+      "averageKillXp": 235
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "battles": 20,
+      "enemyWins": 20,
+      "referenceWins": 0,
+      "stalemates": 0,
+      "limits": 0,
+      "timeouts": 0,
+      "enemyWinRate": 1,
+      "averageRounds": 12,
+      "averageDurationMs": 665,
+      "averageDamageDealt": 382,
+      "averageDamageTaken": 390,
+      "averageUnitsLost": 7,
+      "averageEnemiesFelled": 6,
+      "averageXp": 211,
+      "averageDamageXp": 76,
+      "averageKillXp": 135
+    }
+  ],
+  "battles": [
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 1,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 4609,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 2,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 2611,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 3,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 3163,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 4,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 2100,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 5,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 3622,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 6,
+      "outcome": "stalemate",
+      "ended": false,
+      "timedOut": true,
+      "rounds": 2,
+      "durationMs": 5158,
+      "damage": {
+        "blue": 132,
+        "red": 121
+      },
+      "defeated": 2,
+      "lost": 2,
+      "xp": {
+        "damage": 0,
+        "kill": 55,
+        "victory": 0,
+        "total": 55
+      },
+      "levelAfter": 1,
+      "blueAlive": 5,
+      "redAlive": 5
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 7,
+      "outcome": "stalemate",
+      "ended": false,
+      "timedOut": true,
+      "rounds": 1,
+      "durationMs": 5414,
+      "damage": {
+        "blue": 78,
+        "red": 121
+      },
+      "defeated": 1,
+      "lost": 2,
+      "xp": {
+        "damage": 0,
+        "kill": 35,
+        "victory": 0,
+        "total": 35
+      },
+      "levelAfter": 1,
+      "blueAlive": 5,
+      "redAlive": 6
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 8,
+      "outcome": "stalemate",
+      "ended": false,
+      "timedOut": true,
+      "rounds": 4,
+      "durationMs": 5208,
+      "damage": {
+        "blue": 219,
+        "red": 202
+      },
+      "defeated": 4,
+      "lost": 4,
+      "xp": {
+        "damage": 0,
+        "kill": 105,
+        "victory": 0,
+        "total": 105
+      },
+      "levelAfter": 1,
+      "blueAlive": 3,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 9,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 3474,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 10,
+      "outcome": "stalemate",
+      "ended": false,
+      "timedOut": true,
+      "rounds": 3,
+      "durationMs": 5004,
+      "damage": {
+        "blue": 195,
+        "red": 202
+      },
+      "defeated": 3,
+      "lost": 4,
+      "xp": {
+        "damage": 0,
+        "kill": 75,
+        "victory": 0,
+        "total": 75
+      },
+      "levelAfter": 1,
+      "blueAlive": 3,
+      "redAlive": 4
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 11,
+      "outcome": "stalemate",
+      "ended": false,
+      "timedOut": true,
+      "rounds": 11,
+      "durationMs": 5337,
+      "damage": {
+        "blue": 368,
+        "red": 307
+      },
+      "defeated": 6,
+      "lost": 5,
+      "xp": {
+        "damage": 0,
+        "kill": 135,
+        "victory": 0,
+        "total": 135
+      },
+      "levelAfter": 1,
+      "blueAlive": 2,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 12,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 4408,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 13,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 2082,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 14,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 1495,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 15,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 995,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 16,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 956,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 17,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 1138,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 18,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 1022,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 19,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 689,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "old_frontier",
+      "seed": 20,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 621,
+      "damage": {
+        "blue": 390,
+        "red": 307
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 1,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 639,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 2,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 627,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 3,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 703,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 4,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 708,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 5,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 667,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 6,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 782,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 7,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 609,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 8,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 698,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 9,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 652,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 10,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 716,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 11,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 563,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 12,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 663,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 13,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 569,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 14,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 565,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 15,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 752,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 16,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 583,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 17,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 580,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 18,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 1638,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 19,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 2749,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "forest_march",
+      "seed": 20,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 1229,
+      "damage": {
+        "blue": 390,
+        "red": 293
+      },
+      "defeated": 7,
+      "lost": 4,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 3,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 1,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 594,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 2,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 680,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 3,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 872,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 4,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 669,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 5,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 817,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 6,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 842,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 7,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 1464,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 8,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 1046,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 9,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 1378,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 10,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 654,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 11,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 703,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 12,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 587,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 13,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 625,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 14,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 639,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 15,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 628,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 16,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 574,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 17,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 571,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 18,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 527,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 19,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 577,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "broken_pass",
+      "seed": 20,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 558,
+      "damage": {
+        "blue": 390,
+        "red": 301
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 1,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 524,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 2,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 525,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 3,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 518,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 4,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 511,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 5,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 517,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 6,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 536,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 7,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 547,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 8,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 507,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 9,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 630,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 10,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 538,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 11,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 539,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 12,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 508,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 13,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 517,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 14,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 517,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 15,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 528,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 16,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 520,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 17,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 540,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 18,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 580,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 19,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 669,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "easy",
+      "map": "high_ground",
+      "seed": 20,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 556,
+      "damage": {
+        "blue": 390,
+        "red": 282
+      },
+      "defeated": 7,
+      "lost": 5,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 2,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 1,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 830,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 2,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 711,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 3,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 703,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 4,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 705,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 5,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 840,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 6,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 826,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 7,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 744,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 8,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 718,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 9,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 702,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 10,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 686,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 11,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 701,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 12,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 719,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 13,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 706,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 14,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 805,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 15,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 678,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 16,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 723,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 17,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 701,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 18,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 712,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 19,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 2005,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "old_frontier",
+      "seed": 20,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 1186,
+      "damage": {
+        "blue": 262,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 52,
+        "kill": 120,
+        "victory": 0,
+        "total": 172
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 1,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 1096,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 2,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 653,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 3,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 651,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 4,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 662,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 5,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 634,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 6,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 1331,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 7,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 658,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 8,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 666,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 9,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 663,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 10,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 642,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 11,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 645,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 12,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 828,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 13,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 730,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 14,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 792,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 15,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 678,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 16,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 771,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 17,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 651,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 18,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 646,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 19,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 672,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "forest_march",
+      "seed": 20,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 667,
+      "damage": {
+        "blue": 274,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 54,
+        "kill": 105,
+        "victory": 0,
+        "total": 159
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 1,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 719,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 2,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 774,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 3,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 695,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 4,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 676,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 5,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 658,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 6,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 693,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 7,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 677,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 8,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 673,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 9,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 851,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 10,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 762,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 11,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 718,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 12,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 986,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 13,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 779,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 14,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 674,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 15,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 683,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 16,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 774,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 17,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 713,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 18,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 688,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 19,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 698,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "broken_pass",
+      "seed": 20,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 13,
+      "durationMs": 681,
+      "damage": {
+        "blue": 357,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 71,
+        "kill": 135,
+        "victory": 0,
+        "total": 206
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 1,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 677,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 2,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 685,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 3,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 707,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 4,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 941,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 5,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 862,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 6,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 836,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 7,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 802,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 8,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 760,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 9,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 800,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 10,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 887,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 11,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 990,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 12,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 671,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 13,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 657,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 14,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 825,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 15,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 664,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 16,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 641,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 17,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 631,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 18,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 694,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 19,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 669,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "normal",
+      "map": "high_ground",
+      "seed": 20,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 641,
+      "damage": {
+        "blue": 390,
+        "red": 316
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 1,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 577,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 2,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 573,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 3,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 589,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 4,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 588,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 5,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 581,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 6,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 590,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 7,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 688,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 8,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 586,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 9,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 625,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 10,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 596,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 11,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 587,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 12,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 573,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 13,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 578,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 14,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 587,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 15,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 556,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 16,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 669,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 17,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 584,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 18,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 590,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 19,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 562,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "old_frontier",
+      "seed": 20,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 547,
+      "damage": {
+        "blue": 248,
+        "red": 390
+      },
+      "defeated": 5,
+      "lost": 7,
+      "xp": {
+        "damage": 49,
+        "kill": 120,
+        "victory": 0,
+        "total": 169
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 2
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 1,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 578,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 2,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 570,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 3,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 567,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 4,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 573,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 5,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 661,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 6,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 584,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 7,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 836,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 8,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 587,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 9,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 599,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 10,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 591,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 11,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 580,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 12,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 591,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 13,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 619,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 14,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 665,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 15,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 598,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 16,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 580,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 17,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 756,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 18,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 595,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 19,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 591,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "forest_march",
+      "seed": 20,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 8,
+      "durationMs": 656,
+      "damage": {
+        "blue": 256,
+        "red": 390
+      },
+      "defeated": 4,
+      "lost": 7,
+      "xp": {
+        "damage": 51,
+        "kill": 90,
+        "victory": 0,
+        "total": 141
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 3
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 1,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 556,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 2,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 670,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 3,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 716,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 4,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 642,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 5,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 643,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 6,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 754,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 7,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 676,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 8,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 631,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 9,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 664,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 10,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 682,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 11,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 668,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 12,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 627,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 13,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 640,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 14,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 609,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 15,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 615,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 16,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 624,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 17,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 619,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 18,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 634,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 19,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 744,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "broken_pass",
+      "seed": 20,
+      "outcome": "blue",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 11,
+      "durationMs": 605,
+      "damage": {
+        "blue": 390,
+        "red": 350
+      },
+      "defeated": 7,
+      "lost": 6,
+      "xp": {
+        "damage": 78,
+        "kill": 235,
+        "victory": 50,
+        "total": 363
+      },
+      "levelAfter": 3,
+      "blueAlive": 1,
+      "redAlive": 0
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 1,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 595,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 2,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 637,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 3,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 1086,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 4,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 967,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 5,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 617,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 6,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 676,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 7,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 641,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 8,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 595,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 9,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 593,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 10,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 619,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 11,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 600,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 12,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 632,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 13,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 623,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 14,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 617,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 15,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 728,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 16,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 623,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 17,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 618,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 18,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 614,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 19,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 609,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    },
+    {
+      "difficulty": "hard",
+      "map": "high_ground",
+      "seed": 20,
+      "outcome": "red",
+      "ended": true,
+      "timedOut": false,
+      "rounds": 12,
+      "durationMs": 602,
+      "damage": {
+        "blue": 382,
+        "red": 390
+      },
+      "defeated": 6,
+      "lost": 7,
+      "xp": {
+        "damage": 76,
+        "kill": 135,
+        "victory": 0,
+        "total": 211
+      },
+      "levelAfter": 2,
+      "blueAlive": 0,
+      "redAlive": 1
+    }
+  ]
+}
