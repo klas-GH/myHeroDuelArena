@@ -1975,7 +1975,10 @@ section("55. Integration — a full battle reaches a conclusion");
 
   assert(ended === true, `the battle reached a conclusion (${rounds} rounds)`);
   assert(rounds < MAX_ROUNDS, "the battle did not stall");
-  assert(blueAlive === 0 || redAlive === 0, "one legion is left standing");
+  /* A battle ends either by annihilation or, at the round limit, by the
+   * sudden-death comparison of what is left. Both are legal conclusions. */
+  assert(blueAlive === 0 || redAlive === 0 || api.getState().roundNumber >= api.getRoundLimit(),
+    "one legion is left standing, or the round limit settled it");
   assert(api.getState().gameState === "ended", "the game reports the battle as over");
   assert(api.getProgression().battles === 1, "the finished battle is counted exactly once");
   assert(api.getProgression().xp > 0, "the finished battle paid experience");
@@ -3237,6 +3240,57 @@ section("89. Charge — chevalier and champion");
   const approach = api.findMeleeApproachCell(chevalier, foe);
   assert(approach !== null, "there is a free cell beside the foe");
   assert(api.fieldDistance(approach, foe) === 1, "approach cell is adjacent to the foe");
+}
+
+section("95. Charge needs a real route (v1.12.10)");
+
+{
+  const { api } = newGame();
+  api.startBattle();
+  const byType = (team, type) => api.getTeamUnits(team).filter(u => u.type === type);
+  const chevalier = byType(TEAM_BLUE, "chevalier")[0];
+  const foe = byType(TEAM_RED, "archer")[0];
+  const wall = [...byType(TEAM_BLUE, "footman"), ...byType(TEAM_BLUE, "archer")];
+  for (const u of [...api.getTeamUnits(TEAM_BLUE), ...api.getTeamUnits(TEAM_RED)]) {
+    if (u === chevalier || u === foe || wall.includes(u)) continue;
+    u.alive = false; u.defeated = true;
+  }
+  chevalier.col = 2; chevalier.row = 1;
+  foe.col = 7; foe.row = 1;
+
+  /* A solid wall across the whole field: no lane, no charge. */
+  wall.forEach((u, i) => { u.col = 4; u.row = i; });
+  assert(wall.length === 4, "the wall covers all four rows");
+  assert(api.findMeleeApproachCell(chevalier, foe) === null, "no approach cell behind a sealed wall");
+  assert(api.canChargeMelee(chevalier, foe) === false, "a walled-in chevalier cannot charge");
+  assert(api.canAttack(chevalier, foe) === false, "so the charge is not a legal attack");
+  assert(api.getValidTargets(chevalier).every(t => t.id !== foe.id), "the foe is not offered as a target");
+
+  /* Open one lane and the same charge is legal again, and ends beside the foe
+   * on a cell that really is on a walkable route. */
+  wall[1].alive = false; wall[1].defeated = true;
+  const cell = api.findMeleeApproachCell(chevalier, foe);
+  assert(cell !== null, "a gap in the wall is a door");
+  assert(api.fieldDistance(cell, foe) === 1, "the approach cell is adjacent to the foe");
+  assert(api.getChargeSteps(chevalier).has(`${cell.col},${cell.row}`), "the approach cell lies on a walkable route");
+  assert(api.canAttack(chevalier, foe) === true, "the charge through the gap is legal");
+
+  /* A blade never cuts backwards: the approach cell is never behind the foe. */
+  assert(cell.col <= foe.col, "the chevalier does not end behind the foe");
+}
+
+section("96. Acting legion keeps its action animations (v1.12.10)");
+
+{
+  const fs = require("fs");
+  const css = fs.readFileSync(__dirname + "/style.css", "utf8");
+  const pulse = css.match(/\.ai-turn(?:-blue)?-active \.unit\.(?:red|blue)[^{]*\.unit-art\s*\{\s*animation:\s*ai-thinking/g) || [];
+  assert(pulse.length === 2, "both thinking-pulse rules are present");
+  for (const rule of pulse) {
+    for (const cls of ["moving", "windup", "attacking", "drawing", "shooting", "damaged", "defeated"]) {
+      assert(rule.includes(cls), "the pulse steps aside while a unit is ." + cls);
+    }
+  }
 }
 
 section("90. Troop mode — one activation per unit per round");

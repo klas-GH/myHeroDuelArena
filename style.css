@@ -2009,6 +2009,11 @@ body {
   animation: guard-glow 1.6s ease-in-out infinite;
 }
 
+/* The thinking pulse and the action animations both use the `animation`
+ * shorthand on .unit-art, so whichever rule comes last replaces the other.
+ * Before v1.12.10 the pulse (same specificity, later in the file) hid every
+ * march, wind-up, lunge, draw and release of the acting legion. The pulse now
+ * steps aside while a fighter is mid-action. */
 @keyframes ai-thinking {
   0%, 100% {
     opacity: 1;
@@ -2018,13 +2023,13 @@ body {
   }
 }
 
-.ai-turn-active .unit.red .unit-art {
+.ai-turn-active .unit.red:not(.moving, .windup, .attacking, .drawing, .shooting, .damaged, .defeated) .unit-art {
   animation: ai-thinking 1.5s ease-in-out infinite;
 }
 
 /* In a spectator battle the azure legion holds the field while it thinks,
  * so the pulse has to follow the team that is actually acting. */
-.ai-turn-blue-active .unit.blue .unit-art {
+.ai-turn-blue-active .unit.blue:not(.moving, .windup, .attacking, .drawing, .shooting, .damaged, .defeated) .unit-art {
   animation: ai-thinking 1.5s ease-in-out infinite;
 }
 

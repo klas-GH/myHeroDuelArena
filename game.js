@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.9 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.10 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.9";
+const APP_VERSION = "v1.12.10";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -2080,39 +2080,57 @@ function getAdjacentCells(col, row) {
   return cells;
 }
 
-/* Nearest free cell beside the target that this attacker may stand on. */
+/* A charge may cover any distance (v1.12.6), but it is still a march: the
+ * fighter has to WALK there. This is the list of cells the unit can reach on
+ * foot, counted in steps, using exactly the rules of an ordinary move:
+ * passable ground, no fighter in the way, and the corner rule for diagonal
+ * steps. Only the movement budget is lifted. A wall of fighters or rocks
+ * with no gap therefore stops a charge (v1.12.10; before, the unit was set
+ * down beside the target without any route). Set CHARGE_MAX_STEPS to a
+ * number to limit how far a charge may run. */
+const CHARGE_MAX_STEPS = Infinity;
+
+function getChargeSteps(unit) {
+  const steps = new Map([[`${unit.col},${unit.row}`, 0]]);
+  const queue = [{ col: unit.col, row: unit.row }];
+  for (let head = 0; head < queue.length; head++) {
+    const cur = queue[head];
+    const d = steps.get(`${cur.col},${cur.row}`);
+    if (d >= CHARGE_MAX_STEPS) continue;
+    for (const [dc, dr] of MOVE_DIRECTIONS) {
+      const nc = cur.col + dc;
+      const nr = cur.row + dr;
+      if (!isInBounds(nc, nr)) continue;
+      const key = `${nc},${nr}`;
+      if (steps.has(key)) continue;
+      if (!isTerrainPassable(nc, nr)) continue;
+      if (!canStandAt(unit, nc, nr)) continue;
+      if (dc !== 0 && dr !== 0 && !canStepDiagonally(cur.col, cur.row, dc, dr, unit.id)) continue;
+      steps.set(key, d + 1);
+      queue.push({ col: nc, row: nr });
+    }
+  }
+  return steps;
+}
+
+/* Nearest cell beside the target that this attacker can WALK to and strike
+ * from. Returns null when the target is already in reach, or when no route
+ * leads to a cell from which the blade may cut (blocked lanes, or only
+ * cells behind the target: a blade never cuts backwards). */
 function findMeleeApproachCell(attacker, target) {
   if (!attacker || !target) return null;
   if (meleeStrikeAllowed(attacker, attacker, target)) return null;
 
+  const steps = getChargeSteps(attacker);
   const candidates = [];
   for (const cell of getAdjacentCells(target.col, target.row)) {
-    if (!isTerrainPassable(cell.col, cell.row)) continue;
-    if (!canStandAt(attacker, cell.col, cell.row)) continue;
-    const forward = advanceSign(attacker.team);
-    const step = (target.col - cell.col) * forward;
-    /* Prefer cells that still face the enemy (not behind the target). */
-    if (step < 0) continue;
-    candidates.push({
-      col: cell.col,
-      row: cell.row,
-      dist: fieldDistance(attacker, cell)
-    });
-  }
-  if (candidates.length === 0) {
-    /* Fallback: any adjacent standable cell. */
-    for (const cell of getAdjacentCells(target.col, target.row)) {
-      if (!isTerrainPassable(cell.col, cell.row)) continue;
-      if (!canStandAt(attacker, cell.col, cell.row)) continue;
-      candidates.push({
-        col: cell.col,
-        row: cell.row,
-        dist: fieldDistance(attacker, cell)
-      });
-    }
+    const walk = steps.get(`${cell.col},${cell.row}`);
+    if (walk === undefined || walk === 0) continue;
+    if (!meleeStrikeAllowed(attacker, cell, target)) continue;
+    candidates.push({ col: cell.col, row: cell.row, walk });
   }
   if (candidates.length === 0) return null;
-  candidates.sort((a, b) => a.dist - b.dist || a.row - b.row || a.col - b.col);
+  candidates.sort((a, b) => a.walk - b.walk || a.row - b.row || a.col - b.col);
   return { col: candidates[0].col, row: candidates[0].row };
 }
 
@@ -5299,6 +5317,7 @@ if (typeof window !== "undefined") {
     isChargeMelee,
     canChargeMelee,
     findMeleeApproachCell,
+    getChargeSteps,
     markTroopActed,
     unitCanActThisRound,
     teamHasActors,
