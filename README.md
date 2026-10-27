@@ -12,6 +12,14 @@ No build step, no dependencies, no network calls — `index.html` is the app.
 open index.html
 ```
 
+## v1.12.2 — melee adjacency, AI shoot juice, move markers
+
+- **Melee is adjacent-only**: blades (footman, chevalier, champion) only strike a neighbouring cell; they must march up to the target first.
+- **AI ranged animation**: crimson archers/ballistae use the same shoot shake + flying projectile as the player.
+- **Move markers**: blue circles show every available space at the start of the player turn; selecting a unit turns *its* moves green; attacks stay red.
+- Deployment boundary unchanged (blue cannot enter cols 0–1, red cannot enter 8–9).
+- Smoke + regression updated and green.
+
 ## v1.11.0 — footer layout cleanup (no overlaps)
 
 - Removed the large champion panel from the footer (abilities still available as compact chips next to the unit).

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.11.0 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.2 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.11.0";
+const APP_VERSION = "v1.12.2";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -98,10 +98,10 @@ const STATE_ENDED = "ended";
  */
 const UNIT_STATS = {
   archer:   { hp: 40, atk: 14, def: 4,  move: 2, range: 3, melee: false, armour: 0.15, special: null },
-  footman:  { hp: 60, atk: 12, def: 6,  move: 1, range: 2, melee: true,  armour: 0.20, special: null },
+  footman:  { hp: 60, atk: 12, def: 6,  move: 1, range: 1, melee: true,  armour: 0.20, special: null },
   ballista: { hp: 45, atk: 18, def: 3,  move: 1, range: 4, melee: false, armour: 0.12, special: null },
-  chevalier:{ hp: 55, atk: 16, def: 5,  move: 3, range: 2, melee: true,  armour: 0.25, special: null },
-  champion: { hp: 90, atk: 20, def: 8,  move: 2, range: 2, melee: true,  armour: 0.18, special: "rally",
+  chevalier:{ hp: 55, atk: 16, def: 5,  move: 3, range: 1, melee: true,  armour: 0.25, special: null },
+  champion: { hp: 90, atk: 20, def: 8,  move: 2, range: 1, melee: true,  armour: 0.18, special: "rally",
               shot: { atk: 16 } }
 };
 
@@ -1578,6 +1578,10 @@ function clearSelection() {
   if ($actionIcons) $actionIcons.classList.add("hidden");
   pendingAttackKind = null;
   updateChampionPanel();
+  /* After deselect, show all blue move options again (party mode). */
+  if (battleActive && currentTurn === "player" && battleMode !== "spectator") {
+    showPreviewMoveIndicators();
+  }
 }
 
 /* An offensive ability is played by picking a target, so the pending
@@ -1945,7 +1949,9 @@ function hasLineOfSight(from, to, range) {
  * The champion owns both weapons, so it swings a blade up close and looses
  * an arrow at everything else.
  */
-const MELEE_REACH = 2;
+/* Melee only from an adjacent cell (v1.12.2). A blade must be next to its
+ * target — no more striking from two columns away. */
+const MELEE_REACH = 1;
 
 /* A bow covers the whole field. The number is kept as a named constant so
  * that the rule is stated once and read everywhere. */
@@ -2755,8 +2761,9 @@ function startBattle(options) {
   if (matchOpener === TEAM_RED) {
     beginEnemyTurn("The crimson legion opens the match.");
   } else if (getTurnModeId() === "troop") {
-    /* Troop mode: put the first ready fighter under the cursor at once. */
     autoSelectNextTroopUnit(TEAM_BLUE);
+  } else {
+    showPreviewMoveIndicators();
   }
 }
 
@@ -3353,7 +3360,7 @@ function performAiMove(unit, destination) {
   if (el) {
     positionUnit(el, unit);
     el.classList.add("moving");
-    later(() => el.classList.remove("moving"), 400);
+    later(() => el.classList.remove("moving"), MOVE_ANIM_MS);
   }
 
   logEvent(`${unit.displayName} advances to (${destination.col},${destination.row}).`, "ai");
@@ -3404,7 +3411,11 @@ function performAiAttack(unit, target) {
   clearDefenceStand(unit);
 
   if (isRanged) {
-    if (attackerEl) attackerEl.classList.add("shooting");
+    /* Same shoot pose + projectile as the player path (v1.12.2). */
+    if (attackerEl) {
+      attackerEl.classList.add("shooting");
+      attackerEl.classList.add("attacking");
+    }
     spawnProjectile(unit, target, unit.type === "ballista" ? "bolt" : "arrow");
   } else if (attackerEl) {
     attackerEl.classList.add("attacking");
@@ -3491,6 +3502,8 @@ function beginPlayerTurn() {
     : "Your turn!", "system");
   if (getTurnModeId() === "troop") {
     autoSelectNextTroopUnit(TEAM_BLUE);
+  } else {
+    showPreviewMoveIndicators();
   }
 }
 
@@ -4491,13 +4504,54 @@ function placeMarker(marker, col, row) {
   marker.style.top = `${rowPercent(row)}%`;
 }
 
+/* Preview: all reachable cells for every blue fighter that can still act.
+ * Drawn as blue circles from the start of the player turn (v1.12.2). */
+function showPreviewMoveIndicators() {
+  clearMoveIndicators();
+  if (!battleActive || currentTurn !== "player" || battleMode === "spectator") return;
+
+  const seen = new Set();
+  for (const [, unit] of units) {
+    if (unit.team !== TEAM_BLUE || !unit.alive || unit.defeated) continue;
+    if (unit.hasMoved) continue;
+    const cells = getReachableCells(unit);
+    for (const cell of cells) {
+      const key = `${cell.col},${cell.row}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const marker = document.createElement("div");
+      marker.className = "move-indicator preview-move";
+      marker.style.left = `${colPercent(cell.col)}%`;
+      marker.style.top = `${rowPercent(cell.row)}%`;
+      marker.title = describeTerrain(cell.col, cell.row);
+      /* Clicking a preview cell selects a blue unit that can reach it. */
+      marker.addEventListener("click", () => {
+        const candidate = findBlueUnitThatCanReach(cell.col, cell.row);
+        if (candidate) selectUnit(candidate.id);
+      });
+      $moveIndicators.appendChild(marker);
+      moveIndicators.push(marker);
+    }
+  }
+}
+
+function findBlueUnitThatCanReach(col, row) {
+  for (const [, unit] of units) {
+    if (unit.team !== TEAM_BLUE || !unit.alive || unit.defeated || unit.hasMoved) continue;
+    if (canMoveTo(unit, col, row)) return unit;
+  }
+  return null;
+}
+
+/* Selected unit: green circles for that fighter's moves. */
 function showMoveIndicators(unit) {
+  clearMoveIndicators();
   if (unit.hasMoved) return;
   const cells = getReachableCells(unit);
 
   for (const cell of cells) {
     const marker = document.createElement("div");
-    marker.className = `move-indicator target-${unit.team}`;
+    marker.className = "move-indicator selected-move";
     marker.style.left = `${colPercent(cell.col)}%`;
     marker.style.top = `${rowPercent(cell.row)}%`;
     marker.title = describeTerrain(cell.col, cell.row);
@@ -4507,13 +4561,14 @@ function showMoveIndicators(unit) {
   }
 }
 
+/* Red circles for attack targets. */
 function showAttackIndicators(unit) {
   if (unit.hasAttacked) return;
   const targets = getValidTargets(unit);
 
   for (const target of targets) {
     const marker = document.createElement("div");
-    marker.className = `attack-indicator target-${target.team}`;
+    marker.className = "attack-indicator target-red";
     marker.style.left = `${colPercent(target.col)}%`;
     marker.style.top = `${rowPercent(target.row)}%`;
     marker.title = `Attack ${target.displayName}`;
@@ -4649,10 +4704,16 @@ function executeAttack(attackerId, targetId, preferredKind) {
   const isRanged = kind === "ranged" || kind === "shot" || (!attacker.melee && !preferredKind);
 
   if (isRanged) {
-    if (attackerEl) attackerEl.classList.add("shooting");
+    if (attackerEl) {
+      attackerEl.classList.add("shooting");
+      attackerEl.classList.add("attacking");
+    }
     spawnProjectile(attacker, target, attacker.type === "ballista" ? "bolt" : "arrow");
     later(() => {
-      if (attackerEl) attackerEl.classList.remove("shooting");
+      if (attackerEl) {
+        attackerEl.classList.remove("shooting");
+        attackerEl.classList.remove("attacking");
+      }
       finishAttackResolve(attacker, target, attackerId, targetId);
     }, RANGED_FLIGHT_MS);
   } else {

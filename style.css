@@ -906,18 +906,32 @@ body {
 
 /* 7. TACTICAL INDICATORS */
 
-/* Movement destination markers */
+/* Movement destination markers
+ * preview-move  = blue  — all available spaces at start of player turn
+ * selected-move = green — the selected unit's moves
+ */
 .move-indicator {
   position: absolute;
   width: 22px;
   height: 22px;
   border: 2px solid #60a5fa;
   border-radius: 50%;
-  background: rgba(96, 165, 250, 0.18);
+  background: rgba(96, 165, 250, 0.22);
   transform: translate(-50%, -50%);
   z-index: 1;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.move-indicator.preview-move {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.2);
+}
+
+.move-indicator.selected-move {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, 0.28);
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.35);
 }
 
 .move-indicator.target-red {
@@ -925,23 +939,25 @@ body {
   background: rgba(248, 113, 113, 0.18);
 }
 
-/* Attack target markers — ring colour follows the team being attacked */
+/* Attack target markers — always red */
 .attack-indicator {
   position: absolute;
   width: 26px;
   height: 26px;
   border: 2px solid #f87171;
   border-radius: 50%;
-  background: rgba(248, 113, 113, 0.22);
+  background: rgba(248, 113, 113, 0.28);
   transform: translate(-50%, -50%);
   z-index: 1;
   cursor: pointer;
   transition: opacity 0.15s ease;
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.3);
 }
 
-.attack-indicator.target-blue {
-  border-color: #60a5fa;
-  background: rgba(96, 165, 250, 0.22);
+.attack-indicator.target-blue,
+.attack-indicator.target-red {
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.28);
 }
 
 .move-indicator:hover,
@@ -1736,19 +1752,23 @@ body {
   animation: attack-lunge-red 1.5s ease-in-out both;
 }
 
-/* Ranged shoot pose — short draw-and-release bob. */
+/* Ranged shoot pose — visible draw-and-release shake (same for AI & human). */
 @keyframes attack-shoot {
   0%   { translate: 0 0; }
-  25%  { translate: -6px 0; }
-  45%  { translate: 4px 0; }
+  15%  { translate: -10px 0; }
+  35%  { translate: 8px 0; }
+  55%  { translate: -5px 0; }
+  75%  { translate: 3px 0; }
   100% { translate: 0 0; }
 }
 
-.unit.blue.shooting .unit-art {
+.unit.blue.shooting .unit-art,
+.unit.red.shooting .unit-art {
   animation: attack-shoot 0.9s ease-out both;
 }
 
-.unit.red.shooting .unit-art {
+/* Prefer shoot over lunge when both classes are present */
+.unit.shooting.attacking .unit-art {
   animation: attack-shoot 0.9s ease-out both;
 }
 
