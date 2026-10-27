@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.2 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.3 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.2";
+const APP_VERSION = "v1.12.3";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -1141,6 +1141,7 @@ function createUnit(id, team, type) {
     row: 0,
     hasMoved: false,
     hasAttacked: false,
+    hasRipostedThisRound: false,
     braced: false,
     abilityUses: {},
     effects: [],
@@ -2174,34 +2175,38 @@ function canRiposte(defender, attacker) {
   if (!defender.alive || defender.defeated) return false;
   if (!attacker.alive || attacker.defeated) return false;
   if (!defender.melee) return false;
-  if (defender.hasAttacked) return false;
+  /* Once per round only (v1.12.3). */
+  if (defender.hasRipostedThisRound) return false;
   /* Only a blow of the hand is answered with a blow of the hand. */
   if (getStrikeKind(attacker, attacker, defender) !== "melee") return false;
   return meleeStrikeAllowed(defender, defender, attacker);
 }
 
-/* The answer of a fighter that has been hit by a blade. */
+/* The answer of a fighter that has been hit by a blade.
+ * Once per round, at −25% damage (v1.12.3). */
 function riposteAgainst(defender, attacker) {
   if (!canRiposte(defender, attacker)) return false;
 
-  const damage = calculateDamage(defender, attacker, {
+  const raw = calculateDamage(defender, attacker, {
     attackerPos: defender,
     defenderPos: attacker
   });
-  /* The fighter has struck, so its own blow for this round is spent. */
+  const damage = Math.max(1, Math.round(raw * RIPOSTE_DAMAGE_FACTOR));
+  defender.hasRipostedThisRound = true;
+  /* Spending the blow keeps the old “already struck” rule for the turn. */
   defender.hasAttacked = true;
   applyDamage(attacker.id, damage, { countDamage: true, team: defender.team });
   recordAction("riposte", defender.team);
 
   logEvent(
-    `${defender.displayName} ripostes against ${attacker.displayName} for ${damage} damage.`,
+    `${defender.displayName} ripostes against ${attacker.displayName} for ${damage} damage (−25%).`,
     defender.team === TEAM_BLUE ? "player" : "ai"
   );
 
   const el = unitElements.get(defender.id);
   if (el) {
     el.classList.add("attacking");
-    later(() => el.classList.remove("attacking"), 400);
+    later(() => el.classList.remove("attacking"), ATTACK_ANIM_MS);
   }
   if (!attacker.alive || attacker.defeated) {
     logEvent(`${attacker.displayName} is defeated.`, "system");
@@ -2260,10 +2265,14 @@ function clearDefenceStand(unit) {
  * last. */
 const HIT_FLASH_MS = 1400;
 
-/* Combat animation pacing (v1.10). Long enough to read the lunge / arrow. */
-const ATTACK_ANIM_MS = 1600;
-const RANGED_FLIGHT_MS = 900;
+/* Combat animation pacing (v1.12.3). Melee and ranged both ~1.2 s so the
+ * wind-up and strike (or the flying arrow) are readable. */
+const ATTACK_ANIM_MS = 1200;
+const MELEE_WINDUP_MS = 400;
+const RANGED_FLIGHT_MS = 1200;
 const MOVE_ANIM_MS = 1200;
+/* Riposte deals this share of normal damage (once per round). */
+const RIPOSTE_DAMAGE_FACTOR = 0.75;
 
 /* A device that can buzz is told about every blow, so the hit can be felt
  * as well as seen. Devices that cannot buzz are left alone. */
@@ -2793,6 +2802,7 @@ function resetActionFlags() {
   units.forEach(u => {
     u.hasMoved = false;
     u.hasAttacked = false;
+    u.hasRipostedThisRound = false;
   });
 }
 
@@ -3410,22 +3420,12 @@ function performAiAttack(unit, target) {
   unit.hasAttacked = true;
   clearDefenceStand(unit);
 
-  if (isRanged) {
-    /* Same shoot pose + projectile as the player path (v1.12.2). */
-    if (attackerEl) {
-      attackerEl.classList.add("shooting");
-      attackerEl.classList.add("attacking");
-    }
-    spawnProjectile(unit, target, unit.type === "ballista" ? "bolt" : "arrow");
-  } else if (attackerEl) {
-    attackerEl.classList.add("attacking");
-  }
-
-  later(() => {
+  const resolveAiBlow = () => {
     if (battleToken !== currentBattleToken) return;
     if (attackerEl) {
       attackerEl.classList.remove("attacking");
       attackerEl.classList.remove("shooting");
+      attackerEl.classList.remove("windup");
     }
 
     const damage = calculateDamage(unit, target);
@@ -3445,7 +3445,27 @@ function performAiAttack(unit, target) {
     later(() => {
       advanceAiTurn();
     }, aiTiming().gap);
-  }, animMs);
+  };
+
+  if (isRanged) {
+    if (attackerEl) {
+      attackerEl.classList.add("shooting");
+      attackerEl.classList.add("attacking");
+    }
+    spawnProjectile(unit, target, unit.type === "ballista" ? "bolt" : "arrow");
+    later(resolveAiBlow, animMs);
+  } else {
+    /* Same two-phase melee as the player: wind-up, then strike. */
+    if (attackerEl) attackerEl.classList.add("windup");
+    later(() => {
+      if (battleToken !== currentBattleToken) return;
+      if (attackerEl) {
+        attackerEl.classList.remove("windup");
+        attackerEl.classList.add("attacking");
+      }
+      later(resolveAiBlow, ATTACK_ANIM_MS - MELEE_WINDUP_MS);
+    }, MELEE_WINDUP_MS);
+  }
 }
 
 function performAiAbility(unit, ability, target) {
@@ -4717,11 +4737,19 @@ function executeAttack(attackerId, targetId, preferredKind) {
       finishAttackResolve(attacker, target, attackerId, targetId);
     }, RANGED_FLIGHT_MS);
   } else {
-    if (attackerEl) attackerEl.classList.add("attacking");
+    /* Two-phase melee: wind-up, then lunge/strike (total ~1.2 s). */
+    if (attackerEl) attackerEl.classList.add("windup");
     later(() => {
-      if (attackerEl) attackerEl.classList.remove("attacking");
-      finishAttackResolve(attacker, target, attackerId, targetId);
-    }, ATTACK_ANIM_MS);
+      if (battleToken !== currentBattleToken) return;
+      if (attackerEl) {
+        attackerEl.classList.remove("windup");
+        attackerEl.classList.add("attacking");
+      }
+      later(() => {
+        if (attackerEl) attackerEl.classList.remove("attacking");
+        finishAttackResolve(attacker, target, attackerId, targetId);
+      }, ATTACK_ANIM_MS - MELEE_WINDUP_MS);
+    }, MELEE_WINDUP_MS);
   }
 }
 

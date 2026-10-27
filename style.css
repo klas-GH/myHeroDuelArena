@@ -1729,30 +1729,47 @@ body {
 
 /* Lunge animations use the independent `translate` property so they compose
  * with the red facing flip (`transform: scaleX(-1)`) instead of replacing it. */
-/* Melee lunge — longer so the charge is readable (≈1.6s total with JS). */
-@keyframes attack-lunge {
+/* Melee wind-up — brief pull-back before the strike (v1.12.3). */
+@keyframes attack-windup {
   0%   { translate: 0 0; }
-  35%  { translate: 28px 0; }
-  55%  { translate: 22px 0; }
+  100% { translate: -8px 0; }
+}
+@keyframes attack-windup-red {
+  0%   { translate: 0 0; }
+  100% { translate: 8px 0; }
+}
+
+.unit.blue.windup .unit-art {
+  animation: attack-windup 0.4s ease-out both;
+}
+.unit.red.windup .unit-art {
+  animation: attack-windup-red 0.4s ease-out both;
+}
+
+/* Melee lunge — strike phase (~0.8 s; total with wind-up ≈ 1.2 s). */
+@keyframes attack-lunge {
+  0%   { translate: -8px 0; }
+  40%  { translate: 30px 0; }
+  70%  { translate: 22px 0; }
   100% { translate: 0 0; }
 }
 
 .unit.blue.attacking .unit-art {
-  animation: attack-lunge 1.5s ease-in-out both;
+  animation: attack-lunge 0.8s ease-in-out both;
 }
 
 @keyframes attack-lunge-red {
-  0%   { translate: 0 0; }
-  35%  { translate: -28px 0; }
-  55%  { translate: -22px 0; }
+  0%   { translate: 8px 0; }
+  40%  { translate: -30px 0; }
+  70%  { translate: -22px 0; }
   100% { translate: 0 0; }
 }
 
 .unit.red.attacking .unit-art {
-  animation: attack-lunge-red 1.5s ease-in-out both;
+  animation: attack-lunge-red 0.8s ease-in-out both;
 }
 
-/* Ranged shoot pose — visible draw-and-release shake (same for AI & human). */
+/* Ranged shoot pose — full 1.2 s so it matches melee pacing. */
 @keyframes attack-shoot {
   0%   { translate: 0 0; }
   15%  { translate: -10px 0; }
@@ -1764,12 +1781,12 @@ body {
 
 .unit.blue.shooting .unit-art,
 .unit.red.shooting .unit-art {
-  animation: attack-shoot 0.9s ease-out both;
+  animation: attack-shoot 1.2s ease-out both;
 }
 
 /* Prefer shoot over lunge when both classes are present */
 .unit.shooting.attacking .unit-art {
-  animation: attack-shoot 0.9s ease-out both;
+  animation: attack-shoot 1.2s ease-out both;
 }
 
 /* Flying arrow / bolt projectile. */

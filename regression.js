@@ -3045,13 +3045,16 @@ section("84. The riposte");
   assert(api.riposteAgainst(footman, champion) === true, "the fighter answers with a blade of its own");
   assert(champion.hp < championBefore, "the answer reached the attacker");
   assert(footman.hasAttacked === true, "the answer spends the blow of the fighter");
+  assert(footman.hasRipostedThisRound === true, "riposte is marked for this round");
+  assert(api.canRiposte(footman, champion) === false,
+    "a fighter answers only once per round");
 
-  /* A fighter that has already struck keeps its blow to itself. */
+  /* A second fighter that already riposted this round does not answer again. */
   const second = unitByType(api, TEAM_RED, "chevalier");
   second.col = 5; second.row = 2;
-  second.hasAttacked = true;
+  second.hasRipostedThisRound = true;
   assert(api.canRiposte(second, champion) === false,
-    "a fighter that has already struck does not answer twice");
+    "a fighter that has already riposted does not answer twice");
 
   /* A shooter is answered with a blade, not with an arrow. */
   const archer = unitByType(api, TEAM_BLUE, "archer");
@@ -3059,6 +3062,7 @@ section("84. The riposte");
   const target = unitByType(api, TEAM_RED, "footman");
   target.col = 9; target.row = 3;
   target.hasAttacked = false;
+  target.hasRipostedThisRound = false;
   assert(api.getStrikeKind(archer, archer, target) === "ranged", "the archer fights at a distance");
   assert(api.canRiposte(target, archer) === false,
     "a fighter that is hit by an arrow does not answer with a blade");
