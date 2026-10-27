@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.4 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.5 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.4";
+const APP_VERSION = "v1.12.5";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -703,10 +703,14 @@ function cycleTurnMode() {
 }
 
 /* In troop mode each fighter acts alone: after one move or one blow the
- * turn is handed over at once, as if the player had pressed END TURN. */
+ * activation is spent and the turn is handed over (HoMM-style one unit at
+ * a time). The combat round only advances when every living fighter has
+ * acted once. */
 function maybeAutoEndTurnForTroopMode() {
   if (getTurnModeId() !== "troop") return;
   if (currentTurn !== "player") return;
+  const unit = selectedUnitId ? units.get(selectedUnitId) : null;
+  if (unit) markTroopActed(unit);
   endPlayerTurn();
 }
 
@@ -1142,6 +1146,7 @@ function createUnit(id, team, type) {
     hasMoved: false,
     hasAttacked: false,
     hasRipostedThisRound: false,
+    hasActedThisRound: false, /* troop mode: one action per unit per round */
     braced: false,
     abilityUses: {},
     effects: [],
@@ -1592,6 +1597,10 @@ let pendingAbilityId = null;
 function selectUnit(id) {
   const unit = units.get(id);
   if (!unit || !unit.alive || unit.defeated) return;
+  if (getTurnModeId() === "troop" && unit.team === TEAM_BLUE && unit.hasActedThisRound) {
+    logEvent(`${unit.displayName} has already acted this round.`, "system");
+    return;
+  }
 
   clearSelection();
   selectedUnitId = id;
@@ -2806,7 +2815,36 @@ function resetActionFlags() {
     u.hasMoved = false;
     u.hasAttacked = false;
     u.hasRipostedThisRound = false;
+    u.hasActedThisRound = false;
   });
+}
+
+/* Troop mode (HoMM-style): a fighter spends its whole activation on one
+ * action — move OR attack OR defence stand — then sits out until the next
+ * combat round. */
+function markTroopActed(unit) {
+  if (!unit) return;
+  unit.hasMoved = true;
+  unit.hasAttacked = true;
+  unit.hasActedThisRound = true;
+}
+
+function unitCanActThisRound(unit) {
+  if (!unit || !unit.alive || unit.defeated) return false;
+  if (getTurnModeId() === "troop") return !unit.hasActedThisRound;
+  return !unit.hasMoved || !unit.hasAttacked;
+}
+
+function teamHasActors(team) {
+  for (const [, u] of units) {
+    if (u.team !== team) continue;
+    if (unitCanActThisRound(u)) return true;
+  }
+  return false;
+}
+
+function allUnitsActedThisRound() {
+  return !teamHasActors(TEAM_BLUE) && !teamHasActors(TEAM_RED);
 }
 
 function resetAbilityUses() {
@@ -2815,11 +2853,31 @@ function resetAbilityUses() {
 
 function endPlayerTurn() {
   if (currentTurn !== "player") return;
+  clearSelection();
+
+  /* Troop mode: one unit acted. Keep the combat round open until every
+   * living fighter has had its activation (v1.12.5). */
+  if (getTurnModeId() === "troop") {
+    if (allUnitsActedThisRound()) {
+      if (closeRound()) return;
+      startNextRound();
+      return;
+    }
+    if (teamHasActors(TEAM_RED)) {
+      currentTurn = "enemy";
+      updateTurnBanner();
+      $endTurnButton.disabled = true;
+      logEvent("Crimson Legion answers...", "ai");
+      runEnemyTurn();
+      return;
+    }
+    /* Only azure fighters still have activations left. */
+    beginPlayerTurn();
+    return;
+  }
 
   if (roundLeader() === TEAM_RED) {
-    /* The crimson legion opened this round and the azure legion has
-     * answered, so the round is over. */
-    clearSelection();
+    /* Party mode: crimson opened; azure has answered → round over. */
     if (closeRound()) return;
     startNextRound();
     return;
@@ -2828,8 +2886,6 @@ function endPlayerTurn() {
   currentTurn = "enemy";
   updateTurnBanner();
   $endTurnButton.disabled = true;
-  clearSelection();
-
   logEvent("Crimson Legion prepares to advance...", "ai");
   runEnemyTurn();
 }
@@ -2845,14 +2901,18 @@ function endPlayerTurn() {
 function buildActionQueue(team) {
   const ids = team === TEAM_BLUE ? blueUnitIds : redUnitIds;
   const direction = team === TEAM_BLUE ? -1 : 1;
-  return ids
+  let list = ids
     .map(id => units.get(id))
-    .filter(u => u && u.alive && !u.defeated)
-    .sort((a, b) => {
-      if (a.col !== b.col) return (a.col - b.col) * direction;
-      if (a.row !== b.row) return a.row - b.row;
-      return a.id.localeCompare(b.id);
-    });
+    .filter(u => u && u.alive && !u.defeated);
+  /* Troop mode: only fighters that have not yet acted this combat round. */
+  if (getTurnModeId() === "troop") {
+    list = list.filter(u => !u.hasActedThisRound);
+  }
+  return list.sort((a, b) => {
+    if (a.col !== b.col) return (a.col - b.col) * direction;
+    if (a.row !== b.row) return a.row - b.row;
+    return a.id.localeCompare(b.id);
+  });
 }
 
 function targetValue(unit) {
@@ -3351,6 +3411,7 @@ function advanceAiTurn() {
 /* The AI braces: it gives up its action and its armour goes up. */
 function performAiBrace(unit) {
   makeDefenceStand(unit);
+  if (getTurnModeId() === "troop") markTroopActed(unit);
   later(() => {
     advanceAiTurn();
   }, aiTiming().gap);
@@ -3365,6 +3426,7 @@ function performAiMove(unit, destination) {
   unit.col = destination.col;
   unit.row = destination.row;
   unit.hasMoved = true;
+  if (getTurnModeId() === "troop") markTroopActed(unit);
   /* Remember where the unit came from so it cannot shuffle back and forth. */
   unit.lastAiCell = from;
   recordAction("move", unit.team);
@@ -3421,6 +3483,7 @@ function performAiAttack(unit, target) {
   const animMs = isRanged ? RANGED_FLIGHT_MS : ATTACK_ANIM_MS;
 
   unit.hasAttacked = true;
+  if (getTurnModeId() === "troop") markTroopActed(unit);
   clearDefenceStand(unit);
 
   const resolveAiBlow = () => {
@@ -3541,7 +3604,7 @@ function beginPlayerTurn() {
  * than random. */
 function autoSelectNextTroopUnit(team) {
   const candidates = getTeamUnits(team)
-    .filter(u => u.alive && !u.defeated && (!u.hasMoved || !u.hasAttacked))
+    .filter(u => unitCanActThisRound(u))
     .sort((a, b) => {
       /* Front rank (lower row number is closer to the viewer) first. */
       if (a.row !== b.row) return a.row - b.row;
@@ -3600,15 +3663,34 @@ function finishEnemyTurn() {
     return;
   }
 
+  /* Troop mode: one crimson activation done. Close the combat round only
+   * when every living fighter has acted (v1.12.5). */
+  if (getTurnModeId() === "troop") {
+    if (allUnitsActedThisRound()) {
+      if (closeRound()) return;
+      startNextRound();
+      return;
+    }
+    if (teamHasActors(TEAM_BLUE)) {
+      beginPlayerTurn();
+      return;
+    }
+    if (teamHasActors(TEAM_RED)) {
+      beginEnemyTurn("Crimson Legion continues...");
+      return;
+    }
+    if (closeRound()) return;
+    startNextRound();
+    return;
+  }
+
   if (roundLeader() === TEAM_RED) {
-    /* The crimson legion opened this round, so the azure legion answers
-     * and the round is closed when it does. */
+    /* Party mode: crimson opened; azure answers next. */
     beginPlayerTurn();
     return;
   }
 
-  /* The azure legion opened this round and the crimson legion has
-   * answered, so the round is over. */
+  /* Party mode: azure opened; crimson answered → round over. */
   if (closeRound()) return;
   startNextRound();
 }
