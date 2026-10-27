@@ -3,6 +3,21 @@
 Newest first. Versions 1.12.3 – 1.12.9 are summarised from the commit log; the
 older notes are kept as they were written.
 
+## v1.12.12 — the field is columns 2–7 for both armies
+
+- **Fixed: fighters could walk behind the enemy's back rank.** Each army was
+  only stopped from retreating behind its *own* starting edge, so blue could
+  roam columns 2–9 and red columns 0–7, which made the field wider for whoever
+  went past. The two outermost starting columns (2 and 7) are now the edges of
+  the field for both armies. The check covers the whole picture, so the
+  two-column champion cannot stick out past an edge either (blue champion may
+  stand on columns 2–6, red champion on 3–7).
+- Measured before the fix: in 48 AI battles over every map and difficulty, units
+  were found outside the field 1,288 times; after the fix, none in 1,976 turns.
+- Balance is essentially unchanged (enemy win rate on Normal 70% → 65%, no
+  stalemates or timeouts).
+- Tests: new section 98. 
+
 ## v1.12.11 — animations also with "reduce motion" on
 
 - **Fixed: no combat animations when the operating system asks for reduced

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.11 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.12 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.11";
+const APP_VERSION = "v1.12.12";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -1198,10 +1198,20 @@ const DEPLOYMENT_BOUNDARY = {
   [TEAM_RED]: Math.max(...RED_FORMATION.map(slot => slot.col))
 };
 
+/* THE PLAYABLE FIELD (v1.12.12)
+ *
+ * The outermost starting column of each army is the edge of the field for
+ * BOTH armies: blue's back column is the left edge and red's back column is
+ * the right edge. Nobody may stand in front of that line on the far side, so
+ * a blue fighter can never walk behind red's back rank, and a red fighter can
+ * never walk behind blue's. Before v1.12.12 each army was only stopped from
+ * retreating behind its own edge, so blue could roam columns 2-9 and red
+ * columns 0-7, and the field was wider for the side that went past. */
+const FIELD_MIN_COL = DEPLOYMENT_BOUNDARY[TEAM_BLUE];
+const FIELD_MAX_COL = DEPLOYMENT_BOUNDARY[TEAM_RED];
+
 function isInsideDeploymentBoundary(unit, col) {
-  return unit.team === TEAM_BLUE
-    ? col >= DEPLOYMENT_BOUNDARY[TEAM_BLUE]
-    : col <= DEPLOYMENT_BOUNDARY[TEAM_RED];
+  return col >= FIELD_MIN_COL && col <= FIELD_MAX_COL;
 }
 
 function createArmy(team) {
@@ -1775,7 +1785,11 @@ function canStandAt(unit, col, row) {
   const dir = footprintDir(unit);
   const span = unit.footprint && unit.footprint > 1 ? unit.footprint : 1;
   for (let i = 0; i < span; i++) {
-    if (isGroundTaken(col + i * dir, row, unit.id)) return false;
+    const c = col + i * dir;
+    /* The whole picture must stay on the field: a champion drawn across two
+     * columns may not stick out past the edge. */
+    if (!isInsideDeploymentBoundary(unit, c)) return false;
+    if (isGroundTaken(c, row, unit.id)) return false;
   }
   return true;
 }
@@ -5211,6 +5225,8 @@ if (typeof window !== "undefined") {
     TEAM_BLUE,
     TEAM_RED,
     DEPLOYMENT_BOUNDARY: Object.assign({}, DEPLOYMENT_BOUNDARY),
+    FIELD_MIN_COL,
+    FIELD_MAX_COL,
     UNIT_STATS,
     TERRAIN_TYPES,
     TERRAIN_MAP,

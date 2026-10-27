@@ -3314,6 +3314,96 @@ section("97. Reduced motion keeps the combat feedback (v1.12.11)");
     "the thinking pulse is only switched off for idle units");
 }
 
+section("98. The field is the same columns for both armies (v1.12.12)");
+
+{
+  const { api } = newGame();
+  const min = api.FIELD_MIN_COL;
+  const max = api.FIELD_MAX_COL;
+  assert(min === api.DEPLOYMENT_BOUNDARY[TEAM_BLUE] && max === api.DEPLOYMENT_BOUNDARY[TEAM_RED],
+    "the field edges are the two outermost starting columns");
+  assert(min === 2 && max === 7, "the field is columns 2 to 7");
+  assert(min + max === api.GRID_COLS - 1, "the field is mirror symmetric");
+
+  /* Every kind of fighter, on both sides, from every cell: nothing it can
+   * reach, and no part of its picture, lies outside the field. */
+  for (const team of [TEAM_BLUE, TEAM_RED]) {
+    for (const type of ["footman", "archer", "ballista", "chevalier", "champion"]) {
+      const fresh = newGame().api;
+      fresh.startBattle();
+      const all = [...fresh.getUnits().values()];
+      const unit = all.find(u => u.team === team && u.type === type);
+      all.forEach(u => { if (u !== unit) { u.alive = false; u.defeated = true; } });
+      let outside = 0;
+      for (let col = min; col <= max; col++) {
+        for (let row = 0; row < fresh.GRID_ROWS; row++) {
+          if (!fresh.canStandAt(unit, col, row)) continue;
+          unit.col = col; unit.row = row;
+          unit.hasMoved = false; unit.hasAttacked = false;
+          for (const c of fresh.footprintCells(unit)) if (c.col < min || c.col > max) outside++;
+          for (const cell of fresh.getReachableCells(unit)) {
+            for (const c of fresh.footprintCells(unit, cell.col, cell.row)) {
+              if (c.col < min || c.col > max) outside++;
+            }
+          }
+        }
+      }
+      assert(outside === 0, `${team} ${type} never reaches or is drawn outside the field`);
+    }
+  }
+
+  /* The cases of the bug report: blue past red's back column, red past blue's. */
+  const g = newGame().api;
+  g.startBattle();
+  const blue = unitByType(g, TEAM_BLUE, "footman");
+  const red = unitByType(g, TEAM_RED, "footman");
+  for (const u of [...g.getUnits().values()]) if (u !== blue && u !== red) { u.alive = false; u.defeated = true; }
+  blue.col = 7; blue.row = 1; red.col = 2; red.row = 3;
+  assert(!g.canStandAt(blue, 8, 1), "blue cannot stand behind red's back column");
+  assert(!g.canStandAt(red, 1, 3), "red cannot stand behind blue's back column");
+  assert(!g.moveUnit(blue, 8, 1) && blue.col === 7, "a blue step past the red edge is refused");
+  assert(!g.moveUnit(red, 1, 3) && red.col === 2, "a red step past the blue edge is refused");
+
+  /* The two-column champion picture may not stick out past an edge. */
+  const h = newGame().api;
+  h.startBattle();
+  const bc = unitByType(h, TEAM_BLUE, "champion");
+  const rc = unitByType(h, TEAM_RED, "champion");
+  for (const u of [...h.getUnits().values()]) if (u !== bc && u !== rc) { u.alive = false; u.defeated = true; }
+  /* Different rows, so one champion's picture never blocks the other's. */
+  bc.row = 0; rc.row = 3;
+  assert(h.canStandAt(bc, 6, 0), "the blue champion may stand where its picture ends on column 7");
+  assert(!h.canStandAt(bc, 7, 0), "the blue champion may not stand where its picture would reach column 8");
+  assert(h.canStandAt(rc, 3, 3), "the red champion may stand where its picture ends on column 2");
+  assert(!h.canStandAt(rc, 2, 3), "the red champion may not stand where its picture would reach column 1");
+}
+
+{
+  /* Whole AI battles on every map: after every turn, every picture is on the field. */
+  const probe = newGame().api;
+  let bad = 0;
+  let turns = 0;
+  for (const map of probe.MAP_IDS) {
+    const { api } = newGame();
+    api.setActiveMap(map);
+    api.startBattle();
+    for (let round = 0; round < 40 && api.getState().gameState !== "ended"; round++) {
+      for (const team of [TEAM_BLUE, TEAM_RED]) {
+        if (team === TEAM_BLUE) api.runTurnInstantForTeam(TEAM_BLUE); else api.endPlayerTurnInstant();
+        turns++;
+        for (const u of api.getUnits().values()) {
+          if (!u.alive || u.defeated) continue;
+          for (const c of api.footprintCells(u)) if (c.col < 2 || c.col > 7) bad++;
+        }
+        if (api.checkBattleEnd()) break;
+      }
+      if (api.getState().gameState === "ended") break;
+    }
+  }
+  assert(turns > 20, `the AI battles ran (${turns} turns checked)`);
+  assert(bad === 0, "in whole AI battles on every map nobody leaves the field");
+}
+
 section("90. Troop mode — one activation per unit per round");
 
 {

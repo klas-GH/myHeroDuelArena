@@ -44,9 +44,13 @@ button switches between playing and spectating.
 
 ## The rules
 
-**The field** is 10 columns × 4 rows. Column 0 is the far left, row 0 is the
-lowest row on screen. Blue deploys in columns 2 and 3, red deploys in columns
-6 and 7, and the columns between them are neutral ground.
+**The field** is 10 columns × 4 rows, but the fighting happens on columns 2 to 7:
+the outermost starting column of each army is the edge of the field for *both*
+armies, so nobody can walk behind the enemy's back rank (columns 0, 1, 8 and 9
+are the strongholds, off limits to the fighters). Column 0 is the far left,
+row 0 is the lowest row on screen. Blue deploys in columns 2 and 3, red deploys
+in columns 6 and 7, and the columns between them are neutral ground. The
+champion's two-column picture has to fit inside the field too.
 
 **The armies** are seven fighters: a champion, two archers, a ballista, two
 foot soldiers and a chevalier. The front rank — the foot soldiers and the
