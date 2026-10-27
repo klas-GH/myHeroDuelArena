@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.5 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.6 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.5";
+const APP_VERSION = "v1.12.6";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -2060,6 +2060,66 @@ function meleeStrikeAllowed(attacker, attackerPos, targetPos, defenderTeam) {
   return !isShielded(attackerPos, targetPos, team, attacker.team);
 }
 
+/* Chevalier and champion may charge: close from any distance to an open
+ * adjacent cell, then strike (v1.12.6). */
+function isChargeMelee(unit) {
+  return !!(unit && unit.melee && (unit.type === "chevalier" || unit.type === "champion"));
+}
+
+function getAdjacentCells(col, row) {
+  const cells = [];
+  for (const [dc, dr] of MOVE_DIRECTIONS) {
+    const c = col + dc;
+    const r = row + dr;
+    if (isInBounds(c, r)) cells.push({ col: c, row: r });
+  }
+  return cells;
+}
+
+/* Nearest free cell beside the target that this attacker may stand on. */
+function findMeleeApproachCell(attacker, target) {
+  if (!attacker || !target) return null;
+  if (meleeStrikeAllowed(attacker, attacker, target)) return null;
+
+  const candidates = [];
+  for (const cell of getAdjacentCells(target.col, target.row)) {
+    if (!isTerrainPassable(cell.col, cell.row)) continue;
+    if (!canStandAt(attacker, cell.col, cell.row)) continue;
+    const forward = advanceSign(attacker.team);
+    const step = (target.col - cell.col) * forward;
+    /* Prefer cells that still face the enemy (not behind the target). */
+    if (step < 0) continue;
+    candidates.push({
+      col: cell.col,
+      row: cell.row,
+      dist: fieldDistance(attacker, cell)
+    });
+  }
+  if (candidates.length === 0) {
+    /* Fallback: any adjacent standable cell. */
+    for (const cell of getAdjacentCells(target.col, target.row)) {
+      if (!isTerrainPassable(cell.col, cell.row)) continue;
+      if (!canStandAt(attacker, cell.col, cell.row)) continue;
+      candidates.push({
+        col: cell.col,
+        row: cell.row,
+        dist: fieldDistance(attacker, cell)
+      });
+    }
+  }
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => a.dist - b.dist || a.row - b.row || a.col - b.col);
+  return { col: candidates[0].col, row: candidates[0].row };
+}
+
+function canChargeMelee(attacker, target) {
+  if (!isChargeMelee(attacker)) return false;
+  if (!target || !target.alive || target.defeated) return false;
+  if (attacker.team === target.team) return false;
+  if (meleeStrikeAllowed(attacker, attacker, target)) return true;
+  return !!findMeleeApproachCell(attacker, target);
+}
+
 /* Reach in one answer. A shot reaches the whole field; a blow has to get
  * there on its own feet. */
 function hasReach(attacker, attackerPos, targetPos, defenderTeam) {
@@ -2091,8 +2151,14 @@ function getValidTargets(unit, from) {
   for (const [, u] of units) {
     if (!u.alive || u.defeated) continue;
     if (u.team === unit.team) continue;
-    if (!hasReach(unit, pos, u)) continue;
-    targets.push(u);
+    if (hasReach(unit, pos, u)) {
+      targets.push(u);
+      continue;
+    }
+    /* Charge units may approach from anywhere if a free cell exists. */
+    if (isChargeMelee(unit) && !from && canChargeMelee(unit, u)) {
+      targets.push(u);
+    }
   }
   return targets;
 }
@@ -2105,8 +2171,9 @@ function canAttack(attacker, target) {
   if (!units.has(target.id)) return false;
   if (attacker.team === target.team) return false;
   if (attacker.hasAttacked) return false;
-  if (!hasReach(attacker, attacker, target)) return false;
-  return true;
+  if (hasReach(attacker, attacker, target)) return true;
+  if (canChargeMelee(attacker, target)) return true;
+  return false;
 }
 
 /* Counts an action that was really carried out. The report and the balance
@@ -3514,6 +3581,19 @@ function performAiAttack(unit, target) {
     }, aiTiming().gap);
   };
 
+  const playAiMeleeStrike = () => {
+    if (battleToken !== currentBattleToken) return;
+    if (attackerEl) attackerEl.classList.add("windup");
+    later(() => {
+      if (battleToken !== currentBattleToken) return;
+      if (attackerEl) {
+        attackerEl.classList.remove("windup");
+        attackerEl.classList.add("attacking");
+      }
+      later(resolveAiBlow, ATTACK_ANIM_MS - MELEE_WINDUP_MS);
+    }, MELEE_WINDUP_MS);
+  };
+
   if (isRanged) {
     /* Same two-phase ranged as the player: draw, then release + flight. */
     if (attackerEl) attackerEl.classList.add("drawing");
@@ -3527,16 +3607,14 @@ function performAiAttack(unit, target) {
       later(resolveAiBlow, RANGED_FLIGHT_MS);
     }, RANGED_DRAW_MS);
   } else {
-    /* Same two-phase melee as the player: wind-up, then strike. */
-    if (attackerEl) attackerEl.classList.add("windup");
-    later(() => {
-      if (battleToken !== currentBattleToken) return;
-      if (attackerEl) {
-        attackerEl.classList.remove("windup");
-        attackerEl.classList.add("attacking");
-      }
-      later(resolveAiBlow, ATTACK_ANIM_MS - MELEE_WINDUP_MS);
-    }, MELEE_WINDUP_MS);
+    const approach = isChargeMelee(unit) && !meleeStrikeAllowed(unit, unit, target)
+      ? findMeleeApproachCell(unit, target)
+      : null;
+    if (approach) {
+      animateChargeTo(unit, approach, playAiMeleeStrike);
+    } else {
+      playAiMeleeStrike();
+    }
   }
 }
 
@@ -4810,9 +4888,28 @@ function executeAttack(attackerId, targetId, preferredKind) {
   attacker.hasAttacked = true;
   clearDefenceStand(attacker);
 
-  const kind = preferredKind || getAttackKind(attacker, target) || "melee";
+  let kind = preferredKind || getAttackKind(attacker, target) || "melee";
+  /* Explicit bow choice wins; otherwise charge units prefer melee. */
+  if (preferredKind === "ranged") kind = "ranged";
+  if (preferredKind === "melee") kind = "melee";
   const attackerEl = unitElements.get(attackerId);
   const isRanged = kind === "ranged" || kind === "shot" || (!attacker.melee && !preferredKind);
+
+  const playMeleeStrike = () => {
+    if (battleToken !== currentBattleToken) return;
+    if (attackerEl) attackerEl.classList.add("windup");
+    later(() => {
+      if (battleToken !== currentBattleToken) return;
+      if (attackerEl) {
+        attackerEl.classList.remove("windup");
+        attackerEl.classList.add("attacking");
+      }
+      later(() => {
+        if (attackerEl) attackerEl.classList.remove("attacking");
+        finishAttackResolve(attacker, target, attackerId, targetId);
+      }, ATTACK_ANIM_MS - MELEE_WINDUP_MS);
+    }, MELEE_WINDUP_MS);
+  };
 
   if (isRanged) {
     /* Two-phase ranged: draw, then release + flying arrow (total ~1.2 s). */
@@ -4830,19 +4927,15 @@ function executeAttack(attackerId, targetId, preferredKind) {
       }, RANGED_FLIGHT_MS);
     }, RANGED_DRAW_MS);
   } else {
-    /* Two-phase melee: wind-up, then lunge/strike (total ~1.2 s). */
-    if (attackerEl) attackerEl.classList.add("windup");
-    later(() => {
-      if (battleToken !== currentBattleToken) return;
-      if (attackerEl) {
-        attackerEl.classList.remove("windup");
-        attackerEl.classList.add("attacking");
-      }
-      later(() => {
-        if (attackerEl) attackerEl.classList.remove("attacking");
-        finishAttackResolve(attacker, target, attackerId, targetId);
-      }, ATTACK_ANIM_MS - MELEE_WINDUP_MS);
-    }, MELEE_WINDUP_MS);
+    /* Charge in if not already adjacent (chevalier / champion). */
+    const approach = isChargeMelee(attacker) && !meleeStrikeAllowed(attacker, attacker, target)
+      ? findMeleeApproachCell(attacker, target)
+      : null;
+    if (approach) {
+      animateChargeTo(attacker, approach, playMeleeStrike);
+    } else {
+      playMeleeStrike();
+    }
   }
 }
 
@@ -4921,8 +5014,34 @@ function getAttackKind(attacker, target) {
   const aPos = { col: attacker.col, row: attacker.row };
   const tPos = { col: target.col, row: target.row };
   if (attacker.melee && meleeStrikeAllowed(attacker, aPos, tPos)) return "melee";
+  if (canChargeMelee(attacker, target)) return "melee";
   if (!attacker.melee || attacker.shot) return "ranged";
   return "melee";
+}
+
+/* Animate a charge into an approach cell, then run onDone. */
+function animateChargeTo(attacker, cell, onDone) {
+  if (!attacker || !cell) {
+    if (onDone) onDone();
+    return;
+  }
+  attacker.col = cell.col;
+  attacker.row = cell.row;
+  attacker.hasMoved = true;
+  clearDefenceStand(attacker);
+  const el = unitElements.get(attacker.id);
+  if (el) {
+    positionUnit(el, attacker);
+    el.classList.add("moving");
+    later(() => {
+      if (el) el.classList.remove("moving");
+      if (onDone) onDone();
+    }, MOVE_ANIM_MS);
+  } else if (onDone) {
+    onDone();
+  }
+  logEvent(`${attacker.displayName} charges to (${cell.col},${cell.row}).`,
+    attacker.team === TEAM_BLUE ? "player" : "ai");
 }
 
 /* 25. INITIALISATION */
