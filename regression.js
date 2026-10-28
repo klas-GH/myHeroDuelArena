@@ -3550,6 +3550,41 @@ section("100. Troop mode passes fighters that have nothing to do (v1.12.14)");
   api.setTurnModeId("party");
 }
 
+section("101. AI vs AI in Troop mode: one fighter at a time (v1.12.15)");
+
+{
+  const { api } = newGame();
+  api.setTurnModeId("troop");
+  api.startBattle();
+  /* Fresh round: nobody has acted, so the legions simply answer each other. */
+  assert(api.nextTroopSpectatorTeam(TEAM_BLUE) === TEAM_RED, "after an azure fighter, the crimson legion answers");
+  assert(api.nextTroopSpectatorTeam(TEAM_RED) === TEAM_BLUE, "after a crimson fighter, the azure legion answers");
+
+  /* The crimson legion is spent: the azure legion carries on, one fighter at a time. */
+  for (const u of api.getTeamUnits(TEAM_RED)) api.markTroopActed(u);
+  assert(api.nextTroopSpectatorTeam(TEAM_BLUE) === TEAM_BLUE, "azure carries on while crimson has no fighter left to act");
+  assert(api.nextTroopSpectatorTeam(TEAM_RED) === TEAM_BLUE, "azure acts next when crimson is spent");
+
+  /* The azure legion is spent too: the round is over. */
+  for (const u of api.getTeamUnits(TEAM_BLUE)) api.markTroopActed(u);
+  assert(api.nextTroopSpectatorTeam(TEAM_BLUE) === null, "when every fighter has acted the round is over");
+  assert(api.nextTroopSpectatorTeam(TEAM_RED) === null, "the round is over whichever legion finished last");
+  api.setTurnModeId("party");
+}
+
+section("102. A fallen fighter leaves the field completely (v1.12.15)");
+
+{
+  const fs = require("fs");
+  const css = fs.readFileSync(__dirname + "/style.css", "utf8").replace(/\r\n/g, "\n");
+  const rule = css.match(/\.unit\.defeated,\s*\.unit-overlay\.defeated\s*\{[^}]*\}/);
+  assert(rule !== null, "one rule covers the fallen fighter and its overlay picture");
+  assert(rule && /opacity:\s*0\s*;/.test(rule[0]), "a fallen fighter ends fully transparent");
+  assert(rule && /visibility:\s*hidden/.test(rule[0]), "a fallen fighter is hidden, not left as a ghost");
+  assert(!/\.(unit|unit-overlay)\.defeated\s*\{[^}]*opacity:\s*0\.[1-9]/.test(css),
+    "no rule leaves a fallen fighter as a faint ghost");
+}
+
 section("90. Troop mode — one activation per unit per round");
 
 {

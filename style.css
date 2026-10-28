@@ -708,9 +708,6 @@ body {
   --own-art-h: var(--champ-art-h);
 }
 
-.unit-overlay.defeated {
-  opacity: 0.35;
-}
 
 /* 5.0 DAMAGE NUMBERS — the number of a blow, shown on the field
  *
@@ -1963,9 +1960,17 @@ body {
   }
 }
 
-.unit.defeated {
+/* A fallen fighter leaves the field completely (v1.12.15). It used to stay
+ * for the rest of the battle as a faint 35% ghost, which looked like a unit
+ * still standing there and blocking the lane. The picture still sinks and
+ * fades first; then the whole fighter, its overlay picture and its bars are
+ * hidden. */
+.unit.defeated,
+.unit-overlay.defeated {
   pointer-events: none;
-  opacity: 0.35;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.55s ease-in, visibility 0s linear 0.55s;
 }
 
 .unit.defeated .unit-art {
@@ -2070,8 +2075,11 @@ body {
     opacity: 1;
   }
 
-  .unit.defeated {
-    opacity: 0.4;
+  .unit.defeated,
+  .unit-overlay.defeated {
+    opacity: 0;
+    visibility: hidden;
+    transition: none;
   }
 
   .health-fill {

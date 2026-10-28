@@ -3,6 +3,26 @@
 Newest first. Versions 1.12.3 – 1.12.9 are summarised from the commit log; the
 older notes are kept as they were written.
 
+## v1.12.15 — AI vs AI in Troop mode, and fallen fighters leave the field
+
+- **Fixed: AI vs AI in Troop mode.** The spectator branch of the turn hand-over
+  closed the round after each legion's *single* activation, which reset every
+  fighter's "acted" flag. The same first fighters acted again and again (in a
+  150-second run only the two footmen acted, about 130 times each, and the
+  other twelve fighters never moved). The legions now answer each other one
+  fighter at a time, every fighter acts once per round, and the round closes
+  only when all of them have. The battle plays through to its end.
+- **Fixed: fallen fighters stayed on the field as faint ghosts.** The picture of
+  a dead fighter fades, but its overlay layer stayed at 35% opacity for the
+  rest of the battle, so a dead champion looked like a unit still standing
+  there and blocking the lane. A fallen fighter now fades out and is hidden
+  completely (at once with "reduce motion").
+- **Fixed: a wrong refusal message.** A blade never cuts backwards, so an enemy
+  that has slipped round behind a fighter cannot be struck by it, but the game
+  said "every lane is closed". It now says so ("The crimson Footman stands
+  behind the azure Footman: a blade never cuts backwards.").
+- Tests: new sections 101 and 102. 942 rule assertions.
+
 ## v1.12.14 — Troop mode: fighters with nothing to do are passed
 
 - **Fixed: a rarer Troop-mode stall.** A fighter boxed in by its own ranks,

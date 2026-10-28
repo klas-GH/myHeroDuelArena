@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.14 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.15 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.14";
+const APP_VERSION = "v1.12.15";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -3826,6 +3826,18 @@ function startNextRound() {
   beginPlayerTurn();
 }
 
+/* Troop mode, AI vs AI: which legion acts next once `finishedTeam` has used
+ * its activation. The other legion answers if it still has a fighter that has
+ * not acted, otherwise the same legion carries on; null means every fighter
+ * has acted and the round is over. */
+function nextTroopSpectatorTeam(finishedTeam) {
+  if (allUnitsActedThisRound()) return null;
+  const other = finishedTeam === TEAM_BLUE ? TEAM_RED : TEAM_BLUE;
+  if (teamHasActors(other)) return other;
+  if (teamHasActors(finishedTeam)) return finishedTeam;
+  return null;
+}
+
 function finishEnemyTurn() {
   const finishedTeam = aiTurnTeam;
   aiTurnTeam = null;
@@ -3840,6 +3852,25 @@ function finishEnemyTurn() {
   if (battleMode === "spectator") {
     /* The instant driver steers the show itself, so it closes the rounds. */
     if (!spectatorAutoAdvance) return;
+
+    /* Troop mode, AI vs AI (v1.12.15): the legions answer each other one
+     * fighter at a time, every fighter acts once per round, and the round
+     * only closes when all of them have. Before, this branch closed the round
+     * after each legion's single activation, which reset every flag, so the
+     * same first fighters acted again and again and the rest never moved. */
+    if (getTurnModeId() === "troop") {
+      const next = nextTroopSpectatorTeam(finishedTeam);
+      if (next) {
+        spectatorTurnTeam = next;
+        later(() => runSpectatorTurn(next), aiTiming().gap);
+        return;
+      }
+      if (closeRound()) return;
+      const opener = roundLeader();
+      spectatorTurnTeam = opener;
+      later(() => runSpectatorTurn(opener), aiTiming().gap);
+      return;
+    }
 
     const leader = roundLeader();
     const trailer = leader === TEAM_BLUE ? TEAM_RED : TEAM_BLUE;
@@ -4939,6 +4970,10 @@ function onUnitClick(id) {
     const dist = fieldDistance(attacker, unit);
     if (attacker.melee && dist > getMeleeReach(attacker)) {
       logEvent(`${unit.displayName} is out of reach (${dist} > ${getMeleeReach(attacker)}).`, "system");
+    } else if (attacker.melee && (unit.col - attacker.col) * advanceSign(attacker.team) < 0) {
+      const side = unit.team === TEAM_RED ? "crimson" : "azure";
+      const own = attacker.team === TEAM_RED ? "crimson" : "azure";
+      logEvent(`The ${side} ${unit.displayName} stands behind the ${own} ${attacker.displayName}: a blade never cuts backwards.`, "system");
     } else if (attacker.melee) {
       logEvent(`No way in to ${unit.displayName} — every lane is closed.`, "system");
     } else {
@@ -5500,6 +5535,7 @@ if (typeof window !== "undefined") {
     onActionIconClick,
     beginPlayerTurn,
     unitHasLegalAction,
+    nextTroopSpectatorTeam,
     withInstantTimers: (fn) => {
       const previous = instantTimers;
       instantTimers = true;
