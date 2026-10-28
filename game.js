@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.12 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.13 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.12";
+const APP_VERSION = "v1.12.13";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -706,11 +706,15 @@ function cycleTurnMode() {
  * activation is spent and the turn is handed over (HoMM-style one unit at
  * a time). The combat round only advances when every living fighter has
  * acted once. */
-function maybeAutoEndTurnForTroopMode() {
+function maybeAutoEndTurnForTroopMode(actor) {
   if (getTurnModeId() !== "troop") return;
   if (currentTurn !== "player") return;
-  const unit = selectedUnitId ? units.get(selectedUnitId) : null;
-  if (unit) markTroopActed(unit);
+  /* The caller names the fighter that acted. The selection cannot be relied
+   * on: a blow, a defence stand or an ability clears it before this runs
+   * (before v1.12.13 that left the fighter marked as still ready, and the
+   * round could never close). */
+  const unit = actor || (selectedUnitId ? units.get(selectedUnitId) : null);
+  if (unit && unit.team === TEAM_BLUE) markTroopActed(unit);
   endPlayerTurn();
 }
 
@@ -1607,7 +1611,7 @@ let pendingAbilityId = null;
 function selectUnit(id) {
   const unit = units.get(id);
   if (!unit || !unit.alive || unit.defeated) return;
-  if (getTurnModeId() === "troop" && unit.team === TEAM_BLUE && unit.hasActedThisRound) {
+  if (getTurnModeId() === "troop" && unit.team === TEAM_BLUE && !unitCanActThisRound(unit)) {
     logEvent(`${unit.displayName} has already acted this round.`, "system");
     return;
   }
@@ -2610,6 +2614,8 @@ function usePlayerAbility(abilityId, targetId) {
   updateEndTurnButton();
   updateChampionPanel();
   if (checkBattleEnd()) return true;
+  /* An ability is the fighter's one action of the round. */
+  maybeAutoEndTurnForTroopMode(unit);
   return true;
 }
 
@@ -2936,7 +2942,12 @@ function markTroopActed(unit) {
 
 function unitCanActThisRound(unit) {
   if (!unit || !unit.alive || unit.defeated) return false;
-  if (getTurnModeId() === "troop") return !unit.hasActedThisRound;
+  /* A fighter that has moved, struck or braced is spent even if the round flag
+   * was missed: such a fighter shows no marker and refuses every order, so
+   * counting it as ready would hold the round open for ever (v1.12.13). */
+  if (getTurnModeId() === "troop") {
+    return !unit.hasActedThisRound && !unit.hasMoved && !unit.hasAttacked;
+  }
   /* Party mode also uses one action only (v1.12.9). */
   return !unit.hasMoved && !unit.hasAttacked;
 }
@@ -2957,7 +2968,7 @@ function resetAbilityUses() {
   units.forEach(u => { u.abilityUses = {}; });
 }
 
-function endPlayerTurn() {
+function endPlayerTurn(manual) {
   if (currentTurn !== "player") return;
   clearSelection();
 
@@ -2977,7 +2988,20 @@ function endPlayerTurn() {
       runEnemyTurn();
       return;
     }
-    /* Only azure fighters still have activations left. */
+    /* Only azure fighters still have activations left. When the player
+     * presses END TURN by hand it means "I am done": the fighters that have
+     * not acted sit the round out, so a fighter with no legal action can
+     * never hold the round open for ever (v1.12.13). After an action the
+     * player simply carries on with the next fighter. */
+    if (manual) {
+      for (const u of getTeamUnits(TEAM_BLUE)) {
+        if (unitCanActThisRound(u)) markTroopActed(u);
+      }
+      logEvent("Azure fighters hold their ground this round.", "system");
+      if (closeRound()) return;
+      startNextRound();
+      return;
+    }
     beginPlayerTurn();
     return;
   }
@@ -3471,6 +3495,7 @@ function executeNextEnemyAction() {
   }
   const unit = aiActionQueue[aiActionIndex];
   aiActionIndex++;
+  aiCurrentUnit = unit || null;
 
   if (!unit || !unit.alive || unit.defeated) {
     executeNextEnemyAction();
@@ -3502,12 +3527,19 @@ function executeNextEnemyAction() {
  * troop mode (one fighter acts at a time), and keeps chaining units in party
  * mode (the whole legion plays its turn). Instant turns ignore the mode so
  * the balance harness and suites still resolve a whole legion in one step. */
+let aiCurrentUnit = null;
+
 function advanceAiTurn() {
   if (instantTimers) {
     executeNextEnemyAction();
     return;
   }
   if (getTurnModeId() === "troop") {
+    /* The activation is spent whatever the fighter did, even when it found
+     * nothing to do or its order was refused. Otherwise it would stay "ready"
+     * and the crimson legion would be asked to act for ever (v1.12.13). */
+    if (aiCurrentUnit) markTroopActed(aiCurrentUnit);
+    aiCurrentUnit = null;
     finishEnemyTurn();
   } else {
     executeNextEnemyAction();
@@ -3709,6 +3741,7 @@ function roundLeader() {
 function beginPlayerTurn() {
   currentTurn = "player";
   gameState = STATE_PLAYER_SELECTING;
+  updateTurnBanner();
   updateEndTurnButton();
   logEvent(getTurnModeId() === "troop"
     ? "Troop mode — choose one fighter."
@@ -3739,6 +3772,7 @@ function autoSelectNextTroopUnit(team) {
 function beginEnemyTurn(message) {
   currentTurn = "enemy";
   gameState = STATE_ENEMY_TURN;
+  updateTurnBanner();
   updateEndTurnButton();
   if (message) logEvent(message, "ai");
   runEnemyTurn();
@@ -4887,7 +4921,7 @@ function onMoveClick(unitId, col, row) {
     /* No attack after a march (v1.12.9). */
     updateBattleStatus();
     updateEndTurnButton();
-    maybeAutoEndTurnForTroopMode();
+    maybeAutoEndTurnForTroopMode(unit);
   } else {
     logEvent(`Cannot reach (${col},${row}) — ${describeTerrain(col, row)}.`, "system");
   }
@@ -5011,7 +5045,7 @@ function finishAttackResolve(attacker, target, attackerId, targetId) {
   actionLock = false;
   updateBattleStatus();
   updateEndTurnButton();
-  maybeAutoEndTurnForTroopMode();
+  maybeAutoEndTurnForTroopMode(attacker);
   checkBattleEnd();
 }
 
@@ -5164,7 +5198,7 @@ function onActionIconClick(action) {
     clearSelection();
     updateBattleStatus();
     updateEndTurnButton();
-    maybeAutoEndTurnForTroopMode();
+    maybeAutoEndTurnForTroopMode(unit);
     checkBattleEnd();
     return;
   }
@@ -5206,7 +5240,8 @@ function onStartEndButtonClick() {
     }
     return;
   }
-  endPlayerTurn();
+  /* The button is the player pressing END TURN by hand. */
+  endPlayerTurn(true);
 }
 
 initGame();
@@ -5420,6 +5455,16 @@ if (typeof window !== "undefined") {
     startBattle,
     resetBattle,
     endPlayerTurn,
+    selectUnit,
+    onMoveClick,
+    onAttackClick,
+    onActionIconClick,
+    beginPlayerTurn,
+    withInstantTimers: (fn) => {
+      const previous = instantTimers;
+      instantTimers = true;
+      try { return fn(); } finally { instantTimers = previous; }
+    },
     checkBattleEnd,
     applyDamage,
     moveUnit,

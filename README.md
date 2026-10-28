@@ -62,8 +62,11 @@ mirrored around the centre line so neither side gets better ground.
 **A turn** gives every living unit one action: move, attack, or brace behind
 its shield (since v1.12.9 a fighter that moves cannot also attack). In *Party*
 mode you act with the whole legion and then end the turn; in *Troop* mode each
-fighter acts alone. Ending the turn hands the field to the AI, which plays its
-turn and returns control. The lead alternates from round to round: the azure
+fighter acts alone: after its action the crimson legion answers with one fighter
+of its own, and the round closes when everybody has acted. Pressing END TURN by
+hand in Troop mode means "I am done": the fighters that did not act hold their
+ground. Ending the turn hands the field to the AI, which plays its turn and
+returns control. The lead alternates from round to round: the azure
 legion opens the first round, the crimson legion opens the second, and a round
 is closed when the legion that answered has finished its turn.
 
@@ -160,7 +163,7 @@ node balance.js         # seeded balance measurement, JSON out
 `regression.js` and `smoke_quick.js` load the shipped `game.js` into a
 sandboxed DOM stub instead of re-implementing the rules, so a test cannot pass
 while the game disagrees. Every suite prints `=== Results: N passed, M failed ===`
-and exits non-zero on failure. Current counts: 891 rule assertions and 159 DOM assertions.
+and exits non-zero on failure. Current counts: 926 rule assertions and 159 DOM assertions.
 
 ## Deploying
 

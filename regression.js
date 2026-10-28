@@ -3404,6 +3404,108 @@ section("98. The field is the same columns for both armies (v1.12.12)");
   assert(bad === 0, "in whole AI battles on every map nobody leaves the field");
 }
 
+section("99. Troop mode never leaves a fighter half-spent (v1.12.13)");
+
+{
+  /* A blow, a defence stand and a march each spend the fighter's activation. */
+  const { api } = newGame();
+  api.setTurnModeId("troop");
+  api.startBattle();
+  const blue = api.getTeamUnits(TEAM_BLUE);
+  const archer = blue.find(u => u.type === "archer");
+  const foe = api.getTeamUnits(TEAM_RED).find(u => u.type === "archer");
+
+  api.withInstantTimers(() => {
+    api.selectUnit(archer.id);
+    api.onAttackClick(archer.id, foe.id);
+  });
+  assert(archer.hasAttacked === true, "the archer struck");
+  assert(archer.hasActedThisRound === true, "a blow marks the fighter as having acted this round");
+  assert(api.unitCanActThisRound(archer) === false, "a fighter that has struck is not offered again");
+
+  const second = blue.find(u => u.type === "archer" && u.id !== archer.id);
+  api.withInstantTimers(() => {
+    api.selectUnit(second.id);
+    api.onActionIconClick("defend");
+  });
+  assert(second.hasActedThisRound === true, "a defence stand marks the fighter as having acted");
+  assert(api.unitCanActThisRound(second) === false, "a fighter that braced is not offered again");
+
+  const walker = blue.find(u => u.type === "footman" && api.getReachableCells(u).length > 0);
+  const cell = api.getReachableCells(walker)[0];
+  api.withInstantTimers(() => {
+    api.selectUnit(walker.id);
+    api.onMoveClick(walker.id, cell.col, cell.row);
+  });
+  assert(walker.hasActedThisRound === true, "a march marks the fighter as having acted");
+  api.setTurnModeId("party");
+}
+
+{
+  /* A fighter whose move/attack flags are spent is never counted as ready,
+   * whatever the round flag says: it would show no marker and refuse every
+   * order, and the round could not close. */
+  const { api } = newGame();
+  api.setTurnModeId("troop");
+  api.startBattle();
+  const unit = api.getTeamUnits(TEAM_BLUE)[0];
+  unit.hasMoved = true;
+  unit.hasAttacked = true;
+  unit.hasActedThisRound = false;
+  assert(api.unitCanActThisRound(unit) === false, "a half-spent fighter is not ready");
+  api.setTurnModeId("party");
+}
+
+{
+  /* Whole rounds: every fighter acts once, the round closes, and the next
+   * round finds every fighter ready again. Several rounds in a row. */
+  const { api } = newGame();
+  api.setTurnModeId("troop");
+  api.startBattle();
+  let frozen = false;
+  let notSpent = 0;
+  for (let guard = 0; guard < 200 && api.getState().roundNumber < 5 && api.getState().gameState !== "ended"; guard++) {
+    const ready = api.getTeamUnits(TEAM_BLUE).filter(u => api.unitCanActThisRound(u));
+    if (api.getState().currentTurn !== "player") { frozen = true; break; }
+    if (ready.length === 0) { frozen = true; break; }
+    const unit = ready[0];
+    const target = api.getTeamUnits(TEAM_RED).find(t => api.canAttack(unit, t));
+    const cells = api.getReachableCells(unit);
+    const before = api.getState().roundNumber;
+    api.withInstantTimers(() => {
+      api.selectUnit(unit.id);
+      if (target) api.onAttackClick(unit.id, target.id);
+      else if (cells.length) api.onMoveClick(unit.id, cells[0].col, cells[0].row);
+      else api.endPlayerTurn(true);
+    });
+    if (!(!unit.alive || unit.hasActedThisRound || api.getState().roundNumber > before || api.getState().gameState === "ended")) {
+      notSpent++;
+      break;
+    }
+  }
+  assert(notSpent === 0, "every fighter that acted is spent for the round");
+  assert(frozen === false, "Troop mode never freezes over several rounds");
+  assert(api.getState().roundNumber >= 5 || api.getState().gameState === "ended",
+    "the rounds keep advancing (reached round " + api.getState().roundNumber + ")");
+  api.setTurnModeId("party");
+}
+
+{
+  /* END TURN pressed by hand means "I am done": when the crimson legion has
+   * nothing left to do, the fighters that did not act sit the round out and
+   * the round closes. A fighter with no legal action can never hold it open. */
+  const { api } = newGame();
+  api.setTurnModeId("troop");
+  api.startBattle();
+  for (const u of api.getTeamUnits(TEAM_RED)) api.markTroopActed(u);
+  const before = api.getState().roundNumber;
+  api.withInstantTimers(() => api.endPlayerTurn(true));
+  assert(api.getState().roundNumber === before + 1, "END TURN by hand closes the round");
+  assert(api.getTeamUnits(TEAM_BLUE).every(u => api.unitCanActThisRound(u) || u.hasActedThisRound === false),
+    "the next round finds the azure fighters ready");
+  api.setTurnModeId("party");
+}
+
 section("90. Troop mode — one activation per unit per round");
 
 {

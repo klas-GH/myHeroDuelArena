@@ -3,6 +3,34 @@
 Newest first. Versions 1.12.3 – 1.12.9 are summarised from the commit log; the
 older notes are kept as they were written.
 
+## v1.12.13 — Troop mode no longer freezes
+
+- **Fixed: the game froze in Troop mode** ("this fighter has already acted"
+  and nothing could be moved or attacked). In Troop mode the fighter that acts
+  is found through the selection, but a blow and a defence stand clear the
+  selection *before* the turn is handed over, so the fighter was never marked
+  as having acted. It stayed "ready" although it had already struck or braced,
+  was offered again, refused every order, and the round could never close.
+  The acting fighter is now named explicitly by the move, the blow, the
+  defence stand and the ability, so it is always marked.
+- A fighter that has moved, struck or braced now counts as spent in Troop mode
+  even if the round flag was somehow missed, so the same freeze cannot come
+  back by another road.
+- An ability now spends the activation in Troop mode (it never handed the turn
+  over before).
+- A crimson fighter with nothing to do, or whose order was refused, now passes
+  its activation instead of being asked again for ever.
+- END TURN pressed by hand in Troop mode means "I am done": when the crimson
+  legion has nothing left to do, the fighters that did not act hold their
+  ground and the round closes. A fighter with no legal action (boxed in, with
+  nothing in reach) can no longer hold the round open.
+- The turn banner no longer stays on "ENEMY TURN" while it is your turn.
+- Measured: before the fix a random-clicking player got stuck in round 1 on
+  every seed tried. After the fix six whole duels in Troop mode (two or three
+  matches each, up to 30 rounds) and two in Party mode ran to the end with no
+  stall and no error.
+- Tests: new section 99. 926 rule assertions.
+
 ## v1.12.12 — the field is columns 2–7 for both armies
 
 - **Fixed: fighters could walk behind the enemy's back rank.** Each army was
