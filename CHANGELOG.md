@@ -3,6 +3,20 @@
 Newest first. Versions 1.12.3 – 1.12.9 are summarised from the commit log; the
 older notes are kept as they were written.
 
+## v1.12.14 — Troop mode: fighters with nothing to do are passed
+
+- **Fixed: a rarer Troop-mode stall.** A fighter boxed in by its own ranks,
+  already braced and with no enemy in reach has no legal action (no cell, no
+  target, no defence stand, no ability). It still counted as "ready", so the
+  round waited for it and the player had to press END TURN several times. When
+  every azure fighter that is still ready has nothing to do, they now hold their
+  ground and the round moves on by itself. A fighter that can act always keeps
+  the turn; nobody is passed behind its back.
+- Found by a long soak run (a click bot playing whole duels through the real
+  page, with a fake clock): one in five duels stalled before this fix; twelve
+  in a row ran to the end after it.
+- Tests: new section 100. 932 rule assertions.
+
 ## v1.12.13 — Troop mode no longer freezes
 
 - **Fixed: the game froze in Troop mode** ("this fighter has already acted"

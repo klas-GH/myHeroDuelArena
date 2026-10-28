@@ -163,7 +163,7 @@ node balance.js         # seeded balance measurement, JSON out
 `regression.js` and `smoke_quick.js` load the shipped `game.js` into a
 sandboxed DOM stub instead of re-implementing the rules, so a test cannot pass
 while the game disagrees. Every suite prints `=== Results: N passed, M failed ===`
-and exits non-zero on failure. Current counts: 926 rule assertions and 159 DOM assertions.
+and exits non-zero on failure. Current counts: 932 rule assertions and 159 DOM assertions.
 
 ## Deploying
 

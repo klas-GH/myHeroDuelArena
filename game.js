@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.13 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.14 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.13";
+const APP_VERSION = "v1.12.14";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -3738,7 +3738,46 @@ function roundLeader() {
 /* Hands the field to the azure legion. In Troop mode we also put the
  * first ready fighter under the cursor so the player can act at once
  * (classic "one unit at a time" feel). */
+/* Whether a fighter has anything at all it could do right now: a cell to
+ * walk to, a target to strike, a defence stand or a ready ability. A fighter
+ * boxed in by its own ranks, already braced and with no enemy in reach has
+ * none. */
+function unitHasLegalAction(unit) {
+  if (!unit || !unit.alive || unit.defeated) return false;
+  if (getReachableCells(unit).length > 0) return true;
+  if (getValidTargets(unit).length > 0) return true;
+  if (canDefenceStand(unit)) return true;
+  return getReadyAbilities(unit).length > 0;
+}
+
+/* Troop mode: when every azure fighter that is still ready has nothing it
+ * could do, they sit the round out. Otherwise the round would wait for ever
+ * on fighters that show no marker and refuse every order (v1.12.13).
+ * Returns true when it took over the turn. */
+function passDeadAzureFighters() {
+  if (getTurnModeId() !== "troop") return false;
+  const ready = getTeamUnits(TEAM_BLUE).filter(u => unitCanActThisRound(u));
+  if (ready.length === 0 || ready.some(u => unitHasLegalAction(u))) return false;
+
+  for (const u of ready) markTroopActed(u);
+  logEvent(ready.length === 1
+    ? `${ready[0].displayName} has nothing to do and holds its ground.`
+    : "The remaining azure fighters have nothing to do and hold their ground.", "system");
+
+  if (allUnitsActedThisRound()) {
+    if (!closeRound()) startNextRound();
+    return true;
+  }
+  if (teamHasActors(TEAM_RED)) {
+    beginEnemyTurn("Crimson Legion continues...");
+    return true;
+  }
+  if (!closeRound()) startNextRound();
+  return true;
+}
+
 function beginPlayerTurn() {
+  if (passDeadAzureFighters()) return;
   currentTurn = "player";
   gameState = STATE_PLAYER_SELECTING;
   updateTurnBanner();
@@ -5460,6 +5499,7 @@ if (typeof window !== "undefined") {
     onAttackClick,
     onActionIconClick,
     beginPlayerTurn,
+    unitHasLegalAction,
     withInstantTimers: (fn) => {
       const previous = instantTimers;
       instantTimers = true;

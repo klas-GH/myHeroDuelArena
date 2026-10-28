@@ -3506,6 +3506,50 @@ section("99. Troop mode never leaves a fighter half-spent (v1.12.13)");
   api.setTurnModeId("party");
 }
 
+section("100. Troop mode passes fighters that have nothing to do (v1.12.14)");
+
+{
+  /* A chevalier boxed in by its own ranks, already braced, with no enemy in
+   * reach: it has no legal action. When it is the only fighter left, the
+   * round must not wait for it. */
+  const { api } = newGame();
+  api.setTurnModeId("troop");
+  api.startBattle();
+  const find = (type, n = 0) => api.getTeamUnits(TEAM_BLUE).filter(u => u.type === type)[n];
+  const chev = find("chevalier");
+  const place = (u, col, row) => { u.col = col; u.row = row; };
+  place(chev, 2, 1);
+  place(find("archer", 0), 2, 0);
+  place(find("ballista"), 2, 2);
+  place(find("archer", 1), 3, 0);
+  place(find("footman", 0), 3, 1);
+  place(find("footman", 1), 3, 2);
+  place(find("champion"), 2, 3);
+  chev.braced = true;
+  assert(api.unitHasLegalAction(chev) === false, "the boxed-in, braced chevalier has nothing it could do");
+
+  for (const u of api.getTeamUnits(TEAM_BLUE)) if (u !== chev) api.markTroopActed(u);
+  for (const u of api.getTeamUnits(TEAM_RED)) api.markTroopActed(u);
+  const before = api.getState().roundNumber;
+  api.withInstantTimers(() => api.beginPlayerTurn());
+  assert(api.getState().roundNumber === before + 1, "the round closes instead of waiting for a fighter that cannot act");
+  assert(api.getTeamUnits(TEAM_BLUE).some(u => api.unitCanActThisRound(u)), "the next round finds the azure fighters ready");
+  api.setTurnModeId("party");
+}
+
+{
+  /* A fighter that CAN act keeps the turn: nobody is passed behind its back. */
+  const { api } = newGame();
+  api.setTurnModeId("troop");
+  api.startBattle();
+  const before = api.getState().roundNumber;
+  api.withInstantTimers(() => api.beginPlayerTurn());
+  assert(api.getState().roundNumber === before, "a fresh round is not skipped");
+  assert(api.getState().currentTurn === "player", "the player keeps the turn when fighters can act");
+  assert(api.getTeamUnits(TEAM_BLUE).every(u => api.unitHasLegalAction(u)), "fresh fighters all have something to do");
+  api.setTurnModeId("party");
+}
+
 section("90. Troop mode — one activation per unit per round");
 
 {
