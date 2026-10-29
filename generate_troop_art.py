@@ -33,7 +33,6 @@ OUT_DIR = os.path.join(ROOT, "assets", "troops")
 
 BASE = 512           # the design space of a troop picture
 SS = 2               # supersampling: everything is drawn twice as big
-CHAMPION_SIZE = 768  # the champion is drawn larger, it is the centrepiece
 
 # --- palette ---------------------------------------------------------------
 
@@ -532,103 +531,170 @@ def draw_chevalier(team):
     return sheet.copy().resize((BASE, BASE), Image.LANCZOS)
 
 
+CH_W, CH_H = 940, 860
+CH_DY = 120                      # headroom for the plume and the raised sword
+KS = 1.22                     # the champion is a BIG knight
+KX, KYS = 400, 322            # the saddle: the rider is scaled around this point
+
+POL_HI = (248, 251, 255); POL = (198, 210, 226); POL_LO = (110, 124, 146)
+HW_HI = (251, 251, 254); HW = (216, 220, 232); HW_LO = (148, 156, 176)
+MANE = (238, 240, 248); MANE_LO = (172, 178, 198)
+WHITE = (255, 255, 255)
+
+class Ctx:
+    """Draws in design coordinates; `k` scales the rider, `dy` is the headroom."""
+    def __init__(self, sheet, k=1.0):
+        self.s, self.k = sheet, k
+    def P(self, x, y):
+        if self.k != 1.0:
+            x, y = KX + (x - KX) * self.k, KYS + (y - KYS) * self.k
+        return (x, y + CH_DY)
+    def pts(self, pts): return [self.P(x, y) for x, y in pts]
+    def poly(self, pts, top, bot=None, outline=OUTLINE, ow=5):
+        self.s.poly(self.pts(pts), top, bot, outline=outline, ow=ow * (self.k if self.k != 1 else 1))
+    def oval(self, box, top, bot=None, outline=OUTLINE, ow=5):
+        (x0, y0), (x1, y1) = self.P(box[0], box[1]), self.P(box[2], box[3])
+        self.s.oval([x0, y0, x1, y1], top, bot, outline=outline, ow=ow)
+    def line(self, pts, color, width, outline=None, ow=3):
+        self.s.line(self.pts(pts), color, width * (self.k if self.k != 1 else 1), outline=outline, ow=ow)
+    def dot(self, box, fill=(26, 22, 24, 255)):
+        (x0, y0), (x1, y1) = self.P(box[0], box[1]), self.P(box[2], box[3])
+        self.s.raw(lambda d, sc: d.ellipse([x0 * sc, y0 * sc, x1 * sc, y1 * sc], fill=fill))
+    def slot(self, box, fill=(26, 22, 24, 255), r=5):
+        (x0, y0), (x1, y1) = self.P(box[0], box[1]), self.P(box[2], box[3])
+        self.s.raw(lambda d, sc: d.rounded_rectangle([x0 * sc, y0 * sc, x1 * sc, y1 * sc], radius=r * sc, fill=fill))
+    def sparkle(self, cx, cy, r):
+        pts = []
+        for i in range(8):
+            a = math.pi / 4 * i - math.pi / 2
+            rr = r if i % 2 == 0 else r * 0.22
+            pts.append((cx + math.cos(a) * rr, cy + math.sin(a) * rr))
+        self.s.poly(self.pts(pts), WHITE, (255, 244, 196), outline=None, ow=0)
+
 def draw_champion(team):
-    """The azure champion: a full armoured knight.
+    """The champion: a big knight in gleaming plate on an armoured white warhorse.
 
-    A great helm with a faceplate and a crest, broad pauldrons, a strong
-    breastplate under a heraldic tabard, articulated gauntlets, armoured
-    legs, a greatsword in the right hand and a bow in the left. The stance
-    is open and confident, the way a champion waits for the charge.
+    The champion fills two board columns, so it is drawn as a mounted knight,
+    wide enough for its box: polished steel with bright highlights and glints of
+    light, a great helm with a tall plume and a golden band, broad pauldrons, a
+    raised greatsword, a cape and a tabard of the army's colour, and a white
+    destrier with a polished face plate and breast armour under a caparison of
+    the army's colour with a golden hem. A bow hangs at the saddle: the champion
+    still shoots. The horse is white so that it can never be mistaken for the
+    brown horse of the chevalier.
     """
-    size = CHAMPION_SIZE
-    factor = size / BASE
-    sheet = Sheet((size * SS, size * SS), scale=SS * factor)
+    cloth_hi, cloth_lo = TEAMS[team]["cloth"]
+    cloth_dk = TEAMS[team]["cloth_lo"]
+    sheet = Sheet((CH_W * SS, CH_H * SS))
+    sheet.shadow([100, 596 + CH_DY, 790, 690 + CH_DY], opacity=125, blur=12)
+    h = Ctx(sheet)         # the horse
+    r = Ctx(sheet, KS)     # the rider
 
-    cloth = TEAMS[team]["cloth"][0]
-    cloth_mid = TEAMS[team]["cloth"][1]
-    cloth_lo = TEAMS[team]["cloth_lo"]
+    # ---- the bow slung behind the saddle
+    h.line(bezier((296, 244), (226, 340), (300, 430)), (170, 112, 66), 11, outline=OUTLINE, ow=4)
+    h.line([(296, 244), (300, 430)], (236, 226, 200), 2)
 
-    # the ground the knight stands on
-    sheet.shadow([150, 442, 366, 500])
+    # ---- the white warhorse
+    h.line(bezier((196, 372), (92, 372), (66, 536)), MANE, 34, outline=OUTLINE, ow=4)         # tail
+    h.line(bezier((196, 372), (116, 392), (100, 510)), MANE_LO, 12)
+    for x, far in ((246, True), (322, False)):                                                # hind legs
+        top, bot = (HW, HW_LO) if far else (HW_HI, HW)
+        h.poly([(x - 30, 470), (x + 30, 470), (x + 22, 556), (x + 26, 630), (x - 24, 630), (x - 20, 552)], top, bot, ow=5)
+        h.poly([(x - 30, 614), (x + 32, 614), (x + 34, 644), (x - 32, 644)], POL, POL_LO, ow=4)
+        h.poly([(x - 26, 614), (x + 28, 614), (x + 28, 625), (x - 26, 625)], GOLD_HI, GOLD_LO, ow=2)
+    h.oval([172, 314, 612, 528], HW_HI, HW, ow=6)                                             # body
+    h.poly([(566, 464), (650, 462), (668, 528), (712, 554), (698, 598), (636, 588), (600, 530)], HW, HW_LO, ow=5)   # raised fore leg
+    h.poly([(688, 574), (742, 556), (754, 594), (700, 614)], POL, POL_LO, ow=4)
+    h.poly([(494, 452), (556, 452), (554, 548), (560, 630), (500, 630), (498, 548)], HW_HI, HW, ow=5)             # standing fore leg
+    h.poly([(492, 614), (566, 614), (568, 644), (490, 644)], POL, POL_LO, ow=4)
+    h.poly([(494, 614), (564, 614), (564, 625), (494, 625)], GOLD_HI, GOLD_LO, ow=2)
+    # neck: a thick, arched crest
+    h.poly([(486, 360), (520, 300), (580, 214), (640, 150), (706, 168), (700, 246), (656, 312), (622, 392)], HW_HI, HW, ow=6)
+    h.poly([(622, 392), (656, 312), (700, 246), (690, 268), (652, 336), (604, 404)], HW, HW_LO, outline=None, ow=0)   # shade under the throat
+    # head, long and deep
+    h.poly([(636, 150), (704, 146), (800, 240), (810, 298), (764, 316), (700, 270), (654, 262)], HW_HI, HW, ow=6)
+    h.poly([(648, 144), (664, 98), (686, 142)], HW, HW_LO, ow=4)                                                  # ear
+    h.dot([704, 184, 724, 204]); h.dot([708, 187, 715, 194], fill=(255, 255, 255, 255))                            # eye
+    h.dot([782, 276, 794, 290], fill=(150, 130, 140, 255))                                                        # nostril
+    # mane, streaming along the crest
+    h.poly([(642, 150), (600, 168), (572, 212), (542, 252), (508, 298), (474, 356), (496, 364), (532, 316), (568, 272), (602, 224), (636, 190)], MANE, MANE_LO, ow=4)
+    # chanfron: polished face plate with a gold stud
+    h.poly([(660, 150), (716, 158), (800, 242), (808, 292), (770, 308), (720, 268), (674, 214)], POL_HI, POL_LO, ow=5)
+    h.line([(682, 174), (786, 266)], WHITE, 5)
+    h.oval([688, 178, 714, 204], GOLD_HI, GOLD_LO, ow=3)
+    # plume on the horse's brow
+    h.poly([(650, 148), (676, 134), (694, 70), (664, 56), (640, 104)], cloth_hi, cloth_dk, ow=4)
+    h.poly([(632, 152), (652, 142), (634, 90), (608, 106), (620, 138)], shade(cloth_hi, 0.14), cloth_lo, ow=4)
+    # peytral: the horse's polished breast armour
+    h.poly([(504, 350), (616, 332), (656, 404), (620, 488), (548, 500), (502, 434)], POL_HI, POL_LO, ow=6)
+    h.poly([(520, 364), (604, 348), (634, 404), (604, 468), (552, 478), (520, 430)], (234, 242, 252), POL, outline=None, ow=0)
+    h.line([(534, 372), (520, 440)], WHITE, 5)
+    for rx, ry in ((546, 388), (590, 380), (566, 440), (608, 430)):
+        h.oval([rx - 9, ry - 9, rx + 9, ry + 9], GOLD_HI, GOLD_LO, ow=2)
+    h.line([(504, 350), (616, 332), (656, 404), (620, 488)], GOLD, 6)
+    # caparison with a golden hem
+    hem = [(548, 552), (508, 580), (468, 552), (428, 580), (388, 552), (348, 580), (308, 552), (268, 580), (230, 544)]
+    cap = [(212, 336), (548, 328), (574, 422), (548, 552)] + hem[1:] + [(208, 442)]
+    h.poly(cap, cloth_hi, cloth_dk, ow=6)
+    h.poly([(236, 352), (534, 346), (554, 422), (532, 522), (238, 514), (226, 442)], shade(cloth_hi, 0.10), cloth_lo, outline=None, ow=0)
+    h.line(hem, GOLD, 8, outline=OUTLINE, ow=3)
+    h.line([(212, 340), (548, 332)], GOLD, 7, outline=OUTLINE, ow=3)
+    h.poly([(384, 396), (420, 444), (384, 496), (348, 444)], GOLD_HI, GOLD_LO, ow=4)
+    h.poly([(384, 414), (402, 444), (384, 476), (366, 444)], cloth_hi, cloth_dk, outline=None, ow=0)
+    # saddle with a high cantle
+    h.poly([(322, 322), (454, 322), (466, 352), (316, 352)], LEATHER_HI, LEATHER_LO, ow=5)
+    h.poly([(306, 280), (334, 280), (342, 352), (304, 352)], LEATHER_HI, LEATHER_LO, ow=5)
+    h.line(bezier((446, 308), (566, 290), (690, 238)), LEATHER, 4, outline=OUTLINE, ow=2)   # reins
 
-    # --- the cape, the one great sweep of colour behind the hero
-    sheet.poly([
-        (176, 122), (296, 108), (348, 188), (372, 316), (352, 452),
-        (296, 426), (232, 458), (154, 430), (130, 300), (142, 198),
-    ], cloth, cloth_lo, ow=6)
-    sheet.poly([
-        (198, 140), (290, 128), (332, 202), (350, 320), (332, 430),
-        (294, 408), (232, 438), (176, 414), (154, 296), (164, 204),
-    ], cloth, cloth_mid, outline=None, ow=0)
-
-    # --- the legs: the back leg is planted, the front one steps forward
-    draw_greave(sheet, 214, 300, 464, 36, lean=-6)
-    draw_greave(sheet, 290, 300, 470, 38, lean=8)
-
-    # --- the faulds, the skirt of plates over the hips
-    sheet.poly([
-        (196, 288), (312, 288), (304, 344), (256, 362), (204, 344),
-    ], STEEL, STEEL_LO, ow=5)
-    sheet.poly([
-        (206, 300), (302, 300), (296, 340), (256, 354), (212, 340),
-    ], STEEL_HI, STEEL, outline=None, ow=0)
-
-    # --- the cuirass
-    sheet.poly([
-        (198, 178), (314, 178), (306, 252), (296, 302), (214, 302), (206, 252),
-    ], STEEL_HI, STEEL_LO, ow=6)
-    # the raised ridge of the breastplate
-    sheet.poly([(248, 182), (266, 182), (270, 298), (244, 298)],
-               (214, 224, 238), (146, 158, 176), outline=None, ow=0)
-
-    # --- the tabard of the army's colour, with the emblem of the house
-    sheet.poly([(228, 194), (284, 194), (292, 356), (220, 356)], cloth, cloth_lo, ow=4)
-    sheet.poly([(234, 202), (278, 202), (285, 348), (227, 348)], cloth, cloth_mid,
-               outline=None, ow=0)
-    sheet.poly([(256, 232), (276, 272), (256, 312), (236, 272)], GOLD_HI, GOLD_LO, ow=4)
-
-    # the belt and its buckle
-    sheet.poly([(206, 288), (306, 288), (304, 312), (208, 312)], LEATHER, LEATHER_LO, ow=5)
-    sheet.oval([244, 290, 268, 312], GOLD_HI, GOLD_LO, ow=4)
-
-    # --- the pauldrons: broad, layered, the mark of a knight
-    draw_pauldron(sheet, 194, 182, 36)
-    draw_pauldron(sheet, 316, 182, 36)
-    sheet.oval([164, 192, 212, 230], STEEL, STEEL_LO, ow=4)
-    sheet.oval([300, 192, 348, 230], STEEL, STEEL_LO, ow=4)
-
-    # --- the arms
-    sheet.poly([(304, 194), (332, 206), (372, 280), (348, 300)], STEEL, STEEL_LO, ow=5)
-    sheet.poly([(198, 194), (174, 208), (154, 286), (178, 300)], STEEL, STEEL_LO, ow=5)
-
-    # --- the gorget between the helm and the collar
-    sheet.poly([(228, 158), (284, 158), (292, 182), (220, 182)], STEEL, STEEL_LO, ow=4)
-
-    # --- the great helm with its faceplate
-    sheet.oval([212, 66, 300, 166], STEEL_HI, STEEL_LO, ow=6)
-    sheet.raw(lambda d, s: d.ellipse(
-        [v * s for v in (222, 100, 290, 120)], fill=(24, 20, 22, 255)))
-    sheet.poly([(248, 96), (264, 96), (262, 152), (250, 152)], STEEL_HI, STEEL, ow=3)
-    # the brow band in gold
-    sheet.poly([(214, 82), (298, 82), (298, 94), (214, 94)], GOLD_HI, GOLD_LO, ow=3)
-
-    # --- the crest: a plume of the army's colour, streaming behind
-    sheet.poly([
-        (240, 70), (272, 70), (288, 26), (262, 8), (234, 30),
-    ], cloth, cloth_lo, ow=5)
-    sheet.poly([
-        (226, 66), (252, 70), (218, 32), (178, 18), (188, 48),
-    ], cloth_mid, cloth_lo, ow=4)
-
-    # --- the hands
-    draw_gauntlet(sheet, 360, 294, 16)
-    draw_gauntlet(sheet, 168, 300, 15)
-
-    # --- the weapons: a greatsword in the right hand, a bow in the left
-    draw_sword(sheet, 362, 300, 236, width=22, angle=0.26, gold=True)
-    draw_bow(sheet, 168, 300, 200, curve=34)
-
-    return sheet.copy().resize((size, size), Image.LANCZOS)
+    # ---- the knight (scaled up)
+    r.poly([(352, 178), (330, 208), (226, 290), (166, 366), (246, 368), (316, 330), (352, 270)], cloth_hi, cloth_dk, ow=5)   # cape
+    r.poly([(340, 202), (298, 250), (222, 326), (236, 348), (308, 304), (340, 252)], shade(cloth_hi, 0.10), cloth_lo, outline=None, ow=0)
+    r.poly([(372, 306), (442, 306), (466, 400), (454, 474), (416, 480), (408, 410)], POL_HI, POL_LO, ow=6)               # leg
+    r.line([(392, 316), (424, 400), (430, 464)], WHITE, 4)
+    r.oval([398, 380, 452, 426], POL_HI, POL, ow=5)
+    r.poly([(410, 468), (472, 460), (498, 490), (412, 500)], POL, POL_LO, ow=5)
+    r.line([(436, 482), (492, 480)], GOLD, 5)
+    r.poly([(346, 168), (456, 168), (470, 244), (454, 320), (358, 320), (338, 244)], POL_HI, POL_LO, ow=6)               # breastplate
+    r.poly([(360, 180), (442, 180), (454, 244), (442, 302), (366, 302), (352, 244)], (240, 246, 253), POL, outline=None, ow=0)
+    r.line([(372, 188), (362, 264)], WHITE, 6)
+    r.line([(402, 176), (402, 300)], POL_LO, 3)
+    r.poly([(358, 262), (450, 262), (460, 338), (350, 338)], cloth_hi, cloth_dk, ow=5)                                   # tabard
+    r.poly([(405, 276), (430, 306), (405, 336), (380, 306)], GOLD_HI, GOLD_LO, ow=3)
+    r.poly([(350, 302), (460, 302), (460, 318), (350, 318)], LEATHER_HI, LEATHER_LO, ow=4)
+    r.oval([392, 298, 418, 322], GOLD_HI, GOLD_LO, ow=3)
+    r.poly([(360, 196), (394, 206), (450, 296), (432, 316), (376, 254)], POL_HI, POL_LO, ow=5)                           # near arm
+    r.oval([420, 286, 464, 328], POL, POL_LO, ow=5)
+    r.poly([(442, 184), (476, 198), (550, 142), (532, 112)], POL_HI, POL_LO, ow=5)                                       # sword arm
+    for px_, py_ in ((356, 190), (450, 188)):                                                                            # pauldrons
+        r.oval([px_ - 40, py_ - 33, px_ + 40, py_ + 35], POL_HI, POL_LO, ow=5)
+        r.oval([px_ - 28, py_ - 24, px_ + 18, py_ + 6], (252, 254, 255), POL, outline=None, ow=0)
+    r.line([(330, 192), (382, 188)], GOLD, 5); r.line([(426, 186), (476, 188)], GOLD, 5)
+    # greatsword
+    hx, hy, tx, ty = 540, 122, 664, -30
+    dx, dy = tx - hx, ty - hy; L = math.hypot(dx, dy); dx, dy = dx / L, dy / L; px_, py_ = -dy, dx
+    blade = [(hx + px_ * 12, hy + py_ * 12), (tx - dx * 46 + px_ * 10, ty - dy * 46 + py_ * 10), (tx, ty),
+             (tx - dx * 46 - px_ * 10, ty - dy * 46 - py_ * 10), (hx - px_ * 12, hy - py_ * 12)]
+    r.poly(blade, (250, 252, 255), (168, 180, 204), ow=5)
+    r.line([(hx + dx * 16, hy + dy * 16), (tx - dx * 52, ty - dy * 52)], WHITE, 4)
+    r.poly([(hx - px_ * 34 - dx * 6, hy - py_ * 34 - dy * 6), (hx + px_ * 34 - dx * 6, hy + py_ * 34 - dy * 6),
+            (hx + px_ * 34 + dx * 10, hy + py_ * 34 + dy * 10), (hx - px_ * 34 + dx * 10, hy - py_ * 34 + dy * 10)], GOLD_HI, GOLD_LO, ow=4)
+    r.line([(hx - dx * 6, hy - dy * 6), (hx - dx * 44, hy - dy * 44)], LEATHER, 13, outline=OUTLINE, ow=4)
+    r.oval([hx - dx * 50 - 13, hy - dy * 50 - 13, hx - dx * 50 + 13, hy - dy * 50 + 13], GOLD_HI, GOLD_LO, ow=3)
+    r.oval([hx - 22, hy - 20, hx + 22, hy + 22], POL_HI, POL, ow=5)
+    # great helm
+    r.poly([(362, 100), (442, 100), (450, 164), (434, 188), (368, 188), (354, 164)], POL_HI, POL_LO, ow=6)
+    r.oval([358, 50, 446, 142], POL_HI, POL, ow=6)
+    r.line([(372, 80), (366, 142)], WHITE, 5)
+    r.slot([372, 102, 432, 118]); r.slot([397, 118, 407, 174], r=3)
+    for hx2, hy2 in ((378, 134), (378, 148), (426, 134), (426, 148)):
+        r.dot([hx2 - 3, hy2 - 3, hx2 + 3, hy2 + 3])
+    r.poly([(354, 84), (448, 84), (450, 98), (352, 98)], GOLD_HI, GOLD_LO, ow=4)
+    r.poly([(396, 56), (420, 50), (474, 6), (454, -16), (410, 18)], cloth_hi, cloth_dk, ow=4)                            # plume
+    r.poly([(384, 58), (404, 54), (372, 4), (344, 18), (362, 50)], shade(cloth_hi, 0.12), cloth_lo, ow=4)
+    # glints of light on the polished plate
+    for gx, gy, gr, k in ((362, 170, 18, r), (374, 82, 14, r), (664, -34, 20, r), (566, 388, 13, h), (424, 392, 12, r), (734, 570, 10, h)):
+        k.sparkle(gx, gy, gr)
+    return sheet.copy().resize((int(CH_W * 0.72), int(CH_H * 0.72)), Image.LANCZOS)
 
 
 BUILDERS = {
@@ -659,9 +725,12 @@ def trim_to_figure(image, margin=2):
     return image.crop((left, top, right, bottom))
 
 
-def main():
+def main(only=None):
+    """Draw every troop, or only the named ones: python generate_troop_art.py champion"""
     os.makedirs(OUT_DIR, exist_ok=True)
     for name, builder in BUILDERS.items():
+        if only and name not in only:
+            continue
         for team in ("blue", "red"):
             image = builder(team)
             image = trim_to_figure(image)
@@ -671,4 +740,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(sys.argv[1:] or None)

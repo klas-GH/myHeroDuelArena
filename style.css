@@ -794,6 +794,13 @@ body {
   z-index: 0;
 }
 
+/* The champion's silhouette is a standing figure; behind the mounted knight it
+ * would show through the transparent parts of the picture. It stays as the
+ * fallback for a picture that fails to load. */
+.unit.champion .unit-art.has-picture .unit-silhouette {
+  display: none;
+}
+
 /* A picture that failed to load steps aside for the inline silhouette. */
 .unit-image-missing {
   display: none;

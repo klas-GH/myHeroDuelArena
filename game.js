@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.16 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.17 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.16";
+const APP_VERSION = "v1.12.17";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -529,7 +529,9 @@ const AI_TUNING = {
     champion: 34, ballista: 20, chevalier: 18, archer: 14, footman: 8
   },
   finishBonus: 12,            /* score for hitting an already wounded unit*/
-  actNowBonus: 3,             /* small bias for striking without moving  */
+  actNowBonus: 8,             /* bias for striking without moving         */
+  inReachAdvanceScale: 0.25,   /* how much a fighter that can already strike
+                               * is pulled forward: it stands and fights    */
   retaliationWeight: 0.12,    /* penalty for trading blows               */
   retaliationAnswers: 2,      /* how many answers a blow is weighed with  */
   advanceWeight: 4,           /* score per column advanced toward the foe*/
@@ -555,6 +557,11 @@ const AI_TUNING = {
   suicidalPenalty: 22,       /* penalty for a trade that kills the attacker*/
   tradePenalty: 8,           /* penalty for a trade that kills both       */
   wastedMovePenalty: 6,      /* penalty for walking when a blow was ready */
+  followCredit: 0.3,         /* share of the blow a move ADDS that it earns:
+                              * a move uses up the activation, so the blow it
+                              * sets up is for the next turn, not this one   */
+  shooterAdvanceScale: 0.25, /* how much a bow-only fighter is pulled forward:
+                              * its bow already reaches the whole field     */
   positionalLethalCredit: 14,/* score for a cell that would end a unit     */
   minActionScore: 2         /* an action must be worth this much to run*/
 };
@@ -621,7 +628,7 @@ const DIFFICULTY_PROFILES = {
     aggression: 1.3,
     tradeAppetite: 1.25,
     caution: 0.75,
-    championFocus: 14,
+    championFocus: 3,
     abilityDrive: 1.6,
     aimAssist: 2
   }
@@ -1424,6 +1431,11 @@ function renderUnit(unit) {
   image.draggable = false;
   image.src = `assets/troops/${unit.type}-${unit.team}.png`;
   image.addEventListener("error", () => image.classList.add("unit-image-missing"));
+  /* Once the picture has loaded the silhouette behind it is not needed (it is
+   * only the fallback for a picture that fails to load). The champion's
+   * silhouette is a standing figure, so it would show behind the mounted
+   * knight. */
+  image.addEventListener("load", () => art.classList.add("has-picture"));
 
   art.append(symbol, image);
 
@@ -3187,13 +3199,23 @@ function advanceDirection(unit) {
   return -forward;
 }
 
-function evaluateMoveAction(unit, cell, currentAttack, follow) {
+function evaluateMoveAction(unit, cell, currentAttack, follow, standing) {
   const terrain = getTerrainAt(cell.col, cell.row);
   const profile = profileForTeam(unit.team);
   const advance = (cell.col - unit.col) * advanceDirection(unit);
 
+  /* A fighter that only shoots (archer, ballista) already reaches every enemy
+   * from where it stands, so marching forward buys it nothing. It holds its
+   * ground, shoots or braces, and only walks for cover, height or safety. */
+  const shooterOnly = getMeleeReach(unit) === 0 && getRangedReach(unit) > 1;
+  let advanceScale = shooterOnly ? AI_TUNING.shooterAdvanceScale : 1;
+  /* A fighter that already has a blow to strike from where it stands is not
+   * pulled forward as hard as one that has nobody in reach: with a foe to hit
+   * it fights instead of walking on (v1.12.17). */
+  if (standing) advanceScale *= AI_TUNING.inReachAdvanceScale;
+
   let score = 0;
-  score += advance * AI_TUNING.advanceWeight * profile.aggression;
+  score += advance * AI_TUNING.advanceWeight * profile.aggression * advanceScale;
   score += terrain.def * AI_TUNING.coverWeight;
 
   const currentThreat = estimateIncomingDamage(unit.col, unit.row, unit.team, unit.def);
@@ -3214,7 +3236,7 @@ function evaluateMoveAction(unit, cell, currentAttack, follow) {
   }
 
   if (getMeleeReach(unit) > 0 && advance > 0) {
-    score += Math.min(advance, 2) * AI_TUNING.meleeAdvanceBonus * profile.aggression;
+    score += Math.min(advance, 2) * AI_TUNING.meleeAdvanceBonus * profile.aggression * (standing ? AI_TUNING.inReachAdvanceScale : 1);
   }
 
   /* A unit that can loose an arrow likes the high ground. */
@@ -3384,18 +3406,28 @@ function evaluateBraceAction(unit) {
   return incoming * DEFENCE_STAND_ARMOUR * AI_TUNING.damageWeight;
 }
 
-function evaluateAction(action, currentAttack) {
+function evaluateAction(action, currentAttack, standing) {
   let score = 0;
   if (action.kind === "attack") {
     score = AI_TUNING.actNowBonus + evaluateAttackAction(action.unit, action.target);
   } else if (action.kind === "move") {
     const follow = bestAttackFrom(action.unit, action.cell);
-    score = evaluateMoveAction(action.unit, action.cell, currentAttack, follow);
-    if (follow) score += follow.score;
+    score = evaluateMoveAction(action.unit, action.cell, currentAttack, follow, standing);
+    /* A move uses up the activation (v1.12.9), so the blow the fighter could
+     * strike from the new cell is NOT struck this turn. Before v1.12.17 the
+     * whole value of that blow was added to the move, so for an archer, whose
+     * bow reaches everyone from anywhere, every step looked as good as a shot
+     * plus the bonuses for walking, and the AI kept walking instead of
+     * shooting. Now a move only earns a share of what it ADDS over the blow
+     * the fighter could already strike from where it stands. */
+    const already = standing ? standing.score : 0;
+    if (follow) score += Math.max(0, follow.score - already) * AI_TUNING.followCredit;
     /* A cell from which the next blow would end a unit is worth more than
      * a cell that only looks closer. */
     const depth = tacticalDepth(action.unit.team);
-    if (follow && follow.lethal) score += depth.position * AI_TUNING.positionalLethalCredit;
+    if (follow && follow.lethal && !(standing && standing.lethal)) {
+      score += depth.position * AI_TUNING.positionalLethalCredit;
+    }
   } else if (action.kind === "ability") {
     score = evaluateAbilityAction(action.unit, action.ability, action.target);
   } else if (action.kind === "brace") {
@@ -3414,10 +3446,11 @@ function chooseEnemyAction(unit) {
   const depth = tacticalDepth(unit.team);
   /* The best blow available from where the unit stands, worked out once for
    * the whole turn so that every candidate step can be compared against it. */
-  const currentAttack = depth.waste > 0 ? bestAttackFrom(unit, unit) : null;
+  const standing = bestAttackFrom(unit, unit);
+  const currentAttack = depth.waste > 0 ? standing : null;
   let best = null;
   for (const action of actions) {
-    const score = evaluateAction(action, currentAttack);
+    const score = evaluateAction(action, currentAttack, standing);
     if (score < AI_TUNING.minActionScore) continue;
     if (!best || score > best.score || (score === best.score && actionKey(action) < actionKey(best.action))) {
       best = { action, score };

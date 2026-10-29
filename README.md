@@ -98,7 +98,7 @@ fought in sudden death, where every blow counts for 1.5× more, and a battle
 that reaches the limit without an elimination is settled on the health each
 army has left: the stronger army wins, an even field is a draw.
 
-**The champion** is a stronger unit than the rest of the legion. It keeps the
+**The champion** is a big knight on an armoured warhorse, a stronger unit than the rest of the legion. It keeps the
 same rules as everyone else, and it carries two weapons: its own blow (20 ATK
 at arm's length) and a bow (16 ATK,
 reaching the whole field) for when it would rather fight from a distance. Its three abilities are unlocked by progression rather
@@ -164,7 +164,7 @@ node balance.js         # seeded balance measurement, JSON out
 `regression.js` and `smoke_quick.js` load the shipped `game.js` into a
 sandboxed DOM stub instead of re-implementing the rules, so a test cannot pass
 while the game disagrees. Every suite prints `=== Results: N passed, M failed ===`
-and exits non-zero on failure. Current counts: 958 rule assertions and 159 DOM assertions.
+and exits non-zero on failure. Current counts: 976 rule assertions and 159 DOM assertions.
 
 ## Deploying
 

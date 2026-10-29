@@ -4,3 +4,5 @@ Thumbs.db
 *.log
 _site/
 .kilo/
+__pycache__/
+*.pyc

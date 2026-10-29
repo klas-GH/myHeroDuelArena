@@ -3,6 +3,41 @@
 Newest first. Versions 1.12.3 – 1.12.9 are summarised from the commit log; the
 older notes are kept as they were written.
 
+## v1.12.17 — the AI shoots and fights, and the champion rides
+
+- **Fixed: the AI preferred walking to shooting or striking.** When the AI
+  weighed a move it added the full value of the blow it could strike from the
+  new cell. Since v1.12.9 a fighter that moves cannot also strike that turn, so
+  that credit was for a blow that could not happen: for an archer, whose bow
+  reaches every enemy from anywhere, each step looked like a free shot plus the
+  bonuses for walking. Measured over 36 AI battles, with a blow available the AI
+  moved instead: archers 45% of the time, ballistae 26%, footmen 38%,
+  chevaliers 55%, champions 67%. A move now earns only a share (30%) of the blow
+  it *adds* over what the fighter could already strike from where it stands;
+  bow-only fighters are no longer pulled forward (their bow already reaches
+  everyone); a fighter that can already strike is pulled forward much less and
+  gets a bigger bonus for striking now. The same battles now show: archers 1%,
+  ballistae 0%, footmen 7%, chevaliers 15%, champions 5% (mostly wounded
+  fighters backing off). Archers shoot 97% of their turns instead of 49%.
+- Battles are far shorter, because the units actually fight: about 14 rounds
+  instead of 25 (they used to run almost to the round-30 limit).
+- Hard's "hunt the champion" bonus is lowered from 14 to 3. With fighters that
+  now really strike, the old value made every Hard unit pile onto the 90-HP
+  champion and Hard played *worse* than Normal. Crimson wins against the
+  reference opponent, 20 seeds per map: Easy 2%, Normal 70%, Hard 79%.
+- **New champion picture: a big knight in gleaming plate on an armoured white
+  warhorse.** Polished steel with bright highlights and glints of light, a great
+  helm with a tall plume and golden band, broad pauldrons, a raised greatsword, a
+  cape and a tabard in the army's colour, and a destrier with a face plate and
+  breast armour under a caparison in the army's colour with a golden hem. A bow
+  hangs at the saddle. The horse is white, so it cannot be mistaken for the
+  chevalier's brown horse. Drawn by `generate_troop_art.py` (now also
+  `python generate_troop_art.py champion` to redraw just one troop).
+- The champion's standing silhouette, which sits behind every picture as a
+  fallback, is hidden once the mounted picture has loaded (it showed through).
+- Tests: new sections 104 (AI decisions, scenario and over whole battles) and 105
+  (the champion art). 976 rule assertions.
+
 ## v1.12.16 — a blade cuts an enemy that slipped behind it
 
 - **Changed: a blade may strike an adjacent enemy behind the fighter.** Until

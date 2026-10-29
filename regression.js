@@ -3639,6 +3639,92 @@ section("103. A blade cuts an enemy that slipped behind it (v1.12.16)");
   assert(!far.canAttack(b2, f2), "a foe two cells behind is still out of reach");
 }
 
+section("104. The AI shoots or fights instead of walking (v1.12.17)");
+
+{
+  /* Opening position: an archer can shoot from where it stands, so it shoots. */
+  const { api } = newGame();
+  api.startBattle();
+  const archer = unitByType(api, TEAM_RED, "archer");
+  const first = api.chooseEnemyAction(archer);
+  assert(first && first.kind === "attack", "a healthy archer with a shot available shoots instead of walking");
+  const ballista = unitByType(api, TEAM_RED, "ballista");
+  const bolt = api.chooseEnemyAction(ballista);
+  assert(bolt && bolt.kind === "attack", "a ballista with a bolt available looses it instead of walking");
+}
+
+{
+  /* A healthy blade with a foe beside it strikes the foe. */
+  const { api } = newGame();
+  api.startBattle();
+  const blade = unitByType(api, TEAM_RED, "footman");
+  const foe = unitByType(api, TEAM_BLUE, "footman");
+  for (const u of [...api.getUnits().values()]) if (u !== blade && u !== foe) { u.alive = false; u.defeated = true; }
+  foe.col = 4; foe.row = 1;
+  blade.col = 5; blade.row = 1;
+  assert(api.canAttack(blade, foe), "the foe is beside the blade");
+  const act = api.chooseEnemyAction(blade);
+  assert(act && act.kind === "attack", "a healthy footman beside a foe strikes it instead of walking on");
+}
+
+{
+  /* Over whole battles on every map: when a blow is available, shooters
+   * shoot and blades mostly strike. Decisions are sampled before each turn. */
+  const probe = newGame().api;
+  const stats = { shooter: { n: 0, moves: 0 }, blade: { n: 0, moves: 0 } };
+  for (const map of probe.MAP_IDS) {
+    const { api } = newGame();
+    api.setActiveMap(map);
+    api.startBattle();
+    for (let round = 0; round < 14 && api.getState().gameState !== "ended"; round++) {
+      for (const team of [TEAM_BLUE, TEAM_RED]) {
+        for (const u of api.getTeamUnits(team)) {
+          if (u.hasMoved || u.hasAttacked) continue;
+          if (api.getValidTargets(u).length === 0) continue;
+          const action = api.chooseEnemyAction(u);
+          const bucket = (u.type === "archer" || u.type === "ballista") ? stats.shooter : stats.blade;
+          bucket.n++;
+          if (action && action.kind === "move") bucket.moves++;
+        }
+        if (team === TEAM_BLUE) api.runTurnInstantForTeam(TEAM_BLUE); else api.endPlayerTurnInstant();
+        if (api.checkBattleEnd()) break;
+      }
+      if (api.getState().gameState === "ended") break;
+    }
+  }
+  assert(stats.shooter.n > 40, `enough shooter decisions were sampled (${stats.shooter.n})`);
+  assert(stats.blade.n > 40, `enough blade decisions were sampled (${stats.blade.n})`);
+  assert(stats.shooter.moves / stats.shooter.n <= 0.1,
+    `shooters with a shot available walk at most 10% of the time (${stats.shooter.moves}/${stats.shooter.n})`);
+  assert(stats.blade.moves / stats.blade.n <= 0.2,
+    `blades with a strike available walk at most 20% of the time (${stats.blade.moves}/${stats.blade.n})`);
+}
+
+section("105. The champion is a mounted knight (v1.12.17)");
+
+{
+  const fs = require("fs");
+  const readPng = (file) => {
+    const buf = fs.readFileSync(__dirname + "/assets/troops/" + file);
+    assert(buf.slice(1, 4).toString() === "PNG", file + " is a PNG");
+    return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+  };
+  for (const team of ["blue", "red"]) {
+    const champ = readPng(`champion-${team}.png`);
+    const chev = readPng(`chevalier-${team}.png`);
+    /* The old champion was a tall standing figure (about 0.6 wide for 1 tall).
+     * A mounted knight is nearly as wide as it is tall, and it is bigger than
+     * the chevalier, so it fills the two-column box of the champion. */
+    assert(champ.w / champ.h > 0.8, `the ${team} champion picture is a wide, mounted figure (${champ.w}x${champ.h})`);
+    assert(champ.w >= chev.w && champ.h >= chev.h, `the ${team} champion is drawn bigger than the chevalier`);
+  }
+  const gen = fs.readFileSync(__dirname + "/generate_troop_art.py", "utf8");
+  assert(/def draw_champion\(team\)[\s\S]*?(warhorse|destrier)/.test(gen), "the art generator draws the champion on a warhorse");
+  const css = fs.readFileSync(__dirname + "/style.css", "utf8");
+  assert(/\.unit\.champion \.unit-art\.has-picture \.unit-silhouette\s*\{\s*display:\s*none/.test(css),
+    "the standing silhouette is hidden behind the loaded mounted picture");
+}
+
 section("90. Troop mode — one activation per unit per round");
 
 {
