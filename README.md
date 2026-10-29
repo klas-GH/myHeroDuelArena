@@ -78,8 +78,9 @@ ability radii all use that one rule.
 champion's) covers the whole field: it lands on any living enemy, and neither
 the distance, nor the ground in between, nor the rank the enemy stands in turns
 the shot aside. A blade (the foot soldier's, the chevalier's and the champion's)
-only cuts the cell next to it, and never backwards. The chevalier and the
-champion may *charge*: they run to a free cell beside the target and strike,
+cuts the cells next to it: ahead, to the side and behind, so a fighter turns
+on a foe that has slipped round its back; it never reaches further than the
+adjacent cell. The chevalier and the champion may *charge*: they run to a free cell beside the target and strike,
 from any distance, but only if they can actually walk there. Fighters and rocks
 in the way stop a charge; one open lane is a way in. A fighter struck by a blade
 answers once per round with a riposte at −25% damage.
@@ -163,7 +164,7 @@ node balance.js         # seeded balance measurement, JSON out
 `regression.js` and `smoke_quick.js` load the shipped `game.js` into a
 sandboxed DOM stub instead of re-implementing the rules, so a test cannot pass
 while the game disagrees. Every suite prints `=== Results: N passed, M failed ===`
-and exits non-zero on failure. Current counts: 942 rule assertions and 159 DOM assertions.
+and exits non-zero on failure. Current counts: 958 rule assertions and 159 DOM assertions.
 
 ## Deploying
 

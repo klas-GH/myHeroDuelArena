@@ -439,9 +439,12 @@ section("8.2. The front line");
   redFoot.col = 4; redFoot.row = 1;
   assert(!api.canAttack(blueFoot, redFoot), "a blade cannot strike two columns away");
 
-  /* A blade never strikes backwards. */
+  /* A blade cuts the cell behind it too (v1.12.16), but only the adjacent one. */
+  blueFoot.col = 3; blueFoot.row = 1;
+  redFoot.col = 2; redFoot.row = 1;
+  assert(api.canAttack(blueFoot, redFoot), "a blade strikes an adjacent enemy standing behind it");
   redFoot.col = 1; redFoot.row = 1;
-  assert(!api.canAttack(blueFoot, redFoot), "a blade never strikes backwards");
+  assert(!api.canAttack(blueFoot, redFoot), "a blade does not strike an enemy two cells behind it");
 
   /* A blade never strikes further than its own reach. */
   redFoot.col = 5; redFoot.row = 1;
@@ -586,13 +589,16 @@ section("8.4. The melee gap rule");
   foe.row = 2;
   assert(api.canAttack(blade, foe), "a blade strikes a foe one lane to the side");
 
-  /* Behind the blade. */
+  /* Behind the blade: an adjacent foe is struck (v1.12.16), a farther one is not. */
   foe.col = 2;
   foe.row = 1;
-  assert(!api.canAttack(blade, foe), "a blade never strikes backwards");
+  assert(api.canAttack(blade, foe), "a blade strikes an adjacent foe directly behind it");
   foe.col = 2;
   foe.row = 2;
-  assert(!api.canAttack(blade, foe), "a blade never strikes backwards, not even diagonally");
+  assert(api.canAttack(blade, foe), "a blade strikes an adjacent foe diagonally behind it");
+  foe.col = 1;
+  foe.row = 1;
+  assert(!api.canAttack(blade, foe), "a blade does not strike a foe two cells behind it");
 
   /* Beyond the reach of the blade. */
   foe.col = 6;
@@ -654,7 +660,7 @@ section("8.4. The melee gap rule");
   blueArcher.row = 1;
   assert(api.canAttack(redBlade, blueArcher), "the crimson blade reaches the target in front of it");
   blueArcher.col = 8;
-  assert(!api.canAttack(redBlade, blueArcher), "the crimson blade never strikes backwards");
+  assert(!api.canAttack(redBlade, blueArcher), "the crimson blade does not reach a target three cells behind it");
 }
 
 /* 9. INVALID TARGET REJECTION */
@@ -3275,8 +3281,8 @@ section("95. Charge needs a real route (v1.12.10)");
   assert(api.getChargeSteps(chevalier).has(`${cell.col},${cell.row}`), "the approach cell lies on a walkable route");
   assert(api.canAttack(chevalier, foe) === true, "the charge through the gap is legal");
 
-  /* A blade never cuts backwards: the approach cell is never behind the foe. */
-  assert(cell.col <= foe.col, "the chevalier does not end behind the foe");
+  /* From the approach cell the blade can really strike the foe. */
+  assert(api.fieldDistance(cell, foe) === 1, "the chevalier ends beside the foe");
 }
 
 section("96. Acting legion keeps its action animations (v1.12.10)");
@@ -3583,6 +3589,54 @@ section("102. A fallen fighter leaves the field completely (v1.12.15)");
   assert(rule && /visibility:\s*hidden/.test(rule[0]), "a fallen fighter is hidden, not left as a ghost");
   assert(!/\.(unit|unit-overlay)\.defeated\s*\{[^}]*opacity:\s*0\.[1-9]/.test(css),
     "no rule leaves a fallen fighter as a faint ghost");
+}
+
+section("103. A blade cuts an enemy that slipped behind it (v1.12.16)");
+
+{
+  /* The case of the bug report: an enemy on the blue back column, behind the
+   * blue footman. Both armies, every blade. */
+  const build = () => {
+    const { api } = newGame();
+    api.startBattle();
+    return api;
+  };
+  for (const [team, foeTeam, ownCol, behindCol] of [[TEAM_BLUE, TEAM_RED, 3, 2], [TEAM_RED, TEAM_BLUE, 6, 7]]) {
+    for (const type of ["footman", "chevalier", "champion"]) {
+      const api = build();
+      const blade = unitByType(api, team, type);
+      const foe = unitByType(api, foeTeam, "footman");
+      for (const u of [...api.getUnits().values()]) if (u !== blade && u !== foe) { u.alive = false; u.defeated = true; }
+      blade.col = ownCol; blade.row = 1;
+      foe.col = behindCol; foe.row = 2;
+      assert(api.canAttack(blade, foe), `${team} ${type} strikes an adjacent enemy behind it`);
+      foe.col = behindCol; foe.row = 1;
+      assert(api.canAttack(blade, foe), `${team} ${type} strikes the enemy directly behind it`);
+    }
+  }
+
+  /* A real blow lands, through the real click handlers. */
+  const api = build();
+  const blade = unitByType(api, TEAM_BLUE, "footman");
+  const foe = unitByType(api, TEAM_RED, "footman");
+  for (const u of [...api.getUnits().values()]) if (u !== blade && u !== foe) { u.alive = false; u.defeated = true; }
+  blade.col = 3; blade.row = 2;
+  foe.col = 2; foe.row = 3;
+  const hpBefore = foe.hp;
+  api.withInstantTimers(() => {
+    api.selectUnit(blade.id);
+    api.onAttackClick(blade.id, foe.id);
+  });
+  assert(foe.hp < hpBefore, "the blow at the enemy behind lands");
+
+  /* The reach is still one cell, and the rank in front of a distant target still covers it. */
+  const far = build();
+  const b2 = unitByType(far, TEAM_BLUE, "footman");
+  const f2 = unitByType(far, TEAM_RED, "footman");
+  for (const u of [...far.getUnits().values()]) if (u !== b2 && u !== f2) { u.alive = false; u.defeated = true; }
+  b2.col = 5; b2.row = 1;
+  f2.col = 3; f2.row = 1;
+  assert(!far.canAttack(b2, f2), "a foe two cells behind is still out of reach");
 }
 
 section("90. Troop mode — one activation per unit per round");

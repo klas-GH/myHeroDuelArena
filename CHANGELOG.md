@@ -3,6 +3,24 @@
 Newest first. Versions 1.12.3 – 1.12.9 are summarised from the commit log; the
 older notes are kept as they were written.
 
+## v1.12.16 — a blade cuts an enemy that slipped behind it
+
+- **Changed: a blade may strike an adjacent enemy behind the fighter.** Until
+  now a blade could only cut ahead or to the side, so an enemy that walked round
+  to the back column (a legal move since the field became columns 2–7) stood
+  behind your fighters and no blade could touch it; only bows and fighters in the
+  same column could. A foot soldier, a chevalier or a champion now turns and
+  strikes any enemy in the cell next to it, in front, beside or behind. The
+  reach is still one cell (an enemy two cells behind is out of reach), and the
+  rank in front of a distant target still covers it. The v1.12.15 "stands behind
+  … a blade never cuts backwards" message is gone with the rule.
+- A charger may now also end its charge on a cell behind its target.
+- Balance on Normal moved from 65% to 50% crimson wins (10 seeds per map, no
+  stalemates or timeouts); Hard 47% to 55%, Easy 5% to 2%.
+- Tests: the three assertions that encoded the old rule were rewritten, and
+  section 103 was added (both armies, every blade, a real blow through the
+  click handlers). 958 rule assertions.
+
 ## v1.12.15 — AI vs AI in Troop mode, and fallen fighters leave the field
 
 - **Fixed: AI vs AI in Troop mode.** The spectator branch of the turn hand-over
