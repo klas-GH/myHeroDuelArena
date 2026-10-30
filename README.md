@@ -139,7 +139,10 @@ change to the saved profile.
 | `style.css` | All styling, including the responsive rules and the unit animations. |
 | `game.js` | The whole game: rules, terrain, maps, difficulty, AI, rendering and persistence. |
 | `assets/troops/` | The ten troop pictures, one per kind of fighter and colour. |
-| `generate_troop_art.py`, `generate_game_art.py`, `gen_icons.py` | Scripts that draw the artwork and icons (Pillow). |
+| `assets/scene/` | The scenery: backdrop, grass, the two strongholds, terrain, clouds. |
+| `generate_troop_art.py` | Draws the troop pictures (Pillow). `python generate_troop_art.py footman` redraws only that troop. |
+| `generate_scene_art.py` | Draws the scenery (Pillow and numpy): `python generate_scene_art.py backdrop strongholds terrain`. |
+| `generate_game_art.py`, `gen_icons.py` | Older scripts for the icons and an earlier set of artwork. |
 | `test_harness.js` | The DOM stub and sandbox loader shared by the test suites. |
 | `regression.js` | Rule-level suite; drives the real engine through the harness. |
 | `smoke_quick.js` | DOM and wiring suite; boots the real page in the stub. |
@@ -164,7 +167,7 @@ node balance.js         # seeded balance measurement, JSON out
 `regression.js` and `smoke_quick.js` load the shipped `game.js` into a
 sandboxed DOM stub instead of re-implementing the rules, so a test cannot pass
 while the game disagrees. Every suite prints `=== Results: N passed, M failed ===`
-and exits non-zero on failure. Current counts: 976 rule assertions and 159 DOM assertions.
+and exits non-zero on failure. Current counts: 1014 rule assertions and 159 DOM assertions.
 
 ## Deploying
 

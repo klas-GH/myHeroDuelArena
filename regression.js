@@ -3721,8 +3721,65 @@ section("105. The champion is a mounted knight (v1.12.17)");
   const gen = fs.readFileSync(__dirname + "/generate_troop_art.py", "utf8");
   assert(/def draw_champion\(team\)[\s\S]*?(warhorse|destrier)/.test(gen), "the art generator draws the champion on a warhorse");
   const css = fs.readFileSync(__dirname + "/style.css", "utf8");
-  assert(/\.unit\.champion \.unit-art\.has-picture \.unit-silhouette\s*\{\s*display:\s*none/.test(css),
+  assert(/\.unit(\.champion)? \.unit-art\.has-picture \.unit-silhouette\s*\{\s*display:\s*none/.test(css),
     "the standing silhouette is hidden behind the loaded mounted picture");
+}
+
+section("106. The scenery: backdrop, strongholds, terrain and troop art (v1.12.18)");
+
+{
+  const fs = require("fs");
+  const path = require("path");
+  const css = fs.readFileSync(__dirname + "/style.css", "utf8").replace(/\r\n/g, "\n");
+  const html = fs.readFileSync(__dirname + "/index.html", "utf8").replace(/\r\n/g, "\n");
+  const pngSize = (file) => {
+    const buf = fs.readFileSync(file);
+    return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+  };
+
+  /* Every picture the stylesheet names exists: a missing one is a 404 and a hole in the scenery. */
+  const urls = [...css.matchAll(/url\("(assets\/[^"]+)"\)/g)].map(m => m[1]);
+  assert(urls.length >= 20, `the stylesheet uses the painted scenery (${urls.length} pictures)`);
+  const missing = urls.filter(u => !fs.existsSync(path.join(__dirname, u)));
+  assert(missing.length === 0, "every picture named in the stylesheet exists" + (missing.length ? ": " + missing.join(", ") : ""));
+
+  /* The strongholds: one on each side, each with a wall, a rampart, banners and three buildings. */
+  for (const team of ["blue", "red"]) {
+    const block = html.match(new RegExp(`<div class="citadel citadel-${team}"[\\s\\S]*?</div>\\s*</div>\\s*(?=\\n\\s*<div class="citadel|\\n\\s*<div class="grass)`));
+    assert(html.includes(`citadel citadel-${team}`), `the ${team} stronghold is on the page`);
+    assert(block && (block[0].match(/citadel-bay/g) || []).length === 3, `the ${team} stronghold has a far tower, a gatehouse and a near tower`);
+  }
+  assert(html.includes('class="backdrop"'), "the painted backdrop is on the page");
+  assert(!/class="(sky|sun|mountains|ground-hill)"/.test(html), "the old CSS sky, sun and mountains are gone");
+
+  /* They stand on the two unused columns (20% each) and run from the horizon to the footer. */
+  const citadel = css.match(/\.citadel \{[^}]*\}/)[0];
+  assert(/width:\s*20%/.test(citadel), "a stronghold takes the 20% of the field that is two columns");
+  assert(/bottom:\s*0/.test(citadel), "a stronghold runs all the way down to the footer");
+  assert(/\.citadel-red \{[^}]*scaleX\(-1\)/.test(css), "the crimson stronghold is turned to face the field");
+  assert(/\.terrain-outer[\s\S]*?display:\s*none/.test(css), "no terrain is drawn on the stronghold columns");
+
+  /* The art itself. */
+  for (const f of ["backdrop.jpg", "grass.jpg", "cloud-1.png", "forest-a.png", "forest-b.png", "rocks-a.png", "boulder-a.png",
+    "highground.png", "tower-blue.png", "tower-red.png", "gatehouse-blue.png", "gatehouse-red.png", "wall-blue.jpg", "wall-red.jpg"]) {
+    assert(fs.existsSync(path.join(__dirname, "assets", "scene", f)), `assets/scene/${f} exists`);
+  }
+  const tower = pngSize(path.join(__dirname, "assets/scene/tower-blue.png"));
+  assert(tower.h > tower.w, "a tower is taller than it is wide");
+  const gate = pngSize(path.join(__dirname, "assets/scene/gatehouse-blue.png"));
+  assert(gate.w > gate.h, "a gatehouse is wider than it is tall");
+
+  /* The troops: upright soldiers, wide machines and riders. */
+  const troop = (name) => pngSize(path.join(__dirname, "assets/troops", name + "-blue.png"));
+  assert(troop("footman").h > troop("footman").w, "the footman picture is upright");
+  assert(troop("archer").h > troop("archer").w, "the archer picture is upright");
+  assert(troop("ballista").w > troop("ballista").h, "the ballista picture is wide");
+  assert(troop("chevalier").w > troop("chevalier").h, "the chevalier picture is wide");
+  for (const t of ["footman", "archer", "ballista", "chevalier", "champion"]) {
+    assert(troop(t).h >= 330, `the ${t} picture is drawn large enough for sharp screens (${troop(t).h}px)`);
+  }
+  const gen = fs.readFileSync(__dirname + "/generate_scene_art.py", "utf8");
+  assert(/BUILDERS\["strongholds"\]/.test(gen) && /BUILDERS\["terrain"\]/.test(gen), "the scenery generator can redraw the strongholds and the terrain");
 }
 
 section("90. Troop mode — one activation per unit per round");

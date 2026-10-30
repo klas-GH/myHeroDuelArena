@@ -1,5 +1,5 @@
 /* ==========================================================================
-   myHeroDuelArena v1.12.17 — FIGHT IT, OR WATCH THE AI FIGHT IT
+   myHeroDuelArena v1.12.18 — FIGHT IT, OR WATCH THE AI FIGHT IT
    ==========================================================================
 
    SECTION GUIDE
@@ -46,7 +46,7 @@
 /* 1. APP CONFIG & CONSTANTS */
 
 const APP_NAME = "myHeroDuelArena";
-const APP_VERSION = "v1.12.17";
+const APP_VERSION = "v1.12.18";
 
 const TEAM_BLUE = "blue";
 const TEAM_RED = "red";
@@ -1483,7 +1483,11 @@ function renderTerrain() {
     for (let col = 0; col < GRID_COLS; col++) {
       const terrain = getTerrainAt(col, row);
       const cell = document.createElement("div");
-      cell.className = `terrain-cell terrain-${terrain.id}`;
+      /* Two variants of each picture, by the position of the cell. The outer
+       * columns belong to the strongholds: nobody fights there, so their
+       * cells exist (the grid is still 10 wide) but draw nothing. */
+      const outer = col < FIELD_MIN_COL || col > FIELD_MAX_COL ? " terrain-outer" : "";
+      cell.className = `terrain-cell terrain-${terrain.id} terrain-v${(col + row) % 2}${outer}`;
       cell.style.left = `${colPercent(col)}%`;
       cell.style.top = `${rowPercent(row)}%`;
       cell.dataset.col = String(col);

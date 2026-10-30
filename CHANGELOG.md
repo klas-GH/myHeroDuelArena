@@ -3,6 +3,41 @@
 Newest first. Versions 1.12.3 – 1.12.9 are summarised from the commit log; the
 older notes are kept as they were written.
 
+## v1.12.18 — a new look: scenery, strongholds and troops
+
+The game mechanics are settled, so this release is all about how it looks. All
+of the art is drawn by scripts in the repository, so it can be redrawn and tuned.
+
+- **The strongholds run the whole height of the field.** The outer two columns
+  on each side are never fought over, so each legion keeps its stronghold there:
+  a stone wall with battlements, a far tower, a gatehouse with torches and a
+  portcullis, a big near tower, and heraldic banners, running from the horizon
+  down to the footer and facing each other across the field. They get bigger
+  toward the viewer, and the crimson one is the same stronghold turned round.
+  (The old castles were cut off by the grass, so only their top showed.)
+- **A painted backdrop** replaces the CSS gradients: a sky with a sun and clouds,
+  three ranges of lit, snow-capped mountains and layered forested hills, cropped
+  rather than stretched so it suits every screen. Two extra clouds drift across
+  it (they stand still with "reduce motion").
+- **Grass** is a seamless textured meadow with mown stripes, blades and flowers.
+- **Terrain is painted:** pines and oaks, rocky ground, faceted boulders and a
+  grassy hill with a flag, two variants of each, instead of CSS triangles. No
+  terrain is drawn on the stronghold columns.
+- **Every troop was redrawn** in the same polished style as the champion:
+  - the footman: gleaming plate, a heraldic kite shield, a sword held high;
+  - the archer: studded leather, a feathered cap, a great bow with an arrow;
+  - the ballista: a rope-wound torsion drum, a drawn string, a loaded bolt, the
+    army's banner and a rack of spare bolts;
+  - the chevalier: a knight on a chestnut horse under a caparison of the army's
+    colour, with a round shield and a couched lance with a pennant.
+  The ballista and chevalier get a wider picture box that overhangs toward their
+  own stronghold only, so they never reach into the lane in front of them.
+- The fallback silhouette behind every picture is hidden once the picture has
+  loaded (it floated above the troops on small screens).
+- The legion names hang on the strongholds as plaques.
+- Tests: new section 106, which also checks that every picture the stylesheet
+  names exists. 1014 rule assertions.
+
 ## v1.12.17 — the AI shoots and fights, and the champion rides
 
 - **Fixed: the AI preferred walking to shooting or striking.** When the AI

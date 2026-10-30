@@ -155,8 +155,8 @@ if (loaded.error === null) {
 
   /* The terrain is drawn as one decorative cell per grid position. */
   assert(terrain.children.length === 40, `the terrain layer renders 40 cells (got ${terrain.children.length})`);
-  assert(terrain.children.every(c => /^terrain-cell terrain-\w+$/.test(c.className)),
-    "every terrain cell carries a terrain type class");
+  assert(terrain.children.every(c => /^terrain-cell terrain-[a-z]+( terrain-v[01])?( terrain-outer)?$/.test(c.className)),
+    "every terrain cell carries a terrain type class (and a variant)");
   assert(terrain.children.every(c => typeof c.style.left === "string" && c.style.left.endsWith("%")),
     "terrain cells are positioned with percentage coordinates");
   assert(terrain.children.every(c => typeof c.style.top === "string" && c.style.top.endsWith("%")),

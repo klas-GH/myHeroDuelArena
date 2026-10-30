@@ -91,245 +91,206 @@ body {
   --champ-art-w: 21cqw;
 }
 
-/* 3.1 SKY & ATMOSPHERE */
-.sky {
+/* 3.1 THE BACKDROP
+ * Sky, sun, clouds, three ranges of mountains and the forested hills are one
+ * painted picture (assets/scene/backdrop.jpg, drawn by generate_scene_art.py).
+ * It is cropped, never stretched, so it looks right on a wide desktop and on a
+ * narrow phone, and its last strip is the colour of the grass so that the
+ * field starts without a seam.
+ */
+.backdrop {
   position: absolute;
+  z-index: 0;
   top: 0;
   left: 0;
   width: 100%;
-  height: 20%;
-  background: linear-gradient(
-    to bottom,
-    #7ec0ee 0%,
-    #5c9ed1 40%,
-    #a8d4df 100%
-  );
-  z-index: 0;
+  height: 40%;
+  background:
+    url("assets/scene/backdrop.jpg") center bottom / cover no-repeat,
+    linear-gradient(to bottom, #3a7fce 0%, #a8d4df 70%, #527d38 100%);
 }
 
-.sun {
-  position: absolute;
-  top: 5%;
-  right: 14%;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: #fff0b1;
-  box-shadow: 0 0 30px rgba(255, 240, 177, 0.6);
-  z-index: 1;
-}
-
+/* Two extra clouds drift slowly across the painted sky. */
 .cloud {
   position: absolute;
-  width: 70px;
-  height: 14px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.45);
   z-index: 1;
-}
-
-.cloud::before,
-.cloud::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  background: inherit;
-}
-
-.cloud::before {
-  width: 26px;
-  height: 24px;
-  left: 12px;
-  top: -12px;
-}
-
-.cloud::after {
-  width: 32px;
-  height: 28px;
-  right: 10px;
-  top: -16px;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
 .cloud-one {
   top: 4%;
-  left: 22%;
+  left: -22%;
+  width: 200px;
+  height: 75px;
+  background-image: url("assets/scene/cloud-1.png");
+  opacity: 0.92;
+  animation: cloud-drift 190s linear infinite;
 }
 
 .cloud-two {
-  top: 10%;
-  right: 20%;
-  transform: scale(0.75);
+  top: 13%;
+  left: -30%;
+  width: 150px;
+  height: 56px;
+  background-image: url("assets/scene/cloud-2.png");
+  opacity: 0.8;
+  animation: cloud-drift 260s linear infinite;
+  animation-delay: -120s;
+}
+
+@keyframes cloud-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(165vw); }
 }
 
 /* 3.2 THE TWO STRONGHOLDS
  *
- * Each legion stands behind its own stronghold: the azure wall holds the
- * left margin, the crimson wall the right one, and the two face each other
- * across the field. A fortress runs from the top of the scene down to the
- * ground, so the middle of the sky is free and the field can start higher
- * up — which is where the room for the bigger army comes from.
+ * The outer two columns on each side are never fought over, so each legion
+ * keeps its stronghold there, running from the horizon all the way down to
+ * the footer, and the two face each other across the field. The wall is a
+ * seamless stone texture that simply grows with the height; a small far tower,
+ * a gatehouse and a big near tower stand on it, bigger toward the viewer, so
+ * the stronghold gets deeper as it comes down the screen.
  */
-.mountains {
-  position: absolute;
-  z-index: 0;
-  top: 5%;
-  left: -12%;
-  width: 124%;
-  height: 15%;
-  background: #779b8a;
-  clip-path: polygon(
-    0 82%, 14% 32%, 26% 68%, 40% 10%,
-    55% 76%, 70% 24%, 82% 70%, 94% 36%,
-    100% 66%, 100% 100%, 0 100%
-  );
-}
-
 .citadel {
   position: absolute;
-  z-index: 1;
-  top: 0;
+  z-index: 2;
+  top: 5%;
   bottom: 0;
-  width: 13%;
+  width: 20%;
   pointer-events: none;
-  --stone-light: #b3ad96;
-  --stone-dark: #817e70;
-  --stone-tower-light: #999789;
-  --stone-tower-dark: #686a61;
+  --edge: #5c6677;
+  --rampart: #b9c3d4;
+  --rampart-dark: #5f6b80;
 }
 
 .citadel-blue {
   left: 0;
-  --stone-light: #a9b7ca;
-  --stone-dark: #6d7d92;
-  --stone-tower-light: #93a2b4;
-  --stone-tower-dark: #5c6a7c;
 }
 
 .citadel-red {
   right: 0;
-  /* The crimson stronghold is the same wall, turned to face the field. */
+  /* The crimson stronghold is the same stronghold, turned to face the field. */
   transform: scaleX(-1);
-  --stone-light: #c3a893;
-  --stone-dark: #8d6857;
-  --stone-tower-light: #b39481;
-  --stone-tower-dark: #74513f;
+  --edge: #6f5448;
+  --rampart: #d3b8a6;
+  --rampart-dark: #7a5a4c;
 }
 
-/* The long wall of the fortress. */
 .citadel-wall {
   position: absolute;
+  inset: 12% 0 0 0;
+  border-right: 5px solid var(--edge);
+  background:
+    linear-gradient(to bottom, rgba(196, 214, 238, 0.46), rgba(196, 214, 238, 0) 40%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 34%),
+    linear-gradient(to left, rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0) 22%),
+    url("assets/scene/wall-blue.jpg") 0 0 / 150px repeat;
+  box-shadow: 10px 0 18px rgba(8, 20, 10, 0.55);
+}
+
+.citadel-red .citadel-wall {
+  background:
+    linear-gradient(to bottom, rgba(214, 200, 196, 0.40), rgba(214, 200, 196, 0) 40%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 34%),
+    linear-gradient(to left, rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0) 22%),
+    url("assets/scene/wall-red.jpg") 0 0 / 150px repeat;
+}
+
+/* The battlements: merlons along the top of the wall and down its field edge. */
+.citadel-wall::before {
+  content: "";
+  position: absolute;
   left: 0;
-  top: 0;
+  right: -5px;
+  top: -15px;
+  height: 15px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--rampart) 0 16px,
+    transparent 16px 28px
+  );
+  border-top: 2px solid var(--rampart-dark);
+}
+
+.citadel-rampart {
+  position: absolute;
+  top: 12%;
   bottom: 0;
-  width: 64%;
-  border-right: 2px solid #6e6b60;
+  right: -13px;
+  width: 14px;
   background:
     repeating-linear-gradient(
       0deg,
-      transparent 0 20px,
-      #5f6058 21px 23px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      var(--stone-light) 0 28px,
-      var(--stone-dark) 29px 31px
+      var(--rampart) 0 20px,
+      var(--rampart-dark) 20px 22px,
+      transparent 22px 34px
     );
-  opacity: 0.94;
+  border-radius: 0 3px 3px 0;
+  filter: drop-shadow(3px 0 3px rgba(0, 0, 0, 0.5));
 }
 
-/* The battlements along the edge that looks at the field. */
-.citadel-battlements {
+.citadel-bay {
   position: absolute;
-  right: -5px;
+  left: 0;
+  width: 100%;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: right bottom;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.45));
+}
+
+.bay-far {
   top: 0;
-  bottom: 0;
-  width: 10px;
-  background: repeating-linear-gradient(
-    0deg,
-    #aaa590 0 10px,
-    transparent 10px 16px
-  );
-  opacity: 0.9;
+  height: 25%;
 }
 
-/* The tower that watches over the gate. */
-.citadel-tower {
-  position: absolute;
-  left: 8%;
-  top: 16%;
-  width: 76%;
-  height: 38%;
-  border: 2px solid #6b6b61;
-  background: repeating-linear-gradient(
-    0deg,
-    var(--stone-tower-light) 0 12px,
-    var(--stone-tower-dark) 13px 15px
-  );
+.bay-gate {
+  top: 31%;
+  height: 29%;
 }
 
-.citadel-roof {
-  position: absolute;
-  left: -10%;
-  top: -16px;
-  width: 120%;
-  height: 16px;
-  background: #6e4c3a;
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+.bay-near {
+  top: 60%;
+  height: 39%;
 }
 
-.citadel-window {
+.citadel-blue .bay-far { background-image: url("assets/scene/tower-far-blue.png"); }
+.citadel-blue .bay-gate { background-image: url("assets/scene/gatehouse-blue.png"); }
+.citadel-blue .bay-near { background-image: url("assets/scene/tower-blue.png"); }
+.citadel-red .bay-far { background-image: url("assets/scene/tower-far-red.png"); }
+.citadel-red .bay-gate { background-image: url("assets/scene/gatehouse-red.png"); }
+.citadel-red .bay-near { background-image: url("assets/scene/tower-red.png"); }
+
+/* Heraldic banners hang on the wall between the towers. */
+.citadel-banner {
   position: absolute;
-  top: 22%;
-  left: 50%;
-  width: 8px;
-  height: 16px;
-  transform: translateX(-50%);
-  border-radius: 5px 5px 0 0;
-  background: #333c3a;
+  left: 9%;
+  width: 14%;
+  aspect-ratio: 70 / 230;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  filter: drop-shadow(2px 3px 3px rgba(0, 0, 0, 0.45));
 }
 
-/* The gate at the foot of the wall. */
-.citadel-gate {
-  position: absolute;
-  left: 14%;
-  bottom: 0;
-  width: 58%;
-  height: 19%;
-  border: 2px solid #554333;
-  border-bottom: none;
-  border-radius: 46px 46px 0 0;
-  background: repeating-linear-gradient(
-    90deg,
-    #604831 0 6px,
-    #94704b 7px 9px
-  );
-}
+.banner-one { top: 22%; }
+.banner-two { top: 64%; }
+.citadel-blue .citadel-banner { background-image: url("assets/scene/banner-blue.png"); }
+.citadel-red .citadel-banner { background-image: url("assets/scene/banner-red.png"); }
 
 /* 3.3 BATTLEFIELD GROUND */
-.ground-hill {
-  position: absolute;
-  z-index: 0;
-  top: 18%;
-  left: -18%;
-  width: 136%;
-  height: 26%;
-  border-radius: 50% 50% 0 0;
-  background: linear-gradient(#719c4d, #527b37);
-}
-
 .grass {
   position: absolute;
   z-index: 1;
-  top: 38%;
+  top: 36%;
   bottom: 0;
   width: 100%;
   background:
-    repeating-linear-gradient(
-      105deg,
-      transparent 0 20px,
-      rgba(181, 200, 90, 0.18) 21px 23px
-    ),
-    linear-gradient(#527d38, #263f27);
+    linear-gradient(to bottom, #527d38 0, rgba(82, 125, 56, 0) 46px),
+    linear-gradient(to bottom, rgba(255, 246, 190, 0.10), rgba(6, 20, 10, 0.50)),
+    url("assets/scene/grass.jpg") 0 0 / 360px repeat;
 }
 
 /* The duel is fought in the middle of the field. */
@@ -384,14 +345,16 @@ body {
 }
 
 .army-name {
-  padding: 3px 8px;
+  padding: 3px 9px;
   text-align: center;
   font-size: clamp(8px, 2.5vw, 11px);
   font-weight: bold;
   letter-spacing: 1px;
   text-shadow: 0 2px 3px #17251c;
-  background: rgba(23, 37, 28, 0.55);
+  background: linear-gradient(#3b2a1b, #20160e);
+  border: 2px solid #c8a24a;
   border-radius: 3px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 226, 140, 0.25);
 }
 
 .army-blue .army-name {
@@ -467,126 +430,72 @@ body {
   pointer-events: none;
 }
 
-/* Subtle cell tint so forest / rock / high ground read at a glance even
- * when the decorative sprites are small on a phone. */
-.terrain-forest {
-  background: rgba(30, 70, 35, 0.22);
-  border-radius: 4px;
-}
-.terrain-rock {
-  background: rgba(110, 105, 90, 0.18);
-  border-radius: 3px;
-}
-.terrain-highground {
-  background: rgba(160, 190, 90, 0.16);
-  border-radius: 6px 6px 2px 2px;
-}
-.terrain-boulder {
-  background: rgba(60, 58, 50, 0.28);
-  border-radius: 4px;
+/* The strongholds stand on the outer columns: no terrain is drawn there. */
+.terrain-outer,
+.terrain-outer::before,
+.terrain-outer::after {
+  display: none;
 }
 
-/* Open grassland — a couple of faint tufts so the field reads as grass. */
+/* Each kind of ground is a small painted picture (assets/scene/, drawn by
+ * generate_scene_art.py) standing on the grass, with a faint tint under it so
+ * the kind of ground still reads at a glance when the picture is small on a
+ * phone. Two variants of each, chosen by the position of the cell, keep the
+ * field from looking stamped. */
+.terrain-forest,
+.terrain-rock,
+.terrain-highground,
+.terrain-boulder {
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: contain;
+}
+
+.terrain-forest {
+  background-image: url("assets/scene/forest-a.png"), linear-gradient(rgba(30, 70, 35, 0.20), rgba(30, 70, 35, 0.20));
+  background-size: contain, 100% 100%;
+  border-radius: 4px;
+}
+.terrain-forest.terrain-v1 { background-image: url("assets/scene/forest-b.png"), linear-gradient(rgba(30, 70, 35, 0.20), rgba(30, 70, 35, 0.20)); }
+
+.terrain-rock {
+  background-image: url("assets/scene/rocks-a.png"), linear-gradient(rgba(110, 105, 90, 0.16), rgba(110, 105, 90, 0.16));
+  background-size: contain, 100% 100%;
+  border-radius: 3px;
+}
+.terrain-rock.terrain-v1 { background-image: url("assets/scene/rocks-b.png"), linear-gradient(rgba(110, 105, 90, 0.16), rgba(110, 105, 90, 0.16)); }
+
+.terrain-highground {
+  background-image: url("assets/scene/highground.png"), linear-gradient(rgba(160, 190, 90, 0.14), rgba(160, 190, 90, 0.14));
+  background-size: contain, 100% 100%;
+  border-radius: 6px 6px 2px 2px;
+}
+
+.terrain-boulder {
+  background-image: url("assets/scene/boulder-a.png"), linear-gradient(rgba(60, 58, 50, 0.22), rgba(60, 58, 50, 0.22));
+  background-size: contain, 100% 100%;
+  border-radius: 4px;
+}
+.terrain-boulder.terrain-v1 { background-image: url("assets/scene/boulder-b.png"), linear-gradient(rgba(60, 58, 50, 0.22), rgba(60, 58, 50, 0.22)); }
+
+/* Open grassland: a few tufts and flowers so the field reads as meadow. */
 .terrain-grass::before {
   content: "";
   position: absolute;
-  left: 44%;
-  bottom: 14%;
-  width: 18px;
-  height: 9px;
-  background:
-    radial-gradient(circle at 4px 9px, rgba(198, 214, 128, 0.45) 2px, transparent 3px),
-    radial-gradient(circle at 12px 9px, rgba(198, 214, 128, 0.35) 2px, transparent 3px);
-}
-
-/* Forest — a clump of conifers that also blocks line of sight. */
-.terrain-forest::before,
-.terrain-forest::after {
-  content: "";
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-bottom: 22px solid #2c5730;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
-}
-
-.terrain-forest::before {
-  left: 10%;
-  bottom: 16%;
-}
-
-.terrain-forest::after {
-  left: 34%;
-  bottom: 26%;
-  border-bottom-color: #3b7040;
-  border-left-width: 7px;
-  border-right-width: 7px;
-  border-bottom-width: 17px;
-}
-
-/* Rocky ground — angular stones; costly to cross but not impassable. */
-.terrain-rock::before {
-  content: "";
-  position: absolute;
   left: 18%;
-  bottom: 18%;
-  width: 30%;
-  height: 24%;
-  background: #8d8b80;
-  clip-path: polygon(50% 0, 100% 58%, 78% 100%, 18% 100%, 0 52%);
-  opacity: 0.85;
-}
-
-.terrain-rock::after {
-  content: "";
-  position: absolute;
-  left: 52%;
-  bottom: 14%;
-  width: 22%;
-  height: 16%;
-  background: #6f6d63;
-  clip-path: polygon(40% 0, 100% 66%, 62% 100%, 0 76%);
-  opacity: 0.8;
-}
-
-/* High ground — a raised ridge the archers fight from. */
-.terrain-highground::before {
-  content: "";
-  position: absolute;
-  left: 3%;
-  right: 3%;
-  bottom: 6%;
-  height: 64%;
-  background: linear-gradient(180deg, rgba(158, 196, 116, 0.6), rgba(92, 136, 66, 0.32));
-  border-top: 2px solid rgba(222, 240, 178, 0.6);
-  border-radius: 42% 42% 12% 12% / 58% 58% 10% 10%;
-}
-
-/* Rock formation — impassable, and it blocks shots. */
-.terrain-boulder::before {
-  content: "";
-  position: absolute;
-  left: 16%;
   bottom: 12%;
-  width: 68%;
-  height: 52%;
-  background: linear-gradient(160deg, #7f7c6f, #4f4d45);
-  clip-path: polygon(18% 100%, 4% 46%, 26% 6%, 60% 0, 92% 28%, 100% 76%, 76% 100%);
-  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.5);
+  width: 34%;
+  height: 24%;
+  background: url("assets/scene/tuft-a.png") center bottom / contain no-repeat;
+  opacity: 0.9;
 }
 
-.terrain-boulder::after {
-  content: "";
-  position: absolute;
-  left: 30%;
-  bottom: 40%;
-  width: 24%;
-  height: 10%;
-  background: rgba(226, 226, 210, 0.25);
-  clip-path: polygon(20% 100%, 0 20%, 60% 0, 100% 70%);
+.terrain-grass.terrain-v1::before {
+  left: 52%;
+  bottom: 24%;
+  background-image: url("assets/scene/tuft-b.png");
 }
+
 /* 4.1 BLUE UNITS (LEFT) — faces right */
 .unit.blue .unit-art {
   transform: scaleX(1);
@@ -672,6 +581,29 @@ body {
 
 .unit.champion[data-col="9"] {
   --art-shift: calc((20cqw - var(--champ-art-w)) / 2);
+}
+
+/* Wide pictures. The ballista and the chevalier are wider than they are tall,
+ * so they get a wider box (the height is the same as everybody's). They
+ * overhang toward their own stronghold only: the front edge of the picture
+ * stays on the front edge of the cell, so they never reach into the lane in
+ * front of them. */
+.unit.ballista {
+  --art-w: 19.5cqw;
+}
+
+.unit.chevalier {
+  --art-w: 16.5cqw;
+}
+
+.unit.blue.ballista,
+.unit.blue.chevalier {
+  --art-shift: calc((10cqw - var(--art-w)) / 2);
+}
+
+.unit.red.ballista,
+.unit.red.chevalier {
+  --art-shift: calc((var(--art-w) - 10cqw) / 2);
 }
 
 /* 4.4 OVERLAY LAYER
@@ -794,10 +726,11 @@ body {
   z-index: 0;
 }
 
-/* The champion's silhouette is a standing figure; behind the mounted knight it
- * would show through the transparent parts of the picture. It stays as the
- * fallback for a picture that fails to load. */
-.unit.champion .unit-art.has-picture .unit-silhouette {
+/* The silhouette behind every picture is only the fallback for a picture that
+ * fails to load. Once the picture is in, the silhouette would show through the
+ * transparent parts of it (and above the head of any unit whose picture is
+ * smaller than its box), so it is hidden. */
+.unit .unit-art.has-picture .unit-silhouette {
   display: none;
 }
 
@@ -2060,6 +1993,19 @@ body {
  * Windows setups and remote desktops) a battle, and AI vs AI above all,
  * looked frozen: units jumped from cell to cell and nothing swung or shot. */
 @media (prefers-reduced-motion: reduce) {
+  /* The drifting clouds stand still, in the sky, rather than leaving it. */
+  .cloud {
+    animation: none !important;
+  }
+
+  .cloud-one {
+    left: 14%;
+  }
+
+  .cloud-two {
+    left: 66%;
+  }
+
   .unit,
   .unit.selected .selection-ring,
   .unit.champion,
